@@ -37,9 +37,27 @@ func parsePSBuyFromData(data []byte, meta EventMetadata) DexEvent {
 		o += 4
 		if o+int(l) <= len(data) {
 			ix = string(data[o : o+int(l)])
+			o += int(l)
 		}
 	}
 	ev["ix_name"] = ix
+	// Mayhem mode and cashback fields
+	mm := false
+	if o < len(data) {
+		mm, _ = readBool(data, o)
+		o++
+	}
+	cbBps := uint64(0)
+	cb := uint64(0)
+	if o+16 <= len(data) {
+		cbBps, _ = readU64LE(data, o)
+		o += 8
+		cb, _ = readU64LE(data, o)
+	}
+	ev["mayhem_mode"] = mm
+	ev["cashback_fee_basis_points"] = cbBps
+	ev["cashback"] = cb
+	ev["is_cashback_coin"] = cbBps > 0
 	return DexEvent{"PumpSwapBuy": ev}
 }
 

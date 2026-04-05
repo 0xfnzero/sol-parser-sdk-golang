@@ -1,19 +1,6 @@
 package solparser
 
-import "encoding/binary"
-
-func discLE(b []byte) uint64 {
-	if len(b) < 8 {
-		return 0
-	}
-	return binary.LittleEndian.Uint64(b[:8])
-}
-
-var (
-	discPumpCreate  = discLE([]byte{27, 114, 169, 77, 222, 235, 99, 118})
-	discPumpTrade   = discLE([]byte{189, 219, 127, 211, 78, 230, 97, 238})
-	discPumpMigrate = discLE([]byte{189, 233, 93, 185, 92, 148, 234, 148})
-)
+// PumpFun discriminators 已在 binary.go 中定义
 
 func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexEvent {
 	if len(data) < 32+8+8+1+32+8*5+32+8+8+32+8+8 {

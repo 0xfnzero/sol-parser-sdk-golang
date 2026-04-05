@@ -1,11 +1,6 @@
 package solparser
 
-// 与 TS `logs/raydium_launchpad.ts` 中 BONK_DISC 占位 discriminator 一致
-var (
-	discBonkTrade      = disc8(2, 3, 4, 5, 6, 7, 8, 9)
-	discBonkPoolCreate = disc8(1, 2, 3, 4, 5, 6, 7, 8)
-	discBonkMigrateAmm = disc8(3, 4, 5, 6, 7, 8, 9, 10)
-)
+// Bonk discriminators 已在 binary.go 中定义
 
 func parseBonkTradeFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+8+8+1+1 {

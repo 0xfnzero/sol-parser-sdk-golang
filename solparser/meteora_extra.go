@@ -5,15 +5,7 @@ import (
 	"encoding/hex"
 )
 
-var (
-	discDammSwap           = disc8(27, 60, 21, 213, 138, 170, 187, 147)
-	discDammSwap2          = disc8(189, 66, 51, 168, 38, 80, 117, 153)
-	discDammCreatePosition = disc8(156, 15, 119, 198, 29, 181, 221, 55)
-	discDammClosePosition  = disc8(20, 145, 144, 68, 143, 142, 214, 178)
-	discDammAddLiquidity   = disc8(175, 242, 8, 157, 30, 247, 185, 169)
-	discDammRemoveLiq      = disc8(87, 46, 88, 98, 175, 96, 34, 91)
-	discDammInitPool       = disc8(228, 50, 246, 85, 203, 66, 134, 37)
-)
+// DAMM discriminators 已在 binary.go 中定义
 
 // ParseMeteoraDammLog 与 TS `parseMeteoraDammLog` 对齐（Program data 载荷与 `meteora_damm_ix` CPI 内层一致）
 func ParseMeteoraDammLog(log, sig string, slot, tx uint64, blockUs *int64, grpcUs int64) DexEvent {

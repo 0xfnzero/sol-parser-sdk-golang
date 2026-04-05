@@ -259,10 +259,23 @@ func ParsePumpswapGlobalConfig(account *AccountData, metadata EventMetadata) Dex
 
 // ParsePumpswapPool 解析 PumpSwap Pool 账户
 // 对齐 Rust `parse_pumpswap_pool`
+// 结构体布局（按顺序）：
+// - pool_bump: u8 (1 byte)
+// - index: u16 (2 bytes)
+// - creator: pubkey (32 bytes)
+// - base_mint: pubkey (32 bytes)
+// - quote_mint: pubkey (32 bytes)
+// - lp_mint: pubkey (32 bytes)
+// - pool_base_token_account: pubkey (32 bytes)
+// - pool_quote_token_account: pubkey (32 bytes)
+// - lp_supply: u64 (8 bytes)
+// - coin_creator: pubkey (32 bytes)
+// - is_mayhem_mode: bool (1 byte)
+// - is_cashback_coin: bool (1 byte)
 func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
-	const poolSize = 244
+	const poolBody = 244
 
-	if len(account.Data) < poolSize+8 {
+	if len(account.Data) < 8+poolBody {
 		return nil
 	}
 
@@ -281,18 +294,19 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 	index := binary.LittleEndian.Uint16(data[offset : offset+2])
 	offset += 2
 
-	// Read 6 pubkeys
-	mintA := ReadPubkey(data, offset)
+	// creator field (was missing in original implementation)
+	creator := ReadPubkey(data, offset)
 	offset += 32
-	mintB := ReadPubkey(data, offset)
+
+	baseMint := ReadPubkey(data, offset)
+	offset += 32
+	quoteMint := ReadPubkey(data, offset)
 	offset += 32
 	lpMint := ReadPubkey(data, offset)
 	offset += 32
-	poolAuthority := ReadPubkey(data, offset)
+	poolBaseTokenAccount := ReadPubkey(data, offset)
 	offset += 32
-	poolTokenA := ReadPubkey(data, offset)
-	offset += 32
-	poolTokenB := ReadPubkey(data, offset)
+	poolQuoteTokenAccount := ReadPubkey(data, offset)
 	offset += 32
 
 	lpSupply := binary.LittleEndian.Uint64(data[offset : offset+8])
@@ -310,18 +324,18 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 		"metadata": metadata,
 		"pubkey":   account.Pubkey,
 		"pool": map[string]any{
-			"pool_bump":      poolBump,
-			"index":          index,
-			"mint_a":         mintA,
-			"mint_b":         mintB,
-			"lp_mint":        lpMint,
-			"pool_authority": poolAuthority,
-			"pool_token_a":   poolTokenA,
-			"pool_token_b":   poolTokenB,
-			"lp_supply":      lpSupply,
-			"coin_creator":   coinCreator,
-			"is_mayhem_mode": isMayhemMode,
-			"is_cashback_coin": isCashbackCoin,
+			"pool_bump":              poolBump,
+			"index":                  index,
+			"creator":                creator,
+			"base_mint":              baseMint,
+			"quote_mint":             quoteMint,
+			"lp_mint":                lpMint,
+			"pool_base_token_account":  poolBaseTokenAccount,
+			"pool_quote_token_account": poolQuoteTokenAccount,
+			"lp_supply":              lpSupply,
+			"coin_creator":           coinCreator,
+			"is_mayhem_mode":         isMayhemMode,
+			"is_cashback_coin":       isCashbackCoin,
 		},
 	}}
 }
