@@ -118,7 +118,7 @@ GEYSER_API_TOKEN=your_token go run examples/multi_protocol_grpc.go
 ### Examples
 
 | Description | Run Command | Source Code |
-|--------------|-------------|-------------|
+|-------------|-------------|-------------|
 | **PumpFun** | | |
 | PumpFun trade filtering (Buy/Sell/BuyExactSolIn/Create) with latency metrics | `go run examples/pumpfun_trade_filter.go` | [examples/pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) |
 | Quick PumpFun connection test (first 10 events) | `go run examples/pumpfun_quick_test.go` | [examples/pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) |
