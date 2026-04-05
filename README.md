@@ -97,18 +97,18 @@ GEYSER_API_TOKEN=your_token go run examples/multi_protocol_grpc.go
 
 ### Examples
 
-| Example | Description | Command |
-|---------|-------------|---------|
+| Description | Command | Source Code |
+|-------------|---------|-------------|
 | **PumpFun** | | |
-| `pumpfun_trade_filter` | PumpFun trade filtering (Buy/Sell/BuyExactSolIn/Create) with latency metrics | `go run examples/pumpfun_trade_filter.go` |
-| `pumpfun_quick_test` | Quick PumpFun connection test (first 10 events) | `go run examples/pumpfun_quick_test.go` |
+| PumpFun trade filtering (Buy/Sell/BuyExactSolIn/Create) with latency metrics | `go run examples/pumpfun_trade_filter.go` | [examples/pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) |
+| Quick PumpFun connection test (first 10 events) | `go run examples/pumpfun_quick_test.go` | [examples/pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) |
 | **PumpSwap** | | |
-| `pumpswap_low_latency` | PumpSwap ultra-low latency with per-event + 10s stats | `go run examples/pumpswap_low_latency.go` |
-| `pumpswap_with_metrics` | PumpSwap events with performance metrics | `go run examples/pumpswap_with_metrics.go` |
+| PumpSwap ultra-low latency with per-event + 10s stats | `go run examples/pumpswap_low_latency.go` | [examples/pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) |
+| PumpSwap events with performance metrics | `go run examples/pumpswap_with_metrics.go` | [examples/pumpswap_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_with_metrics.go) |
 | **Meteora DAMM** | | |
-| `meteora_damm_grpc` | Meteora DAMM V2 (Swap/AddLiquidity/RemoveLiquidity/CreatePosition/ClosePosition) | `go run examples/meteora_damm_grpc.go` |
+| Meteora DAMM V2 (Swap/AddLiquidity/RemoveLiquidity/CreatePosition/ClosePosition) | `go run examples/meteora_damm_grpc.go` | [examples/meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
 | **Multi-Protocol** | | |
-| `multi_protocol_grpc` | Subscribe to all DEX protocols simultaneously | `go run examples/multi_protocol_grpc.go` |
+| Subscribe to all DEX protocols simultaneously | `go run examples/multi_protocol_grpc.go` | [examples/multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
 
 ### Basic Usage
 
@@ -363,25 +363,6 @@ sol-parser-sdk-golang/
 - Graceful cancellation
 - Timeout handling
 - Resource cleanup
-
----
-
-## 📊 Benchmarks
-
-### Parsing Latency (Go 1.21+)
-| Protocol | Avg Latency | Min | Max |
-|----------|-------------|-----|-----|
-| PumpFun Trade | 0.3-0.8ms | 0.2ms | 1.5ms |
-| PumpSwap Buy/Sell | 0.3-0.8ms | 0.2ms | 1.5ms |
-| Raydium AMM V4 Swap | 0.3-0.8ms | 0.2ms | 1.5ms |
-| Orca Whirlpool Swap | 0.3-0.8ms | 0.2ms | 1.5ms |
-
-### Concurrent Processing
-| Goroutines | Events/sec | Memory |
-|------------|------------|--------|
-| 1 | ~50,000 | ~10MB |
-| 4 | ~180,000 | ~15MB |
-| 8 | ~300,000 | ~20MB |
 
 ---
 
