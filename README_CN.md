@@ -81,16 +81,16 @@ GEYSER_API_TOKEN=your_token go run examples/meteora_damm_grpc.go
 
 ### 示例列表
 
-| 示例 | 描述 | 命令 |
+| 描述 | 命令 | 源码 |
 |------|------|------|
 | **PumpFun** | | |
-| `pumpfun_trade_filter` | PumpFun 交易过滤（Buy/Sell/BuyExactSolIn/Create），附带延迟指标 | `go run examples/pumpfun_trade_filter.go` |
+| PumpFun 交易过滤（Buy/Sell/BuyExactSolIn/Create），附带延迟指标 | `go run examples/pumpfun_trade_filter.go` | [examples/pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) |
 | **PumpSwap** | | |
-| `pumpswap_low_latency` | PumpSwap 超低延迟，含每笔交易 + 10 秒汇总统计 | `go run examples/pumpswap_low_latency.go` |
+| PumpSwap 超低延迟，含每笔交易 + 10 秒汇总统计 | `go run examples/pumpswap_low_latency.go` | [examples/pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) |
 | **多协议** | | |
-| `multi_protocol_grpc` | 同时订阅所有 DEX 协议 | `go run examples/multi_protocol_grpc.go` |
+| 同时订阅所有 DEX 协议 | `go run examples/multi_protocol_grpc.go` | [examples/multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
 | **Meteora** | | |
-| `meteora_damm_grpc` | Meteora DAMM V2（Swap/AddLiquidity/RemoveLiquidity/CreatePosition/ClosePosition） | `go run examples/meteora_damm_grpc.go` |
+| Meteora DAMM V2（Swap/AddLiquidity/RemoveLiquidity/CreatePosition/ClosePosition） | `go run examples/meteora_damm_grpc.go` | [examples/meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
 
 ### 基本用法
 
