@@ -30,13 +30,6 @@
     <a href="https://discord.gg/vuazbGkqQE">Discord</a>
 </p>
 
-<p align="center">
-    <a href="https://github.com/0xfnzero/sol-parser-sdk">Rust</a> |
-    <a href="https://github.com/0xfnzero/sol-parser-sdk-nodejs">Node.js</a> |
-    <a href="https://github.com/0xfnzero/sol-parser-sdk-python">Python</a> |
-    <a href="https://github.com/0xfnzero/sol-parser-sdk-golang"><strong>Go</strong></a>
-</p>
-
 ---
 
 ## 📦 SDK Versions
