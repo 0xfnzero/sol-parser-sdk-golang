@@ -215,4 +215,14 @@ var (
 	discBonkTrade       = disc8(2, 3, 4, 5, 6, 7, 8, 9)
 	discBonkPoolCreate  = disc8(1, 2, 3, 4, 5, 6, 7, 8)
 	discBonkMigrateAmm  = disc8(3, 4, 5, 6, 7, 8, 9, 10)
+
+	// Meteora DLMM
+	dlmmSwap      = disc8(142, 35, 199, 193, 77, 169, 172, 85)
+	dlmmAddLiq    = disc8(83, 14, 120, 139, 140, 137, 206, 127)
+	dlmmRemoveLiq = disc8(21, 163, 85, 22, 151, 198, 162, 20)
+	dlmmInitPool  = disc8(147, 185, 18, 29, 117, 51, 73, 11)
+	dlmmInitBin   = disc8(234, 167, 189, 121, 145, 110, 218, 57)
+	dlmmCreatePos = disc8(83, 240, 75, 157, 184, 163, 193, 19)
+	dlmmClosePos  = disc8(240, 142, 81, 161, 159, 188, 231, 188)
+	dlmmClaimFee  = disc8(233, 53, 144, 233, 46, 160, 53, 114)
 )

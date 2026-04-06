@@ -23,7 +23,7 @@ const pumpswapProgramID = "pAMMBay6oceH9fJKBRdGP4LmT4saRGfEE7xmrCaGWpZ"
 // 对齐 Rust `parse_account_unified`
 func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter EventTypeFilter) DexEvent {
 	if len(account.Data) == 0 {
-		return nil
+		return DexEvent{}
 	}
 
 	// Early filtering based on event type filter
@@ -39,7 +39,7 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 		}
 	}
 	if !shouldParse {
-		return nil
+		return DexEvent{}
 	}
 
 	// PumpSwap 账户解析
@@ -47,7 +47,7 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 		if filter.ShouldInclude(EventTypeAccountPumpSwapGlobalConfig) ||
 			filter.ShouldInclude(EventTypeAccountPumpSwapPool) {
 			event := parsePumpswapAccount(account, metadata)
-			if event != nil {
+			if event.Type != "" {
 				return event
 			}
 		}
@@ -56,14 +56,14 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 	// Nonce 账户解析
 	if IsNonceAccount(account.Data) {
 		if !filter.ShouldInclude(EventTypeNonceAccount) {
-			return nil
+			return DexEvent{}
 		}
 		return ParseNonceAccount(account, metadata)
 	}
 
 	// Token 账户解析
 	if !filter.ShouldInclude(EventTypeTokenAccount) && !filter.ShouldInclude(EventTypeTokenInfo) {
-		return nil
+		return DexEvent{}
 	}
 	return ParseTokenAccount(account, metadata)
 }
@@ -74,18 +74,18 @@ func ParseTokenAccount(account *AccountData, metadata EventMetadata) DexEvent {
 	// 快速路径：尝试解析 Mint 账户
 	if len(account.Data) <= 100 {
 		event := parseMintFast(account, metadata)
-		if event != nil {
+		if event.Type != "" {
 			return event
 		}
 	}
 
 	// 快速路径：尝试解析 Token Account
 	event := parseTokenFast(account, metadata)
-	if event != nil {
+	if event.Type != "" {
 		return event
 	}
 
-	return nil
+	return DexEvent{}
 }
 
 // parseMintFast 快速解析 Mint 账户（零拷贝）
@@ -95,22 +95,25 @@ func parseMintFast(account *AccountData, metadata EventMetadata) DexEvent {
 	const decimalsOffset = 44
 
 	if len(account.Data) < mintSize {
-		return nil
+		return DexEvent{}
 	}
 
 	supply := binary.LittleEndian.Uint64(account.Data[supplyOffset : supplyOffset+8])
 	decimals := account.Data[decimalsOffset]
 
-	return DexEvent{"TokenInfo": map[string]any{
-		"metadata":   metadata,
-		"pubkey":     account.Pubkey,
-		"executable": account.Executable,
-		"lamports":   account.Lamports,
-		"owner":      account.Owner,
-		"rent_epoch": account.RentEpoch,
-		"supply":     supply,
-		"decimals":   decimals,
-	}}
+	return DexEvent{
+		Type: EventTypeTokenInfo,
+		Data: &TokenInfoEvent{
+			Metadata:   metadata,
+			Pubkey:     account.Pubkey,
+			Executable: account.Executable,
+			Lamports:   account.Lamports,
+			Owner:      account.Owner,
+			RentEpoch:  account.RentEpoch,
+			Supply:     supply,
+			Decimals:   decimals,
+		},
+	}
 }
 
 // parseTokenFast 快速解析 Token Account（零拷贝）
@@ -119,20 +122,23 @@ func parseTokenFast(account *AccountData, metadata EventMetadata) DexEvent {
 	const amountOffset = 64
 
 	if len(account.Data) < tokenAccountSize {
-		return nil
+		return DexEvent{}
 	}
 
 	amount := binary.LittleEndian.Uint64(account.Data[amountOffset : amountOffset+8])
 
-	return DexEvent{"TokenAccount": map[string]any{
-		"metadata":   metadata,
-		"pubkey":     account.Pubkey,
-		"executable": account.Executable,
-		"lamports":   account.Lamports,
-		"owner":      account.Owner,
-		"rent_epoch": account.RentEpoch,
-		"amount":     amount,
-	}}
+	return DexEvent{
+		Type: EventTypeTokenAccount,
+		Data: &TokenAccountEvent{
+			Metadata:   metadata,
+			Pubkey:     account.Pubkey,
+			Executable: account.Executable,
+			Lamports:   account.Lamports,
+			Owner:      account.Owner,
+			RentEpoch:  account.RentEpoch,
+			Amount:     amount,
+		},
+	}
 }
 
 // ParseNonceAccount 解析 Nonce 账户
@@ -143,7 +149,7 @@ func ParseNonceAccount(account *AccountData, metadata EventMetadata) DexEvent {
 	const nonceOffset = 40
 
 	if len(account.Data) != nonceAccountSize {
-		return nil
+		return DexEvent{}
 	}
 
 	// Extract authority (32 bytes at offset 8)
@@ -152,16 +158,19 @@ func ParseNonceAccount(account *AccountData, metadata EventMetadata) DexEvent {
 	// Extract nonce/blockhash (32 bytes at offset 40)
 	nonce := Base58Encode(account.Data[nonceOffset : nonceOffset+32])
 
-	return DexEvent{"NonceAccount": map[string]any{
-		"metadata":   metadata,
-		"pubkey":     account.Pubkey,
-		"executable": account.Executable,
-		"lamports":   account.Lamports,
-		"owner":      account.Owner,
-		"rent_epoch": account.RentEpoch,
-		"nonce":      nonce,
-		"authority":  authority,
-	}}
+	return DexEvent{
+		Type: EventTypeNonceAccount,
+		Data: &NonceAccountEvent{
+			Metadata:   metadata,
+			Pubkey:     account.Pubkey,
+			Executable: account.Executable,
+			Lamports:   account.Lamports,
+			Owner:      account.Owner,
+			RentEpoch:  account.RentEpoch,
+			Nonce:      nonce,
+			Authority:  authority,
+		},
+	}
 }
 
 // IsNonceAccount 检测是否为 Nonce 账户
@@ -185,13 +194,13 @@ func ParsePumpswapGlobalConfig(account *AccountData, metadata EventMetadata) Dex
 	const globalConfigSize = 32 + 8 + 8 + 1 + 32*8 + 8 + 32
 
 	if len(account.Data) < globalConfigSize+8 {
-		return nil
+		return DexEvent{}
 	}
 
 	// Check discriminator
 	globalConfigDisc := []byte{149, 8, 156, 202, 160, 252, 176, 217}
 	if !HasDiscriminator(account.Data, globalConfigDisc) {
-		return nil
+		return DexEvent{}
 	}
 
 	data := account.Data[8:]
@@ -238,23 +247,26 @@ func ParsePumpswapGlobalConfig(account *AccountData, metadata EventMetadata) Dex
 		offset += 32
 	}
 
-	return DexEvent{"PumpSwapGlobalConfigAccount": map[string]any{
-		"metadata": metadata,
-		"pubkey":   account.Pubkey,
-		"config": map[string]any{
-			"admin":                          admin,
-			"lp_fee_basis_points":            lpFeeBasisPoints,
-			"protocol_fee_basis_points":      protocolFeeBasisPoints,
-			"disable_flags":                  disableFlags,
-			"protocol_fee_recipients":        protocolFeeRecipients,
-			"coin_creator_fee_basis_points":  coinCreatorFeeBasisPoints,
-			"admin_set_coin_creator_authority": adminSetCoinCreatorAuthority,
-			"whitelist_pda":                  whitelistPda,
-			"reserved_fee_recipient":         reservedFeeRecipient,
-			"mayhem_mode_enabled":            mayhemModeEnabled,
-			"reserved_fee_recipients":        reservedFeeRecipients,
+	return DexEvent{
+		Type: EventTypeAccountPumpSwapGlobalConfig,
+		Data: &PumpSwapGlobalConfigAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			Config: PumpSwapGlobalConfigAccountData{
+				Admin:                         admin,
+				LpFeeBasisPoints:              lpFeeBasisPoints,
+				ProtocolFeeBasisPoints:        protocolFeeBasisPoints,
+				DisableFlags:                  disableFlags,
+				ProtocolFeeRecipients:         protocolFeeRecipients,
+				CoinCreatorFeeBasisPoints:     coinCreatorFeeBasisPoints,
+				AdminSetCoinCreatorAuthority:  adminSetCoinCreatorAuthority,
+				WhitelistPda:                  whitelistPda,
+				ReservedFeeRecipient:          reservedFeeRecipient,
+				MayhemModeEnabled:             mayhemModeEnabled,
+				ReservedFeeRecipients:         reservedFeeRecipients,
+			},
 		},
-	}}
+	}
 }
 
 // ParsePumpswapPool 解析 PumpSwap Pool 账户
@@ -276,13 +288,13 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 	const poolBody = 244
 
 	if len(account.Data) < 8+poolBody {
-		return nil
+		return DexEvent{}
 	}
 
 	// Check discriminator
 	poolDisc := []byte{241, 154, 109, 4, 17, 177, 109, 188}
 	if !HasDiscriminator(account.Data, poolDisc) {
-		return nil
+		return DexEvent{}
 	}
 
 	data := account.Data[8:]
@@ -320,24 +332,27 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 
 	isCashbackCoin := data[offset] != 0
 
-	return DexEvent{"PumpSwapPoolAccount": map[string]any{
-		"metadata": metadata,
-		"pubkey":   account.Pubkey,
-		"pool": map[string]any{
-			"pool_bump":              poolBump,
-			"index":                  index,
-			"creator":                creator,
-			"base_mint":              baseMint,
-			"quote_mint":             quoteMint,
-			"lp_mint":                lpMint,
-			"pool_base_token_account":  poolBaseTokenAccount,
-			"pool_quote_token_account": poolQuoteTokenAccount,
-			"lp_supply":              lpSupply,
-			"coin_creator":           coinCreator,
-			"is_mayhem_mode":         isMayhemMode,
-			"is_cashback_coin":       isCashbackCoin,
+	return DexEvent{
+		Type: EventTypeAccountPumpSwapPool,
+		Data: &PumpSwapPoolAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			Pool: PumpSwapPoolAccountData{
+				PoolBump:              poolBump,
+				Index:                 index,
+				Creator:               creator,
+				BaseMint:              baseMint,
+				QuoteMint:             quoteMint,
+				LpMint:                lpMint,
+				PoolBaseTokenAccount:  poolBaseTokenAccount,
+				PoolQuoteTokenAccount: poolQuoteTokenAccount,
+				LpSupply:              lpSupply,
+				CoinCreator:           coinCreator,
+				IsMayhemMode:          isMayhemMode,
+				IsCashbackCoin:        isCashbackCoin,
+			},
 		},
-	}}
+	}
 }
 
 // parsePumpswapAccount 解析 PumpSwap 账户（内部函数）
@@ -354,7 +369,7 @@ func parsePumpswapAccount(account *AccountData, metadata EventMetadata) DexEvent
 		return ParsePumpswapPool(account, metadata)
 	}
 
-	return nil
+	return DexEvent{}
 }
 
 // IsGlobalConfigAccount 检查是否为 Global Config 账户

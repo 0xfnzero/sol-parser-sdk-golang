@@ -2,21 +2,11 @@ package solparser
 
 import "encoding/binary"
 
-// 与 TS `logs/meteora_dlmm.ts` 中 DLMM 常量一致
-var (
-	dlmmSwap        = disc8(143, 190, 90, 218, 196, 30, 51, 222)
-	dlmmAddLiq      = disc8(181, 157, 89, 67, 143, 182, 52, 72)
-	dlmmRemoveLiq   = disc8(80, 85, 209, 72, 24, 206, 35, 178)
-	dlmmInitBin     = disc8(11, 18, 155, 194, 33, 115, 238, 119)
-	dlmmInitPool    = disc8(95, 180, 10, 172, 84, 174, 232, 40)
-	dlmmCreatePos   = disc8(123, 233, 11, 43, 146, 180, 97, 119)
-	dlmmClosePos    = disc8(94, 168, 102, 45, 59, 122, 137, 54)
-	dlmmClaimFee    = disc8(152, 70, 208, 111, 104, 91, 44, 1)
-)
+// DLMM discriminators 已在 binary.go 中定义
 
 func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 	if len(buf) < 8 {
-		return nil
+		return DexEvent{}
 	}
 	d := binary.LittleEndian.Uint64(buf[:8])
 	data := buf[8:]
@@ -24,7 +14,7 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 	switch d {
 	case dlmmSwap:
 		if len(data) < 32+32+4+4+8+8+1+8+8+16+8 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -47,19 +37,30 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		o += 8
 		fbps, ok := readU128LE(data, o)
 		if !ok {
-			return nil
+			return DexEvent{}
 		}
 		o += 16
 		hf, _ := readU64LE(data, o)
-		return DexEvent{"MeteoraDlmmSwap": map[string]any{
-			"metadata": meta, "pool": pool, "from": from,
-			"start_bin_id": sb, "end_bin_id": eb,
-			"amount_in": ai, "amount_out": ao, "swap_for_y": sy,
-			"fee": fee, "protocol_fee": pf, "fee_bps": u128LEDecimalString(fbps), "host_fee": hf,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmSwap,
+			Data: &MeteoraDlmmSwapEvent{
+				Metadata:    meta,
+				Pool:        pool,
+				From:        from,
+				StartBinID:  sb,
+				EndBinID:    eb,
+				AmountIn:    ai,
+				AmountOut:   ao,
+				SwapForY:    sy,
+				Fee:         fee,
+				ProtocolFee: pf,
+				FeeBps:      u128LEDecimalString(fbps),
+				HostFee:     hf,
+			},
+		}
 	case dlmmAddLiq:
 		if len(data) < 32+32+32+8+8+4 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -73,13 +74,20 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		a1, _ := readU64LE(data, o)
 		o += 8
 		ab, _ := readI32LE(data, o)
-		return DexEvent{"MeteoraDlmmAddLiquidity": map[string]any{
-			"metadata": meta, "pool": pool, "from": from, "position": pos,
-			"amounts": []uint64{a0, a1}, "active_bin_id": ab,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmAddLiquidity,
+			Data: &MeteoraDlmmAddLiquidityEvent{
+				Metadata:    meta,
+				Pool:        pool,
+				From:        from,
+				Position:    pos,
+				Amounts:     []uint64{a0, a1},
+				ActiveBinID: ab,
+			},
+		}
 	case dlmmRemoveLiq:
 		if len(data) < 32+32+32+8+8+4 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -93,13 +101,20 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		a1, _ := readU64LE(data, o)
 		o += 8
 		ab, _ := readI32LE(data, o)
-		return DexEvent{"MeteoraDlmmRemoveLiquidity": map[string]any{
-			"metadata": meta, "pool": pool, "from": from, "position": pos,
-			"amounts": []uint64{a0, a1}, "active_bin_id": ab,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmRemoveLiquidity,
+			Data: &MeteoraDlmmRemoveLiquidityEvent{
+				Metadata:    meta,
+				Pool:        pool,
+				From:        from,
+				Position:    pos,
+				Amounts:     []uint64{a0, a1},
+				ActiveBinID: ab,
+			},
+		}
 	case dlmmInitPool:
 		if len(data) < 32+32+4+2 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -109,13 +124,19 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		ab, _ := readI32LE(data, o)
 		o += 4
 		bs, _ := readU16LE(data, o)
-		return DexEvent{"MeteoraDlmmInitializePool": map[string]any{
-			"metadata": meta, "pool": pool, "creator": creator,
-			"active_bin_id": ab, "bin_step": bs,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmInitializePool,
+			Data: &MeteoraDlmmInitializePoolEvent{
+				Metadata:    meta,
+				Pool:        pool,
+				Creator:     creator,
+				ActiveBinID: ab,
+				BinStep:     bs,
+			},
+		}
 	case dlmmInitBin:
 		if len(data) < 32+32+8 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -123,12 +144,18 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		ba, _ := readPubkey(data, o)
 		o += 32
 		idx, _ := readU64LE(data, o)
-		return DexEvent{"MeteoraDlmmInitializeBinArray": map[string]any{
-			"metadata": meta, "pool": pool, "bin_array": ba, "index": idx,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmInitializeBinArray,
+			Data: &MeteoraDlmmInitializeBinArrayEvent{
+				Metadata: meta,
+				Pool:     pool,
+				BinArray: ba,
+				Index:    idx,
+			},
+		}
 	case dlmmCreatePos:
 		if len(data) < 32+32+32+4+4 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -140,13 +167,20 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		lb, _ := readI32LE(data, o)
 		o += 4
 		w, _ := readU32LE(data, o)
-		return DexEvent{"MeteoraDlmmCreatePosition": map[string]any{
-			"metadata": meta, "pool": pool, "position": pos, "owner": owner,
-			"lower_bin_id": lb, "width": w,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmCreatePosition,
+			Data: &MeteoraDlmmCreatePositionEvent{
+				Metadata:   meta,
+				Pool:       pool,
+				Position:   pos,
+				Owner:      owner,
+				LowerBinID: lb,
+				Width:      w,
+			},
+		}
 	case dlmmClosePos:
 		if len(data) < 32+32+32 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -154,12 +188,18 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		pos, _ := readPubkey(data, o)
 		o += 32
 		owner, _ := readPubkey(data, o)
-		return DexEvent{"MeteoraDlmmClosePosition": map[string]any{
-			"metadata": meta, "pool": pool, "position": pos, "owner": owner,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmClosePosition,
+			Data: &MeteoraDlmmClosePositionEvent{
+				Metadata: meta,
+				Pool:     pool,
+				Position: pos,
+				Owner:    owner,
+			},
+		}
 	case dlmmClaimFee:
 		if len(data) < 32+32+32+8+8 {
-			return nil
+			return DexEvent{}
 		}
 		o := 0
 		pool, _ := readPubkey(data, o)
@@ -171,11 +211,18 @@ func parseDlmmFromProgramData(buf []byte, meta EventMetadata) DexEvent {
 		fx, _ := readU64LE(data, o)
 		o += 8
 		fy, _ := readU64LE(data, o)
-		return DexEvent{"MeteoraDlmmClaimFee": map[string]any{
-			"metadata": meta, "pool": pool, "position": pos, "owner": owner,
-			"fee_x": fx, "fee_y": fy,
-		}}
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmClaimFee,
+			Data: &MeteoraDlmmClaimFeeEvent{
+				Metadata: meta,
+				Pool:     pool,
+				Position: pos,
+				Owner:    owner,
+				FeeX:     fx,
+				FeeY:     fy,
+			},
+		}
 	default:
-		return nil
+		return DexEvent{}
 	}
 }

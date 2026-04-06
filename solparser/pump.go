@@ -4,12 +4,12 @@ package solparser
 
 func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexEvent {
 	if len(data) < 32+8+8+1+32+8*5+32+8+8+32+8+8 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	mint, ok := readPubkey(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	o += 32
 	solAmount, _ := readU64LE(data, o)
@@ -18,12 +18,12 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	o += 8
 	isBuy, ok := readBool(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	o += 1
 	user, ok := readPubkey(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	o += 32
 	ts, _ := readI64LE(data, o)
@@ -38,7 +38,7 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	o += 8
 	feeRec, ok := readPubkey(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	o += 32
 	feeBps, _ := readU64LE(data, o)
@@ -47,7 +47,7 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	o += 8
 	creator, ok := readPubkey(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	o += 32
 	cfbps, _ := readU64LE(data, o)
@@ -97,49 +97,51 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	if o+8 <= len(data) {
 		cb, _ = readU64LE(data, o)
 	}
-	trade := map[string]any{
-		"metadata":                   meta,
-		"mint":                       mint,
-		"sol_amount":                 solAmount,
-		"token_amount":               tokenAmount,
-		"is_buy":                     isBuy,
-		"is_created_buy":             isCreatedBuy,
-		"user":                       user,
-		"timestamp":                  ts,
-		"virtual_sol_reserves":       vsol,
-		"virtual_token_reserves":     vtok,
-		"real_sol_reserves":          rsol,
-		"real_token_reserves":        rtok,
-		"fee_recipient":              feeRec,
-		"fee_basis_points":           feeBps,
-		"fee":                        fee,
-		"creator":                    creator,
-		"creator_fee_basis_points":   cfbps,
-		"creator_fee":                cfee,
-		"track_volume":               tv,
-		"total_unclaimed_tokens":     tuc,
-		"total_claimed_tokens":       tcc,
-		"current_sol_volume":         csv,
-		"last_update_timestamp":      lut,
-		"ix_name":                    ixName,
-		"mayhem_mode":                mm,
-		"cashback_fee_basis_points":  cbBps,
-		"cashback":                   cb,
-		"is_cashback_coin":           cbBps > 0,
-		"bonding_curve":              zeroPubkey,
-		"associated_bonding_curve":   zeroPubkey,
-		"token_program":              zeroPubkey,
-		"creator_vault":              zeroPubkey,
+
+	ev := &PumpFunTradeEvent{
+		Metadata:               meta,
+		Mint:                   mint,
+		SolAmount:              solAmount,
+		TokenAmount:            tokenAmount,
+		IsBuy:                  isBuy,
+		IsCreatedBuy:           isCreatedBuy,
+		User:                   user,
+		Timestamp:              ts,
+		VirtualSolReserves:     vsol,
+		VirtualTokenReserves:   vtok,
+		RealSolReserves:        rsol,
+		RealTokenReserves:      rtok,
+		FeeRecipient:           feeRec,
+		FeeBasisPoints:         feeBps,
+		Fee:                    fee,
+		Creator:                creator,
+		CreatorFeeBasisPoints:  cfbps,
+		CreatorFee:             cfee,
+		TrackVolume:            tv,
+		TotalUnclaimedTokens:   tuc,
+		TotalClaimedTokens:     tcc,
+		CurrentSolVolume:       csv,
+		LastUpdateTimestamp:    lut,
+		IxName:                 ixName,
+		MayhemMode:             mm,
+		CashbackFeeBasisPoints: cbBps,
+		Cashback:               cb,
+		IsCashbackCoin:         cbBps > 0,
+		BondingCurve:           zeroPubkey,
+		AssociatedBondingCurve: zeroPubkey,
+		TokenProgram:           zeroPubkey,
+		CreatorVault:           zeroPubkey,
 	}
+
 	switch ixName {
 	case "buy":
-		return DexEvent{"PumpFunBuy": trade}
+		return DexEvent{Type: EventTypePumpFunBuy, Data: ev}
 	case "sell":
-		return DexEvent{"PumpFunSell": trade}
+		return DexEvent{Type: EventTypePumpFunSell, Data: ev}
 	case "buy_exact_sol_in":
-		return DexEvent{"PumpFunBuyExactSolIn": trade}
+		return DexEvent{Type: EventTypePumpFunBuyExactSolIn, Data: ev}
 	default:
-		return DexEvent{"PumpFunTrade": trade}
+		return DexEvent{Type: EventTypePumpFunTrade, Data: ev}
 	}
 }
 
@@ -147,18 +149,18 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 	o := 0
 	name, o, ok := readBorshString(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	sym, o, ok := readBorshString(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	uri, o, ok := readBorshString(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	if len(data) < o+32*4+8*5+32+1 {
-		return nil
+		return DexEvent{}
 	}
 	mint, _ := readPubkey(data, o)
 	o += 32
@@ -192,19 +194,33 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 	if o < len(data) {
 		ice, _ = readBool(data, o)
 	}
-	ev := map[string]any{
-		"metadata": meta, "name": name, "symbol": sym, "uri": uri,
-		"mint": mint, "bonding_curve": bc, "user": user, "creator": creator,
-		"timestamp": ts, "virtual_token_reserves": vtr, "virtual_sol_reserves": vsol,
-		"real_token_reserves": rtr, "token_total_supply": tts, "token_program": tp,
-		"is_mayhem_mode": mm, "is_cashback_enabled": ice,
+
+	return DexEvent{
+		Type: EventTypePumpFunCreate,
+		Data: &PumpFunCreateEvent{
+			Metadata:             meta,
+			Name:                 name,
+			Symbol:               sym,
+			Uri:                  uri,
+			Mint:                 mint,
+			BondingCurve:         bc,
+			User:                 user,
+			Creator:              creator,
+			Timestamp:            ts,
+			VirtualTokenReserves: vtr,
+			VirtualSolReserves:   vsol,
+			RealTokenReserves:    rtr,
+			TokenTotalSupply:     tts,
+			TokenProgram:         tp,
+			IsMayhemMode:         mm,
+			IsCashbackEnabled:    ice,
+		},
 	}
-	return DexEvent{"PumpFunCreate": ev}
 }
 
 func parseMigrateFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+8+8+8+32+8+32 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	user, _ := readPubkey(data, o)
@@ -222,10 +238,19 @@ func parseMigrateFromData(data []byte, meta EventMetadata) DexEvent {
 	ts, _ := readI64LE(data, o)
 	o += 8
 	pool, _ := readPubkey(data, o)
-	ev := map[string]any{
-		"metadata": meta, "user": user, "mint": mint, "mint_amount": ma,
-		"sol_amount": sa, "pool_migration_fee": pmf, "bonding_curve": bc,
-		"timestamp": ts, "pool": pool,
+
+	return DexEvent{
+		Type: EventTypePumpFunMigrate,
+		Data: &PumpFunMigrateEvent{
+			Metadata:         meta,
+			User:             user,
+			Mint:             mint,
+			MintAmount:       ma,
+			SolAmount:        sa,
+			PoolMigrationFee: pmf,
+			BondingCurve:     bc,
+			Timestamp:        ts,
+			Pool:             pool,
+		},
 	}
-	return DexEvent{"PumpFunMigrate": ev}
 }

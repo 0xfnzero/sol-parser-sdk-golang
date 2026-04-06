@@ -4,7 +4,7 @@ package solparser
 
 func parseBonkTradeFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+8+8+1+1 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -22,33 +22,48 @@ func parseBonkTradeFromData(data []byte, meta EventMetadata) DexEvent {
 	if isBuy {
 		dir = "Buy"
 	}
-	return DexEvent{"BonkTrade": map[string]any{
-		"metadata": meta, "pool_state": pool, "user": user,
-		"amount_in": ai, "amount_out": ao, "is_buy": isBuy,
-		"trade_direction": dir, "exact_in": exIn,
-	}}
+	return DexEvent{
+		Type: EventTypeBonkTrade,
+		Data: &BonkTradeEvent{
+			Metadata:       meta,
+			PoolState:      pool,
+			User:           user,
+			AmountIn:       ai,
+			AmountOut:      ao,
+			IsBuy:          isBuy,
+			TradeDirection: dir,
+			ExactIn:        exIn,
+		},
+	}
 }
 
 func parseBonkPoolCreateFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+32+32+8+8 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
 	o += 32 + 32 + 32
 	creator, _ := readPubkey(data, o)
-	return DexEvent{"BonkPoolCreate": map[string]any{
-		"metadata": meta,
-		"base_mint_param": map[string]any{
-			"symbol": "BONK", "name": "Bonk Pool", "uri": "https://bonk.com", "decimals": 5,
+	return DexEvent{
+		Type: EventTypeBonkPoolCreate,
+		Data: &BonkPoolCreateEvent{
+			Metadata: meta,
+			BaseMintParam: BonkMintParam{
+				Symbol:   "BONK",
+				Name:     "Bonk Pool",
+				Uri:      "https://bonk.com",
+				Decimals: 5,
+			},
+			PoolState: pool,
+			Creator:   creator,
 		},
-		"pool_state": pool, "creator": creator,
-	}}
+	}
 }
 
 func parseBonkMigrateAmmFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+32+8 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	oldP, _ := readPubkey(data, o)
@@ -58,9 +73,16 @@ func parseBonkMigrateAmmFromData(data []byte, meta EventMetadata) DexEvent {
 	user, _ := readPubkey(data, o)
 	o += 32
 	liq, _ := readU64LE(data, o)
-	return DexEvent{"BonkMigrateAmm": map[string]any{
-		"metadata": meta, "old_pool": oldP, "new_pool": newP, "user": user, "liquidity_amount": liq,
-	}}
+	return DexEvent{
+		Type: EventTypeBonkMigrateAmm,
+		Data: &BonkMigrateAmmEvent{
+			Metadata:        meta,
+			OldPool:         oldP,
+			NewPool:         newP,
+			User:            user,
+			LiquidityAmount: liq,
+		},
+	}
 }
 
 // ParseBonkFromDiscriminator 与 TS `parseBonkFromDiscriminator` 对齐
@@ -73,6 +95,6 @@ func ParseBonkFromDiscriminator(disc uint64, data []byte, meta EventMetadata) De
 	case discBonkMigrateAmm:
 		return parseBonkMigrateAmmFromData(data, meta)
 	default:
-		return nil
+		return DexEvent{}
 	}
 }

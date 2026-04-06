@@ -173,7 +173,7 @@ func parseRpcTransactionImpl(
 			blockTimeUs,
 			grpcRecvUs,
 			filter,
-		); ev != nil {
+		); ev.Type != "" {
 			events = append(events, ev)
 		}
 	}
@@ -190,7 +190,7 @@ func parseRpcTransactionImpl(
 				blockTimeUs,
 				grpcRecvUs,
 				filter,
-			); ev != nil {
+			); ev.Type != "" {
 				events = append(events, ev)
 			}
 		}
@@ -215,11 +215,9 @@ func parseRpcTransactionImpl(
 			isCreatedBuy,
 			recentBlockhash,
 		)
-		if ev != nil {
+		if ev.Type != "" {
 			// 检查是否是 PumpFun Create 事件
-			_, hasPFC := ev["PumpFunCreate"]
-			_, hasPFCV2 := ev["PumpFunCreateV2"]
-			if hasPFC || hasPFCV2 {
+			if ev.Type == EventTypePumpFunCreate || ev.Type == EventTypePumpFunCreateV2 {
 				isCreatedBuy = true
 			}
 			events = append(events, ev)
@@ -242,14 +240,14 @@ func parseRpcInstruction(
 ) DexEvent {
 	// 获取程序 ID
 	if int(ix.ProgramIDIndex) >= len(accountKeys) {
-		return nil
+		return DexEvent{}
 	}
 	programId := accountKeys[ix.ProgramIDIndex]
 
 	// 解析指令数据
 	data := ix.Data
 	if len(data) == 0 {
-		return nil
+		return DexEvent{}
 	}
 
 	// 构建账户列表
@@ -264,108 +262,24 @@ func parseRpcInstruction(
 	switch programId {
 	case PUMPFUN_PROGRAM_ID:
 		if !EventTypeFilterIncludesPumpfun(filter) {
-			return nil
+			return DexEvent{}
 		}
-		return parsePumpfunInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return ParsePumpfunInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 
 	case PUMPSWAP_PROGRAM_ID:
 		if !EventTypeFilterIncludesPumpswap(filter) {
-			return nil
+			return DexEvent{}
 		}
-		return parsePumpswapInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return ParsePumpswapInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 
 	case METEORA_DAMM_V2_PROGRAM_ID:
 		if !EventTypeFilterIncludesMeteoraDammV2(filter) {
-			return nil
+			return DexEvent{}
 		}
-		return parseMeteoraDammInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return ParseMeteoraDammInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 	}
 
-	return nil
-}
-
-// parsePumpfunInstruction 解析 PumpFun 指令
-func parsePumpfunInstruction(
-	data []byte,
-	accounts []string,
-	signature string,
-	slot uint64,
-	txIndex uint32,
-	blockTimeUs *int64,
-	grpcRecvUs int64,
-) DexEvent {
-	// 解析 discriminator (前 8 字节)
-	if len(data) < 8 {
-		return nil
-	}
-	disc := [8]byte{}
-	copy(disc[:], data[:8])
-
-	// 这里需要根据具体的指令格式解析
-	// 暂时返回 nil，需要实现具体的解析逻辑
-	_ = disc
-	_ = accounts
-	_ = signature
-	_ = slot
-	_ = txIndex
-	_ = blockTimeUs
-	_ = grpcRecvUs
-
-	return nil
-}
-
-// parsePumpswapInstruction 解析 PumpSwap 指令
-func parsePumpswapInstruction(
-	data []byte,
-	accounts []string,
-	signature string,
-	slot uint64,
-	txIndex uint32,
-	blockTimeUs *int64,
-	grpcRecvUs int64,
-) DexEvent {
-	if len(data) < 8 {
-		return nil
-	}
-	disc := [8]byte{}
-	copy(disc[:], data[:8])
-
-	_ = disc
-	_ = accounts
-	_ = signature
-	_ = slot
-	_ = txIndex
-	_ = blockTimeUs
-	_ = grpcRecvUs
-
-	return nil
-}
-
-// parseMeteoraDammInstruction 解析 Meteora DAMM 指令
-func parseMeteoraDammInstruction(
-	data []byte,
-	accounts []string,
-	signature string,
-	slot uint64,
-	txIndex uint32,
-	blockTimeUs *int64,
-	grpcRecvUs int64,
-) DexEvent {
-	if len(data) < 8 {
-		return nil
-	}
-	disc := [8]byte{}
-	copy(disc[:], data[:8])
-
-	_ = disc
-	_ = accounts
-	_ = signature
-	_ = slot
-	_ = txIndex
-	_ = blockTimeUs
-	_ = grpcRecvUs
-
-	return nil
+	return DexEvent{}
 }
 
 // ConvertRpcToGrpc 将 RPC 格式转换为 gRPC 格式

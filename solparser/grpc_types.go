@@ -631,3 +631,96 @@ func EventTypeFilterIncludesRaydiumAmmV4(filter EventTypeFilter) bool {
 	}
 	return false
 }
+
+// AllEventTypes 返回所有支持的事件类型列表
+func AllEventTypes() []EventType {
+	return []EventType{
+		// Block
+		EventTypeBlockMeta,
+
+		// PumpFun
+		EventTypePumpFunTrade,
+		EventTypePumpFunBuy,
+		EventTypePumpFunSell,
+		EventTypePumpFunBuyExactSolIn,
+		EventTypePumpFunCreate,
+		EventTypePumpFunCreateV2,
+		EventTypePumpFunComplete,
+		EventTypePumpFunMigrate,
+
+		// PumpSwap
+		EventTypePumpSwapBuy,
+		EventTypePumpSwapSell,
+		EventTypePumpSwapCreatePool,
+		EventTypePumpSwapLiquidityAdded,
+		EventTypePumpSwapLiquidityRemoved,
+		EventTypePumpSwapTrade,
+
+		// Raydium CLMM
+		EventTypeRaydiumClmmSwap,
+		EventTypeRaydiumClmmIncreaseLiquidity,
+		EventTypeRaydiumClmmDecreaseLiquidity,
+		EventTypeRaydiumClmmCreatePool,
+		EventTypeRaydiumClmmOpenPosition,
+		EventTypeRaydiumClmmOpenPositionWithTokenExtNft,
+		EventTypeRaydiumClmmClosePosition,
+		EventTypeRaydiumClmmCollectFee,
+
+		// Raydium CPMM
+		EventTypeRaydiumCpmmSwap,
+		EventTypeRaydiumCpmmDeposit,
+		EventTypeRaydiumCpmmWithdraw,
+		EventTypeRaydiumCpmmInitialize,
+
+		// Raydium AMM V4
+		EventTypeRaydiumAmmV4Swap,
+		EventTypeRaydiumAmmV4Deposit,
+		EventTypeRaydiumAmmV4Withdraw,
+		EventTypeRaydiumAmmV4WithdrawPnl,
+		EventTypeRaydiumAmmV4Initialize2,
+
+		// Orca
+		EventTypeOrcaWhirlpoolSwap,
+		EventTypeOrcaWhirlpoolLiquidityIncreased,
+		EventTypeOrcaWhirlpoolLiquidityDecreased,
+		EventTypeOrcaWhirlpoolPoolInitialized,
+
+		// Meteora DLMM
+		EventTypeMeteoraDlmmSwap,
+		EventTypeMeteoraDlmmAddLiquidity,
+		EventTypeMeteoraDlmmRemoveLiquidity,
+		EventTypeMeteoraDlmmInitializePool,
+		EventTypeMeteoraDlmmInitializeBinArray,
+		EventTypeMeteoraDlmmCreatePosition,
+		EventTypeMeteoraDlmmClosePosition,
+		EventTypeMeteoraDlmmClaimFee,
+
+		// Meteora Pools
+		EventTypeMeteoraPoolsSwap,
+		EventTypeMeteoraPoolsAddLiquidity,
+		EventTypeMeteoraPoolsRemoveLiquidity,
+		EventTypeMeteoraPoolsBootstrapLiquidity,
+		EventTypeMeteoraPoolsPoolCreated,
+		EventTypeMeteoraPoolsSetPoolFees,
+
+		// Meteora DAMM v2
+		EventTypeMeteoraDammV2Swap,
+		EventTypeMeteoraDammV2CreatePosition,
+		EventTypeMeteoraDammV2ClosePosition,
+		EventTypeMeteoraDammV2AddLiquidity,
+		EventTypeMeteoraDammV2RemoveLiquidity,
+		EventTypeMeteoraDammV2InitializePool,
+
+		// Bonk
+		EventTypeBonkTrade,
+		EventTypeBonkPoolCreate,
+		EventTypeBonkMigrateAmm,
+
+		// Account types
+		EventTypeTokenAccount,
+		EventTypeTokenInfo,
+		EventTypeNonceAccount,
+		EventTypeAccountPumpSwapGlobalConfig,
+		EventTypeAccountPumpSwapPool,
+	}
+}

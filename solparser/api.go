@@ -9,7 +9,7 @@ func ParseTransactionEvents(logs []string, signature string, slot uint64, blockT
 func ParseLogsOnly(logs []string, signature string, slot uint64, blockTimeUs *int64) []DexEvent {
 	var out []DexEvent
 	for _, log := range logs {
-		if ev := ParseLogUnified(log, signature, slot, blockTimeUs); ev != nil {
+		if ev := ParseLogUnified(log, signature, slot, blockTimeUs); ev.Type != "" {
 			out = append(out, ev)
 		}
 	}
@@ -19,7 +19,7 @@ func ParseLogsOnly(logs []string, signature string, slot uint64, blockTimeUs *in
 // ParseLogsStreaming 对齐 Rust `parse_logs_streaming` - 流式解析，每解析出一个事件立即回调
 func ParseLogsStreaming(logs []string, signature string, slot uint64, blockTimeUs *int64, callback func(DexEvent)) {
 	for _, log := range logs {
-		if ev := ParseLogUnified(log, signature, slot, blockTimeUs); ev != nil {
+		if ev := ParseLogUnified(log, signature, slot, blockTimeUs); ev.Type != "" {
 			callback(ev)
 		}
 	}

@@ -11,7 +11,7 @@ import (
 func ParseMeteoraDammLog(log, sig string, slot, tx uint64, blockUs *int64, grpcUs int64) DexEvent {
 	buf := decodeProgramDataLine(log)
 	if len(buf) < 8 {
-		return nil
+		return DexEvent{}
 	}
 	d := binary.LittleEndian.Uint64(buf[:8])
 	data := buf[8:]
@@ -32,13 +32,13 @@ func ParseMeteoraDammLog(log, sig string, slot, tx uint64, blockUs *int64, grpcU
 	case discDammInitPool:
 		return parseDammInitializePool(data, meta)
 	default:
-		return nil
+		return DexEvent{}
 	}
 }
 
 func parseDammSwap(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+1+1+8*8+16+8*4 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -66,20 +66,22 @@ func parseDammSwap(data []byte, meta EventMetadata) DexEvent {
 	o += 8
 	o += 8
 	ct, _ := readU64LE(data, o)
-	ev := map[string]any{
-		"metadata": meta, "pool": pool, "trade_direction": td, "has_referral": hr,
-		"amount_in": ai, "minimum_amount_out": mo, "output_amount": oa,
-		"next_sqrt_price": u128LEDecimalString(nsp), "lp_fee": lpf, "protocol_fee": pf,
-		"partner_fee": uint64(0), "referral_fee": rf, "actual_amount_in": aai, "current_timestamp": ct,
-		"token_a_vault": zeroPubkey, "token_b_vault": zeroPubkey, "token_a_mint": zeroPubkey,
-		"token_b_mint": zeroPubkey, "token_a_program": zeroPubkey, "token_b_program": zeroPubkey,
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2Swap,
+		Data: &MeteoraDammV2SwapEvent{
+			Metadata: meta, Pool: pool, TradeDirection: td, HasReferral: hr,
+			AmountIn: ai, MinimumAmountOut: mo, OutputAmount: oa,
+			NextSqrtPrice: u128LEDecimalString(nsp), LpFee: lpf, ProtocolFee: pf,
+			PartnerFee: 0, ReferralFee: rf, ActualAmountIn: aai, CurrentTimestamp: ct,
+			TokenAVault: zeroPubkey, TokenBVault: zeroPubkey, TokenAMint: zeroPubkey,
+			TokenBMint: zeroPubkey, TokenAProgram: zeroPubkey, TokenBProgram: zeroPubkey,
+		},
 	}
-	return DexEvent{"MeteoraDammV2Swap": ev}
 }
 
 func parseDammSwap2(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+1+1+1+8*2+1+8*6+16+8*4+8*3 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -117,20 +119,22 @@ func parseDammSwap2(data []byte, meta EventMetadata) DexEvent {
 	if sm != 0 {
 		ai, mo = a1, a0
 	}
-	ev := map[string]any{
-		"metadata": meta, "pool": pool, "trade_direction": td, "has_referral": hr,
-		"amount_in": ai, "minimum_amount_out": mo, "output_amount": oa,
-		"next_sqrt_price": u128LEDecimalString(nsp), "lp_fee": lpf, "protocol_fee": pf,
-		"partner_fee": uint64(0), "referral_fee": rf, "actual_amount_in": ifi, "current_timestamp": ct,
-		"token_a_vault": zeroPubkey, "token_b_vault": zeroPubkey, "token_a_mint": zeroPubkey,
-		"token_b_mint": zeroPubkey, "token_a_program": zeroPubkey, "token_b_program": zeroPubkey,
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2Swap,
+		Data: &MeteoraDammV2SwapEvent{
+			Metadata: meta, Pool: pool, TradeDirection: td, HasReferral: hr,
+			AmountIn: ai, MinimumAmountOut: mo, OutputAmount: oa,
+			NextSqrtPrice: u128LEDecimalString(nsp), LpFee: lpf, ProtocolFee: pf,
+			PartnerFee: 0, ReferralFee: rf, ActualAmountIn: ifi, CurrentTimestamp: ct,
+			TokenAVault: zeroPubkey, TokenBVault: zeroPubkey, TokenAMint: zeroPubkey,
+			TokenBMint: zeroPubkey, TokenAProgram: zeroPubkey, TokenBProgram: zeroPubkey,
+		},
 	}
-	return DexEvent{"MeteoraDammV2Swap": ev}
 }
 
 func parseDammCreatePosition(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32*4 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -140,14 +144,21 @@ func parseDammCreatePosition(data []byte, meta EventMetadata) DexEvent {
 	pos, _ := readPubkey(data, o)
 	o += 32
 	nft, _ := readPubkey(data, o)
-	return DexEvent{"MeteoraDammV2CreatePosition": map[string]any{
-		"metadata": meta, "pool": pool, "owner": owner, "position": pos, "position_nft_mint": nft,
-	}}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2CreatePosition,
+		Data: &MeteoraDammV2CreatePositionEvent{
+			Metadata:        meta,
+			Pool:            pool,
+			Owner:           owner,
+			Position:        pos,
+			PositionNftMint: nft,
+		},
+	}
 }
 
 func parseDammClosePosition(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32*4 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -157,14 +168,21 @@ func parseDammClosePosition(data []byte, meta EventMetadata) DexEvent {
 	pos, _ := readPubkey(data, o)
 	o += 32
 	nft, _ := readPubkey(data, o)
-	return DexEvent{"MeteoraDammV2ClosePosition": map[string]any{
-		"metadata": meta, "pool": pool, "owner": owner, "position": pos, "position_nft_mint": nft,
-	}}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2ClosePosition,
+		Data: &MeteoraDammV2ClosePositionEvent{
+			Metadata:        meta,
+			Pool:            pool,
+			Owner:           owner,
+			Position:        pos,
+			PositionNftMint: nft,
+		},
+	}
 }
 
 func parseDammAddLiquidity(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32*3+16+8*6 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -186,16 +204,27 @@ func parseDammAddLiquidity(data []byte, meta EventMetadata) DexEvent {
 	tota, _ := readU64LE(data, o)
 	o += 8
 	totb, _ := readU64LE(data, o)
-	return DexEvent{"MeteoraDammV2AddLiquidity": map[string]any{
-		"metadata": meta, "pool": pool, "position": pos, "owner": owner,
-		"liquidity_delta": u128LEDecimalString(ld), "token_a_amount_threshold": tat, "token_b_amount_threshold": tbt,
-		"token_a_amount": ta, "token_b_amount": tb, "total_amount_a": tota, "total_amount_b": totb,
-	}}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2AddLiquidity,
+		Data: &MeteoraDammV2AddLiquidityEvent{
+			Metadata:              meta,
+			Pool:                  pool,
+			Position:              pos,
+			Owner:                 owner,
+			LiquidityDelta:        u128LEDecimalString(ld),
+			TokenAAmountThreshold: tat,
+			TokenBAmountThreshold: tbt,
+			TokenAAmount:          ta,
+			TokenBAmount:          tb,
+			TotalAmountA:          tota,
+			TotalAmountB:          totb,
+		},
+	}
 }
 
 func parseDammRemoveLiquidity(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32*3+16+8*4 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -213,11 +242,20 @@ func parseDammRemoveLiquidity(data []byte, meta EventMetadata) DexEvent {
 	ta, _ := readU64LE(data, o)
 	o += 8
 	tb, _ := readU64LE(data, o)
-	return DexEvent{"MeteoraDammV2RemoveLiquidity": map[string]any{
-		"metadata": meta, "pool": pool, "position": pos, "owner": owner,
-		"liquidity_delta": u128LEDecimalString(ld), "token_a_amount_threshold": tat, "token_b_amount_threshold": tbt,
-		"token_a_amount": ta, "token_b_amount": tb,
-	}}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2RemoveLiquidity,
+		Data: &MeteoraDammV2RemoveLiquidityEvent{
+			Metadata:              meta,
+			Pool:                  pool,
+			Position:              pos,
+			Owner:                 owner,
+			LiquidityDelta:        u128LEDecimalString(ld),
+			TokenAAmountThreshold: tat,
+			TokenBAmountThreshold: tbt,
+			TokenAAmount:          ta,
+			TokenBAmount:          tb,
+		},
+	}
 }
 
 func parseDammDynamicFee(data []byte, o int) map[string]any {
@@ -288,7 +326,7 @@ func parseDammPoolFeeParameters(data []byte, start int) (map[string]any, int, bo
 func parseDammInitializePool(data []byte, meta EventMetadata) DexEvent {
 	const minAfterPub = 31 + 109
 	if len(data) < 32*6+minAfterPub {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	pool, _ := readPubkey(data, o)
@@ -305,11 +343,11 @@ func parseDammInitializePool(data []byte, meta EventMetadata) DexEvent {
 	o += 32
 	pf, next, ok := parseDammPoolFeeParameters(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
 	o = next
 	if o+109 > len(data) {
-		return nil
+		return DexEvent{}
 	}
 	smin, _ := readU128LE(data, o)
 	o += 16
@@ -338,23 +376,40 @@ func parseDammInitializePool(data []byte, meta EventMetadata) DexEvent {
 	totb, _ := readU64LE(data, o)
 	o += 8
 	pt, _ := readU8(data, o)
-	return DexEvent{"MeteoraDammV2InitializePool": map[string]any{
-		"metadata": meta, "pool": pool, "token_a_mint": tam, "token_b_mint": tbm,
-		"creator": creator, "payer": payer, "alpha_vault": av, "pool_fees": pf,
-		"sqrt_min_price": u128LEDecimalString(smin), "sqrt_max_price": u128LEDecimalString(smax),
-		"activation_type": act, "collect_fee_mode": cfm,
-		"liquidity": u128LEDecimalString(liq), "sqrt_price": u128LEDecimalString(sqrt), "activation_point": ap,
-		"token_a_flag": taf, "token_b_flag": tbf,
-		"token_a_amount": tau, "token_b_amount": tbu, "total_amount_a": tota, "total_amount_b": totb,
-		"pool_type": pt,
-	}}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2InitializePool,
+		Data: &MeteoraDammV2InitializePoolEvent{
+			Metadata:       meta,
+			Pool:           pool,
+			TokenAMint:     tam,
+			TokenBMint:     tbm,
+			Creator:        creator,
+			Payer:          payer,
+			AlphaVault:     av,
+			PoolFees:       pf,
+			SqrtMinPrice:   u128LEDecimalString(smin),
+			SqrtMaxPrice:   u128LEDecimalString(smax),
+			ActivationType: act,
+			CollectFeeMode: cfm,
+			Liquidity:      u128LEDecimalString(liq),
+			SqrtPrice:      u128LEDecimalString(sqrt),
+			ActivationPoint: ap,
+			TokenAFlag:     taf,
+			TokenBFlag:     tbf,
+			TokenAAmount:   tau,
+			TokenBAmount:   tbu,
+			TotalAmountA:   tota,
+			TotalAmountB:   totb,
+			PoolType:       pt,
+		},
+	}
 }
 
 // ParseMeteoraDlmmLog 保留为从日志行解析的入口；与 TS `parseMeteoraDlmmLog` 一致
 func ParseMeteoraDlmmLog(log, sig string, slot, tx uint64, blockUs *int64, grpcUs int64) DexEvent {
 	buf := decodeProgramDataLine(log)
 	if len(buf) < 8 {
-		return nil
+		return DexEvent{}
 	}
 	meta := makeMetadata(sig, slot, tx, blockUs, grpcUs, "")
 	return parseDlmmFromProgramData(buf, meta)

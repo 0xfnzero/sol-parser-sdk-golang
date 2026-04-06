@@ -2,7 +2,7 @@ package solparser
 
 func parseMeteoraPoolsSetPoolFeesFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 8+8+8+8+32 {
-		return nil
+		return DexEvent{}
 	}
 	o := 0
 	tfn, _ := readU64LE(data, o)
@@ -15,10 +15,17 @@ func parseMeteoraPoolsSetPoolFeesFromData(data []byte, meta EventMetadata) DexEv
 	o += 8
 	pool, ok := readPubkey(data, o)
 	if !ok {
-		return nil
+		return DexEvent{}
 	}
-	return DexEvent{"MeteoraPoolsSetPoolFees": map[string]any{
-		"metadata": meta, "trade_fee_numerator": tfn, "trade_fee_denominator": tfd,
-		"owner_trade_fee_numerator": ofn, "owner_trade_fee_denominator": ofd, "pool": pool,
-	}}
+	return DexEvent{
+		Type: EventTypeMeteoraPoolsSetPoolFees,
+		Data: &MeteoraPoolsSetPoolFeesEvent{
+			Metadata:                 meta,
+			TradeFeeNumerator:        tfn,
+			TradeFeeDenominator:      tfd,
+			OwnerTradeFeeNumerator:   ofn,
+			OwnerTradeFeeDenominator: ofd,
+			Pool:                     pool,
+		},
+	}
 }

@@ -11,7 +11,7 @@ func ParseLogUnified(log, signature string, slot uint64, blockTimeUs *int64) Dex
 func ParseLogOptimized(log, signature string, slot, txIndex uint64, blockTimeUs *int64, grpcRecvUs int64, _ any, isCreatedBuy bool, recentB58 string) DexEvent {
 	buf := decodeProgramDataLine(log)
 	if len(buf) < 8 {
-		return nil
+		return DexEvent{}
 	}
 	disc := binary.LittleEndian.Uint64(buf[:8])
 	data := buf[8:]
