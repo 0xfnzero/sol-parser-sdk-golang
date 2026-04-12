@@ -36,6 +36,33 @@ func ParseMeteoraDammLog(log, sig string, slot, tx uint64, blockUs *int64, grpcU
 	}
 }
 
+// ParseMeteoraDammCpiInstruction 与 Rust `meteora_damm::parse_instruction` 一致：CPI 事件 discriminator 位于指令数据 [8..16)，载荷从 [16..) 开始。
+func ParseMeteoraDammCpiInstruction(ixData []byte, meta EventMetadata) DexEvent {
+	if len(ixData) < 16 {
+		return DexEvent{}
+	}
+	cpi := binary.LittleEndian.Uint64(ixData[8:16])
+	payload := ixData[16:]
+	switch cpi {
+	case discDammSwap:
+		return parseDammSwap(payload, meta)
+	case discDammSwap2:
+		return parseDammSwap2(payload, meta)
+	case discDammCreatePosition:
+		return parseDammCreatePosition(payload, meta)
+	case discDammClosePosition:
+		return parseDammClosePosition(payload, meta)
+	case discDammAddLiquidity:
+		return parseDammAddLiquidity(payload, meta)
+	case discDammRemoveLiq:
+		return parseDammRemoveLiquidity(payload, meta)
+	case discDammInit:
+		return parseDammInitializePool(payload, meta)
+	default:
+		return DexEvent{}
+	}
+}
+
 func parseDammSwap(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+1+1+8*8+16+8*4 {
 		return DexEvent{}

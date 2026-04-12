@@ -15,6 +15,8 @@ func (e DexEvent) GetMetadata() EventMetadata {
 		return d.Metadata
 	case *PumpFunCreateEvent:
 		return d.Metadata
+	case *PumpFunCreateV2TokenEvent:
+		return d.Metadata
 	case *PumpFunMigrateEvent:
 		return d.Metadata
 	case *PumpSwapBuyEvent:
@@ -114,6 +116,116 @@ func (e DexEvent) GetMetadata() EventMetadata {
 	}
 }
 
+// SetRecentBlockhash 写入事件的 RecentBlockhash（与 Rust `parse_instructions_enhanced` 在 merge 后填充一致）。
+func (e *DexEvent) SetRecentBlockhash(h string) {
+	if e == nil || h == "" {
+		return
+	}
+	switch d := e.Data.(type) {
+	case *PumpFunTradeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunCreateEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunCreateV2TokenEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunMigrateEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpSwapBuyEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpSwapSellEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpSwapCreatePoolEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpSwapLiquidityAddedEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpSwapLiquidityRemovedEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmSwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmIncreaseLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmDecreaseLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmCreatePoolEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmCollectFeeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumCpmmSwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumCpmmDepositEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumCpmmWithdrawEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumCpmmInitializeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaWhirlpoolSwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaWhirlpoolLiquidityIncreasedEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaWhirlpoolLiquidityDecreasedEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaWhirlpoolPoolInitializedEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmSwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmAddLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmRemoveLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmInitializePoolEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmInitializeBinArrayEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmCreatePositionEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmClosePositionEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDlmmClaimFeeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraPoolsSwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraPoolsAddLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraPoolsRemoveLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraPoolsBootstrapLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraPoolsPoolCreatedEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraPoolsSetPoolFeesEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDammV2SwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDammV2CreatePositionEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDammV2ClosePositionEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDammV2AddLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDammV2RemoveLiquidityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDammV2InitializePoolEvent:
+		d.Metadata.RecentBlockhash = h
+	case *BonkTradeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *BonkPoolCreateEvent:
+		d.Metadata.RecentBlockhash = h
+	case *BonkMigrateAmmEvent:
+		d.Metadata.RecentBlockhash = h
+	case *TokenInfoEvent:
+		d.Metadata.RecentBlockhash = h
+	case *TokenAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *NonceAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpSwapGlobalConfigAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpSwapPoolAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	default:
+	}
+}
+
 // MarshalJSON 实现 JSON 序列化
 func (e DexEvent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]any{
@@ -136,6 +248,14 @@ func (e DexEvent) AsPumpFunTrade() *PumpFunTradeEvent {
 // AsPumpFunCreate 返回 PumpFunCreateEvent
 func (e DexEvent) AsPumpFunCreate() *PumpFunCreateEvent {
 	if p, ok := e.Data.(*PumpFunCreateEvent); ok {
+		return p
+	}
+	return nil
+}
+
+// AsPumpFunCreateV2 返回 PumpFunCreateV2TokenEvent
+func (e DexEvent) AsPumpFunCreateV2() *PumpFunCreateV2TokenEvent {
+	if p, ok := e.Data.(*PumpFunCreateV2TokenEvent); ok {
 		return p
 	}
 	return nil

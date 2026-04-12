@@ -19,6 +19,22 @@ func (e *ParseError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Kind, e.Message)
 }
 
+// mergeRpcFullAccountKeys 合并消息静态账户与 meta 中 V0 交易通过 ALT 加载的地址（顺序与 Rust / Solana 运行时一致）。
+func mergeRpcFullAccountKeys(staticKeys []string, meta *RpcTransactionMeta) []string {
+	if meta == nil || meta.LoadedAddresses == nil {
+		out := make([]string, len(staticKeys))
+		copy(out, staticKeys)
+		return out
+	}
+	la := meta.LoadedAddresses
+	n := len(staticKeys) + len(la.Writable) + len(la.Readonly)
+	out := make([]string, 0, n)
+	out = append(out, staticKeys...)
+	out = append(out, la.Writable...)
+	out = append(out, la.Readonly...)
+	return out
+}
+
 // RpcClient RPC 客户端接口
 type RpcClient interface {
 	GetTransaction(signature string, maxSupportedTransactionVersion int) (*RpcTransactionResponse, error)
@@ -160,48 +176,61 @@ func parseRpcTransactionImpl(
 		blockTimeUs = &us
 	}
 
-	events := []DexEvent{}
+	// 与 Rust `instruction_parser` / Solana 消息一致：静态 account_keys + ALT 加载的 writable + readonly
+	fullKeys := mergeRpcFullAccountKeys(msg.AccountKeys, meta)
 
-	// 解析外层指令
+	// 与 Rust `parse_instructions_enhanced`：用整段日志检测 create，供 inner PumpFun Trade 的 is_created_buy
+	isCreatedBuyFromLogs := DetectPumpfunCreateFromLogs(meta.LogMessages)
+
+	var ixEvents []rpcIndexedEvent
 	for i, ix := range msg.Instructions {
 		if ev := parseRpcInstruction(
 			ix,
-			msg.AccountKeys,
+			fullKeys,
 			signature,
 			slot,
 			uint32(i),
 			blockTimeUs,
 			grpcRecvUs,
 			filter,
+			false,
+			isCreatedBuyFromLogs,
 		); ev.Type != "" {
-			events = append(events, ev)
+			ixEvents = append(ixEvents, rpcIndexedEvent{OuterIdx: i, InnerIdx: nil, Event: ev})
 		}
 	}
 
-	// 解析内层指令
 	for _, group := range meta.InnerInstructions {
-		for _, ix := range group.Instructions {
+		for j, ix := range group.Instructions {
+			jj := j
 			if ev := parseRpcInstruction(
 				ix,
-				msg.AccountKeys,
+				fullKeys,
 				signature,
 				slot,
 				group.Index,
 				blockTimeUs,
 				grpcRecvUs,
 				filter,
+				true,
+				isCreatedBuyFromLogs,
 			); ev.Type != "" {
-				events = append(events, ev)
+				ixEvents = append(ixEvents, rpcIndexedEvent{OuterIdx: int(group.Index), InnerIdx: &jj, Event: ev})
 			}
 		}
 	}
 
-	// 解析日志
-	isCreatedBuy := false
+	events := mergeRpcInstructionEvents(ixEvents)
 	recentBlockhash := ""
 	if msg.RecentBlockhash != "" {
 		recentBlockhash = msg.RecentBlockhash
 	}
+	for i := range events {
+		events[i].SetRecentBlockhash(recentBlockhash)
+	}
+
+	// 解析日志（PumpFun/PumpSwap 等成交多数来自 Program data 日志，非指令表）
+	isCreatedBuy := false
 
 	for _, log := range meta.LogMessages {
 		ev := ParseLogOptimized(
@@ -224,10 +253,16 @@ func parseRpcTransactionImpl(
 		}
 	}
 
+	// 必须在追加日志事件之后再补账户：否则 Program data 解析出的 PumpFun Trade / PumpSwap 等拿不到 msg/meta 里的指令账户。
+	fillRpcDexEventsPump(events, msg, meta)
+
+	// 合并同一 signature 下指令事件与 Program data 日志事件（PumpSwap Buy/Sell 互补账户与数值）
+	events = CoalescePumpSwapBuySellBySignature(events)
+
 	return events, nil
 }
 
-// parseRpcInstruction 解析 RPC 指令
+// parseRpcInstruction 解析 RPC 指令。inner=true 时使用 Rust 内层 16 字节 discriminator 路径（见 ParseInnerInstructionUnified）。
 func parseRpcInstruction(
 	ix RpcCompiledInstruction,
 	accountKeys []string,
@@ -237,20 +272,19 @@ func parseRpcInstruction(
 	blockTimeUs *int64,
 	grpcRecvUs int64,
 	filter EventTypeFilter,
+	inner bool,
+	isCreatedBuy bool,
 ) DexEvent {
-	// 获取程序 ID
 	if int(ix.ProgramIDIndex) >= len(accountKeys) {
 		return DexEvent{}
 	}
 	programId := accountKeys[ix.ProgramIDIndex]
 
-	// 解析指令数据
 	data := ix.Data
 	if len(data) == 0 {
 		return DexEvent{}
 	}
 
-	// 构建账户列表
 	accounts := make([]string, len(ix.Accounts))
 	for i, accIdx := range ix.Accounts {
 		if int(accIdx) < len(accountKeys) {
@@ -258,28 +292,10 @@ func parseRpcInstruction(
 		}
 	}
 
-	// 根据程序 ID 路由到相应的解析器
-	switch programId {
-	case PUMPFUN_PROGRAM_ID:
-		if !EventTypeFilterIncludesPumpfun(filter) {
-			return DexEvent{}
-		}
-		return ParsePumpfunInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
-
-	case PUMPSWAP_PROGRAM_ID:
-		if !EventTypeFilterIncludesPumpswap(filter) {
-			return DexEvent{}
-		}
-		return ParsePumpswapInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
-
-	case METEORA_DAMM_V2_PROGRAM_ID:
-		if !EventTypeFilterIncludesMeteoraDammV2(filter) {
-			return DexEvent{}
-		}
-		return ParseMeteoraDammInstruction(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	if inner {
+		return ParseInnerInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId, isCreatedBuy)
 	}
-
-	return DexEvent{}
+	return ParseInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId)
 }
 
 // ConvertRpcToGrpc 将 RPC 格式转换为 gRPC 格式

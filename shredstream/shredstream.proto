@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package shredstream;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "sol-parser-sdk-golang/shredstream/pb;pb";
+
+// 与 `github.com/0xfnzero/solana-streamer` 中 `src/protos/shredstream.rs`（prost-build 生成）对齐。
+
+// ---------------------------------------------------------------------------
+// shared：Rust `src/protos/shared.rs`（Socket 在 shredstream.Heartbeat 中引用）
+// ---------------------------------------------------------------------------
+
+message Socket {
+  string ip = 1;
+  int64 port = 2;
+}
+
+// ---------------------------------------------------------------------------
+// shredstream 消息与服务
+// ---------------------------------------------------------------------------
+
+message Heartbeat {
+  // optional：与 prost `optional` socket 一致
+  Socket socket = 1;
+  repeated string regions = 2;
+}
+
+message HeartbeatResponse {
+  uint32 ttl_ms = 1;
+}
+
+message TraceShred {
+  string region = 1;
+  google.protobuf.Timestamp created_at = 2;
+  uint32 seq_num = 3;
+}
+
+message SubscribeEntriesRequest {}
+
+message Entry {
+  uint64 slot = 1;
+  bytes entries = 2;
+}
+
+// 心跳（部分部署用于维持 shred 流）
+service Shredstream {
+  rpc SendHeartbeat(Heartbeat) returns (HeartbeatResponse);
+}
+
+// 订阅 Entry 流（Jito ShredStream Proxy）
+service ShredstreamProxy {
+  rpc SubscribeEntries(SubscribeEntriesRequest) returns (stream Entry);
+}

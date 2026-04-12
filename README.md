@@ -102,6 +102,15 @@ GEYSER_API_TOKEN=your_token go run examples/pumpswap_low_latency.go
 # All protocols simultaneously
 GEYSER_API_TOKEN=your_token go run examples/multi_protocol_grpc.go
 
+# ShredStream (gRPC): SubscribeEntries + DecodeGRPCEntry
+export SHRED_URL="http://127.0.0.1:10800"
+go run examples/shredstream_entries.go
+
+# Yellowstone with GRPC_URL / GRPC_TOKEN
+export GRPC_URL="https://solana-yellowstone-grpc.publicnode.com:443"
+export GRPC_TOKEN="your_token"
+go run examples/yellowstone_grpc_parse.go
+
 # Expected output:
 # gRPC接收时间: 1234567890 μs
 # 事件接收时间: 1234567900 μs
@@ -122,6 +131,10 @@ GEYSER_API_TOKEN=your_token go run examples/multi_protocol_grpc.go
 | Meteora DAMM V2 events | `go run examples/meteora_damm_grpc.go` | [examples/meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
 | **Multi-Protocol** | | |
 | Subscribe to all DEX protocols | `go run examples/multi_protocol_grpc.go` | [examples/multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
+| **ShredStream** | | |
+| gRPC subscribe + `entries` decode (Rust `shredstream_example` style) | `SHRED_URL=http://host:port go run examples/shredstream_entries.go` | [examples/shredstream_entries.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/shredstream_entries.go) |
+| **Yellowstone** | | |
+| Geyser + `ParseLogsOnly` (`GRPC_URL` / `GRPC_TOKEN`) | `GRPC_URL=... GRPC_TOKEN=... go run examples/yellowstone_grpc_parse.go` | [examples/yellowstone_grpc_parse.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/yellowstone_grpc_parse.go) |
 
 ### Basic Usage
 
@@ -150,8 +163,8 @@ func main() {
 
     filter := &solparser.TransactionFilter{
         AccountInclude: []string{
-            "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", // PumpFun
-            "pAMMBay6oceH9fJKBRdGP4LmT4saRGfEE7xmrCaGWpZ", // PumpSwap
+            solparser.PUMPFUN_PROGRAM_ID,
+            solparser.PUMPSWAP_PROGRAM_ID,
         },
         Vote:   false,
         Failed: false,
@@ -209,13 +222,16 @@ Each protocol supports:
 
 ### Optimized Pattern Matching
 ```go
-import "strings"
+import (
+    "strings"
 
-// Pre-defined protocol identifiers
-const PumpFunProgram = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+    "sol-parser-sdk-golang/solparser"
+)
+
+// Program IDs: see solparser/program_ids.go (aligned with Rust sol-parser-sdk)
 
 // Fast check before full parsing
-if strings.Contains(logString, PumpFunProgram) {
+if strings.Contains(logString, solparser.PUMPFUN_PROGRAM_ID) {
     return parsePumpFunEvent(logs, signature, slot)
 }
 ```

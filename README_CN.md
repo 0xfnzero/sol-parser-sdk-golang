@@ -90,6 +90,15 @@ GEYSER_API_TOKEN=your_token go run examples/multi_protocol_grpc.go
 
 # Meteora DAMM V2 事件
 GEYSER_API_TOKEN=your_token go run examples/meteora_damm_grpc.go
+
+# ShredStream（Jito 风格 gRPC）：SubscribeEntries + DecodeGRPCEntry
+export SHRED_URL="http://127.0.0.1:10800"
+go run examples/shredstream_entries.go
+
+# Yellowstone gRPC（与 GRPC_URL / GRPC_TOKEN 环境变量）
+export GRPC_URL="https://solana-yellowstone-grpc.publicnode.com:443"
+export GRPC_TOKEN="your_token"
+go run examples/yellowstone_grpc_parse.go
 ```
 
 ### 示例列表
@@ -104,6 +113,10 @@ GEYSER_API_TOKEN=your_token go run examples/meteora_damm_grpc.go
 | 同时订阅所有 DEX 协议 | `go run examples/multi_protocol_grpc.go` | [examples/multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
 | **Meteora** | | |
 | Meteora DAMM V2 事件 | `go run examples/meteora_damm_grpc.go` | [examples/meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
+| **ShredStream** | | |
+| gRPC 订阅 + `entries` 解码（对齐 Rust `shredstream_example`） | `SHRED_URL=http://host:port go run examples/shredstream_entries.go` | [examples/shredstream_entries.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/shredstream_entries.go) |
+| **Yellowstone** | | |
+| Geyser 订阅 + `ParseLogsOnly`（可用 `GRPC_URL` / `GRPC_TOKEN`） | `GRPC_URL=... GRPC_TOKEN=... go run examples/yellowstone_grpc_parse.go` | [examples/yellowstone_grpc_parse.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/yellowstone_grpc_parse.go) |
 
 ### 基本用法
 
@@ -132,8 +145,8 @@ func main() {
 
     filter := &solparser.TransactionFilter{
         AccountInclude: []string{
-            "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", // PumpFun
-            "pAMMBay6oceH9fJKBRdGP4LmT4saRGfEE7xmrCaGWpZ", // PumpSwap
+            solparser.PUMPFUN_PROGRAM_ID,
+            solparser.PUMPSWAP_PROGRAM_ID,
         },
         Vote:   false,
         Failed: false,
@@ -263,6 +276,16 @@ go func() {
     }
 }()
 ```
+
+
+---
+
+## 与 Rust `sol-parser-sdk` 的 RPC 解析对齐说明
+
+- **日志热路径**：`ParseLogOptimized` / `matcher.go` 与 Rust `parse_log_optimized` 对齐。
+- **`ParseRpcTransaction`**：已支持 **ALT 全量账户表**、**外层 8 字节 / 内层 16 字节** 指令解析、**merge**、Pump 系 **账户补全** 与 **PumpSwap `is_pump_pool`（费用程序 CPI）**。
+- **ShredStream**：见 `shredstream` 包（gRPC + `pb`，proto 与 `0xfnzero/solana-streamer` 中 prost 生成物对齐）。`Client` 提供 `SendHeartbeat` 与 `SubscribeEntries`；`Entry.entries` 解码请用 **`DecodeGRPCEntry` / `DecodeEntriesBincode`**（实现参考 [shredstream-sdk-go](https://github.com/shredstream/shredstream-sdk-go) 的线格式解析，得到 `DecodedTransaction`）。
+
 
 ---
 

@@ -127,10 +127,10 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 		CashbackFeeBasisPoints: cbBps,
 		Cashback:               cb,
 		IsCashbackCoin:         cbBps > 0,
-		BondingCurve:           zeroPubkey,
-		AssociatedBondingCurve: zeroPubkey,
-		TokenProgram:           zeroPubkey,
-		CreatorVault:           zeroPubkey,
+		BondingCurve:           "",
+		AssociatedBondingCurve: "",
+		TokenProgram:           "",
+		CreatorVault:           "",
 	}
 
 	switch ixName {
@@ -252,5 +252,31 @@ func parseMigrateFromData(data []byte, meta EventMetadata) DexEvent {
 			Timestamp:        ts,
 			Pool:             pool,
 		},
+	}
+}
+
+// enrichPumpFunTradeFromAccounts 按 pump.json IDL 从 **内层 CPI 指令账户** 补全（与 Rust `instr/pump.rs` buy/sell 一致）。
+// Program data 日志不含 bonding_curve / token_program 等，仅靠 parseTradeFromData 会得到空字段。
+func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
+	if ev == nil || len(accounts) < 7 {
+		return
+	}
+	set := func(dst *string, idx int) {
+		if *dst != "" && *dst != zeroPubkey {
+			return
+		}
+		s := getAccountSafe(accounts, idx)
+		if s != "" && s != zeroPubkey {
+			*dst = s
+		}
+	}
+	set(&ev.BondingCurve, 3)
+	set(&ev.AssociatedBondingCurve, 4)
+	if ev.IsBuy {
+		set(&ev.TokenProgram, 8)
+		set(&ev.CreatorVault, 9)
+	} else {
+		set(&ev.CreatorVault, 8)
+		set(&ev.TokenProgram, 9)
 	}
 }

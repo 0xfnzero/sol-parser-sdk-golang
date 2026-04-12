@@ -17,7 +17,7 @@ type AccountData struct {
 }
 
 // 程序 ID 常量（accounts 包内部使用）
-const pumpswapProgramID = "pAMMBay6oceH9fJKBRdGP4LmT4saRGfEE7xmrCaGWpZ"
+const pumpswapProgramID = PUMPSWAP_PROGRAM_ID
 
 // ParseAccountUnified 统一的账户解析入口
 // 对齐 Rust `parse_account_unified`

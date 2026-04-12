@@ -85,7 +85,7 @@ func main() {
 	voteF := false
 	failedF := false
 	filter := solparser.TransactionFilter{
-		AccountInclude: []string{"pAMMBay6oceH9fJKBRdGP4LmT4saRGfEE7xmrCaGWpZ"},
+		AccountInclude: []string{solparser.PUMPSWAP_PROGRAM_ID, solparser.GrpcPumpSwapFeesProgramID},
 		Vote:           &voteF,
 		Failed:         &failedF,
 	}

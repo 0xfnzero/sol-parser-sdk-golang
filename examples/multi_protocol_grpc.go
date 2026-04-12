@@ -23,14 +23,17 @@ import (
 )
 
 var allProgramIDs = []string{
-	"6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", // PumpFun
-	"pAMMBay6oceH9fJKBRdGP4LmT4saRGfEE7xmrCaGWpZ", // PumpSwap
-	"675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", // Raydium AMM V4
-	"CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK", // Raydium CLMM
-	"CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C", // Raydium CPMM
-	"whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",  // Orca Whirlpool
-	"Eo7WjKq67rjJQDd1d4dSYkT7LeHVAaFL1K7dajEgrpwz", // Meteora DAMM V2
-	"LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",  // Meteora DLMM
+	solparser.PUMPFUN_PROGRAM_ID,
+	solparser.PUMPSWAP_PROGRAM_ID,
+	solparser.GrpcPumpSwapFeesProgramID,
+	solparser.RAYDIUM_AMM_V4_PROGRAM_ID,
+	solparser.GrpcRaydiumClmmProgramID,
+	solparser.RAYDIUM_CPMM_PROGRAM_ID,
+	solparser.ORCA_WHIRLPOOL_PROGRAM_ID,
+	solparser.GrpcMeteoraDammV2ProgramID,
+	solparser.METEORA_DLMM_PROGRAM_ID,
+	solparser.METEORA_POOLS_PROGRAM_ID,
+	solparser.GrpcBonkProgramID,
 }
 
 func main() {

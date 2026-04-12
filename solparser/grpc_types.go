@@ -270,7 +270,8 @@ func EventTypeFilterIncludesMeteoraDammV2(filter EventTypeFilter) bool {
 	return false
 }
 
-// EventTypeFilterAllowsInstructionParsing 判断过滤器是否允许指令解析
+// EventTypeFilterAllowsInstructionParsing 与 Rust `parse_instruction_unified` 中
+// `include_only` 预检的 `matches!(…)` 列表一致（见 sol-parser-sdk `src/instr/mod.rs`）。
 func EventTypeFilterAllowsInstructionParsing(includeOnly []EventType) bool {
 	ixTypes := []EventType{
 		EventTypePumpFunMigrate,
@@ -278,7 +279,6 @@ func EventTypeFilterAllowsInstructionParsing(includeOnly []EventType) bool {
 		EventTypeMeteoraDammV2AddLiquidity,
 		EventTypeMeteoraDammV2CreatePosition,
 		EventTypeMeteoraDammV2ClosePosition,
-		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2RemoveLiquidity,
 	}
 	for _, t := range ixTypes {

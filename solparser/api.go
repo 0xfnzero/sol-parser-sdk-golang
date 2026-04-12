@@ -70,7 +70,8 @@ func ParseTransactionFromRpc(rpcClient RpcClient, signature string, filter Event
 	return parseTransactionFromRpcImpl(rpcClient, signature, filter)
 }
 
-// ParseRpcTransaction 对齐 Rust `parse_rpc_transaction` - 解析已获取的 RPC 交易
+// ParseRpcTransaction 对齐 Rust `parse_rpc_transaction` / `parse_instructions_enhanced` 核心行为：
+// 全量账户表（含 ALT LoadedAddresses）、外层 8B + 内层 16B 指令解析、事件合并（merger）、Pump 系账户与 fill_data（is_pump_pool）、再解析 Program logs。
 func ParseRpcTransaction(tx *RpcTransactionResponse, signature string, filter EventTypeFilter, grpcRecvUs int64) ([]DexEvent, *ParseError) {
 	return parseRpcTransactionImpl(tx, signature, filter, grpcRecvUs)
 }
@@ -99,11 +100,11 @@ func ParseRpcTransaction(tx *RpcTransactionResponse, signature string, filter Ev
 // ParseInstructionUnified 对齐 Rust `parse_instruction_unified` - 统一的指令解析入口
 // 实现位于 instructions.go
 
-// ParsePumpfunInstruction 对齐 Rust `parse_pumpfun_instruction` - 解析 PumpFun 指令
+// ParsePumpfunInstruction 对齐 Rust `pump::parse_instruction`（外层 Create / CreateV2、CPI Migrate；不解析 Buy/Sell 外层指令）。
 // 实现位于 instructions.go
 
-// ParsePumpswapInstruction 对齐 Rust `parse_pumpswap_instruction` - 解析 PumpSwap 指令
+// ParsePumpswapInstruction 对齐 Rust `pump_amm::parse_instruction`（**指令** discriminator，与 Program log 的 Event disc 不同）。
 // 实现位于 instructions.go
 
-// ParseMeteoraDammInstruction 对齐 Rust `parse_meteora_damm_instruction` - 解析 Meteora DAMM 指令
-// 实现位于 instructions.go
+// ParseMeteoraDammInstruction 对齐 Rust `meteora_damm::parse_instruction`（CPI discriminator 在指令数据 [8..16)）。
+// ParseMeteoraDammCpiInstruction 为同上逻辑的纯载荷入口，实现位于 meteora_extra.go / instructions.go

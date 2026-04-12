@@ -239,3 +239,55 @@ func parsePSRemoveLiqFromData(data []byte, meta EventMetadata) DexEvent {
 	}
 	return DexEvent{Type: EventTypePumpSwapLiquidityRemoved, Data: ev}
 }
+
+// enrichPumpSwapBuyFromAccounts 将内层 CPI 指令账户写入事件（与 parsePumpSwapBuyInstr 下标一致）。
+// parsePSBuyFromData 仅有 Program data 数值与部分 pubkey，mint/池子 ATA 等需从指令账户补全。
+func enrichPumpSwapBuyFromAccounts(ev *PumpSwapBuyEvent, accounts []string) {
+	if len(accounts) < 13 {
+		return
+	}
+	set := func(dst *string, idx int) {
+		if *dst != "" {
+			return
+		}
+		s := getAccountSafe(accounts, idx)
+		if s != "" && s != zeroPubkey {
+			*dst = s
+		}
+	}
+	set(&ev.BaseMint, 3)
+	set(&ev.QuoteMint, 4)
+	set(&ev.PoolBaseTokenAccount, 7)
+	set(&ev.PoolQuoteTokenAccount, 8)
+	set(&ev.BaseTokenProgram, 11)
+	set(&ev.QuoteTokenProgram, 12)
+	if len(accounts) >= 19 {
+		set(&ev.CoinCreatorVaultAta, 17)
+		set(&ev.CoinCreatorVaultAuthority, 18)
+	}
+}
+
+func enrichPumpSwapSellFromAccounts(ev *PumpSwapSellEvent, accounts []string) {
+	if len(accounts) < 13 {
+		return
+	}
+	set := func(dst *string, idx int) {
+		if *dst != "" {
+			return
+		}
+		s := getAccountSafe(accounts, idx)
+		if s != "" && s != zeroPubkey {
+			*dst = s
+		}
+	}
+	set(&ev.BaseMint, 3)
+	set(&ev.QuoteMint, 4)
+	set(&ev.PoolBaseTokenAccount, 7)
+	set(&ev.PoolQuoteTokenAccount, 8)
+	set(&ev.BaseTokenProgram, 11)
+	set(&ev.QuoteTokenProgram, 12)
+	if len(accounts) >= 19 {
+		set(&ev.CoinCreatorVaultAta, 17)
+		set(&ev.CoinCreatorVaultAuthority, 18)
+	}
+}

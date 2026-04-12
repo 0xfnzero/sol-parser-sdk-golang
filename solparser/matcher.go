@@ -1,6 +1,22 @@
 package solparser
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"strings"
+)
+
+// 与 Rust `optimized_matcher::detect_pumpfun_create` 一致：日志中出现 PumpFun Create 的 Program data 前缀。
+const pumpfunCreateLogPrefix = "Program data: G3KpTd7rY3Y"
+
+// DetectPumpfunCreateFromLogs 若任一日志行包含 PumpFun Create 的 base64 前缀则返回 true（用于 inner trade 的 is_created_buy，与 Rust `parse_instructions_enhanced` 一致）。
+func DetectPumpfunCreateFromLogs(logs []string) bool {
+	for _, log := range logs {
+		if strings.Contains(log, pumpfunCreateLogPrefix) {
+			return true
+		}
+	}
+	return false
+}
 
 func ParseLogUnified(log, signature string, slot uint64, blockTimeUs *int64) DexEvent {
 	return ParseLogOptimized(log, signature, slot, 0, blockTimeUs, NowUs(), nil, false, "")

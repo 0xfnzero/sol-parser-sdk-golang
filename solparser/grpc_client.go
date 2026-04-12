@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -15,6 +16,21 @@ import (
 
 	pb "sol-parser-sdk-golang/proto"
 )
+
+
+// tlsConfigForGRPCEndpoint 为 gRPC over TLS 设置 SNI（ServerName）。空 tls.Config 在部分环境下会导致握手阶段 EOF。
+func tlsConfigForGRPCEndpoint(endpoint string) *tls.Config {
+	cfg := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	host, _, err := net.SplitHostPort(endpoint)
+	if err != nil {
+		cfg.ServerName = endpoint
+		return cfg
+	}
+	cfg.ServerName = host
+	return cfg
+}
 
 // SubscribeCallbacks 订阅回调函数
 type SubscribeCallbacks struct {
@@ -116,9 +132,9 @@ func (c *YellowstoneGrpc) Connect() error {
 		c.streamXTokenAuth(),
 	}
 
-	// 配置 TLS
+	// 配置 TLS（显式 SNI，避免 publicnode 等域名出现 handshake EOF）
 	if c.config.EnableTLS {
-		creds := credentials.NewTLS(&tls.Config{})
+		creds := credentials.NewTLS(tlsConfigForGRPCEndpoint(c.endpoint))
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))

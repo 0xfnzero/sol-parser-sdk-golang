@@ -25,7 +25,8 @@ import (
 )
 
 var pumpSwapProgramIDs = []string{
-	"pAMMBay6oceH9fJKBRdGP4LmT4saRGfEE7xmrCaGWpZ",
+	solparser.PUMPSWAP_PROGRAM_ID,
+	solparser.GrpcPumpSwapFeesProgramID,
 }
 
 func nowUsPumpSwap() int64 {
