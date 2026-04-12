@@ -5,7 +5,7 @@
 // Quick connection test - subscribes to ALL PumpFun events,
 // prints the first 10, then exits.
 //
-// Run: GEYSER_API_TOKEN=your_token go run examples/pumpfun_quick_test.go
+// Run: GRPC_URL=host:443 GRPC_TOKEN=your_token go run examples/pumpfun_quick_test.go
 
 package main
 
@@ -19,11 +19,11 @@ import (
 )
 
 func main() {
-	endpoint := os.Getenv("GEYSER_ENDPOINT")
+	endpoint := os.Getenv("GRPC_URL")
 	if endpoint == "" {
 		endpoint = "solana-yellowstone-grpc.publicnode.com:443"
 	}
-	token := os.Getenv("GEYSER_API_TOKEN")
+	token := os.Getenv("GRPC_TOKEN")
 
 	fmt.Println("🚀 Quick Test - Subscribing to ALL PumpFun events...")
 	fmt.Printf("📡 Endpoint: %s\n\n", endpoint)

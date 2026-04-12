@@ -7,7 +7,7 @@
 // - Measure end-to-end latency per event
 // - Display periodic 10s summaries (total count, rate, avg/min/max latency)
 //
-// Run: GEYSER_API_TOKEN=your_token go run examples/pumpswap_with_metrics.go
+// Run: GRPC_URL=host:443 GRPC_TOKEN=your_token go run examples/pumpswap_with_metrics.go
 
 package main
 
@@ -24,11 +24,11 @@ import (
 )
 
 func main() {
-	endpoint := os.Getenv("GEYSER_ENDPOINT")
+	endpoint := os.Getenv("GRPC_URL")
 	if endpoint == "" {
 		endpoint = "solana-yellowstone-grpc.publicnode.com:443"
 	}
-	token := os.Getenv("GEYSER_API_TOKEN")
+	token := os.Getenv("GRPC_TOKEN")
 
 	fmt.Println("PumpSwap event parsing with detailed performance metrics")
 	fmt.Println("🚀 Subscribing to Yellowstone gRPC (PumpSwap)...")

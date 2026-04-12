@@ -55,14 +55,22 @@ replace sol-parser-sdk-golang => github.com/0xfnzero/sol-parser-sdk-golang v0.0.
 
 ### 2. Environment (examples)
 
-| Path | Variables |
-|------|-----------|
-| Most Yellowstone-style gRPC examples | `GEYSER_ENDPOINT`, `GEYSER_API_TOKEN` (or compatible env names used in each file) |
-| [yellowstone_grpc_parse.go](examples/yellowstone_grpc_parse.go) | `GRPC_URL`, `GRPC_TOKEN` (falls back to `GEYSER_ENDPOINT` / `GEYSER_API_TOKEN`) |
-| [shredstream_entries.go](examples/shredstream_entries.go) | **`SHRED_URL`** or **`SHRED_GRPC_ADDR`** — HTTP `host:port` for **plain-text** ShredStream gRPC (**not** `GRPC_URL`) |
-| [parse_tx_by_signature.go](examples/parse_tx_by_signature.go) | `TX_SIGNATURE`, `RPC_URL` |
+**Yellowstone / Geyser gRPC** (all examples that subscribe over gRPC use the same two names):
 
-ShredStream example optional env: `SHRED_PARSE_DEX`, `SHRED_MAX_JSON_PER_ENTRY`, `SHRED_JSON_COMPACT`, `SHREDSTREAM_QUIET`, `SHRED_MAX_MSG` — see file header in [examples/shredstream_entries.go](examples/shredstream_entries.go).
+| Variable | Meaning |
+|----------|---------|
+| **`GRPC_URL`** | Endpoint host or full URL (e.g. `https://solana-yellowstone-grpc.publicnode.com:443` or `host:443`). Parsed to `host:port` where needed. |
+| **`GRPC_TOKEN`** | `x-token` (or empty if the node allows unauthenticated access). |
+
+**ShredStream** (separate binary / HTTP-style endpoint — **not** the same as `GRPC_URL`):
+
+| Variable | Meaning |
+|----------|---------|
+| **`SHRED_URL`** | e.g. `http://127.0.0.1:10800` (plain-text gRPC to ShredStream proxy). |
+
+Optional ShredStream tuning: `SHRED_PARSE_DEX`, `SHRED_MAX_JSON_PER_ENTRY`, `SHRED_JSON_COMPACT`, `SHREDSTREAM_QUIET`, `SHRED_MAX_MSG` — see [examples/shredstream_entries.go](examples/shredstream_entries.go).
+
+**RPC utility** [parse_tx_by_signature.go](examples/parse_tx_by_signature.go): `TX_SIGNATURE`, `RPC_URL`.
 
 ### 3. Smoke test
 
@@ -90,7 +98,7 @@ for _, ev := range events {
 
 ### 5. ShredStream (HTTP endpoint — not Yellowstone gRPC)
 
-Uses **`SHRED_URL`** / **`SHRED_GRPC_ADDR`** (e.g. `http://127.0.0.1:10800`). Not `GRPC_URL`.
+Uses **`SHRED_URL`** only (e.g. `http://127.0.0.1:10800`). This is **not** `GRPC_URL` (different service).
 
 ```bash
 export SHRED_URL="http://127.0.0.1:10800"
@@ -108,20 +116,20 @@ Run from the **repository root** after `go mod tidy`. One row per source file (l
 | Description | Run command | Source |
 |-------------|-------------|--------|
 | **PumpFun** | | |
-| PumpFun `DexEvent` + metrics | `GEYSER_API_TOKEN=… go run examples/pumpfun_with_metrics.go` | [pumpfun_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_with_metrics.go) |
-| PumpFun trade filter | `GEYSER_API_TOKEN=… go run examples/pumpfun_trade_filter.go` | [pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) |
-| Quick connection test | `GEYSER_API_TOKEN=… go run examples/pumpfun_quick_test.go` | [pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) |
+| PumpFun `DexEvent` + metrics | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_with_metrics.go` | [pumpfun_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_with_metrics.go) |
+| PumpFun trade filter | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_trade_filter.go` | [pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) |
+| Quick connection test | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_quick_test.go` | [pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) |
 | **PumpSwap** | | |
-| PumpSwap + metrics | `GEYSER_API_TOKEN=… go run examples/pumpswap_with_metrics.go` | [pumpswap_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_with_metrics.go) |
-| Ultra-low latency | `GEYSER_API_TOKEN=… go run examples/pumpswap_low_latency.go` | [pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) |
+| PumpSwap + metrics | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_with_metrics.go` | [pumpswap_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_with_metrics.go) |
+| Ultra-low latency | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_low_latency.go` | [pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) |
 | **Meteora DAMM** | | |
-| Meteora DAMM V2 | `GEYSER_API_TOKEN=… go run examples/meteora_damm_grpc.go` | [meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
+| Meteora DAMM V2 | `GRPC_URL=… GRPC_TOKEN=… go run examples/meteora_damm_grpc.go` | [meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
 | **ShredStream** (see **step 5** above) | | |
 | SubscribeEntries + decode + optional `DexEvent` JSON | `SHRED_URL=http://host:port go run examples/shredstream_entries.go` | [shredstream_entries.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/shredstream_entries.go) |
 | **Yellowstone** | | |
 | Geyser subscribe + `ParseSubscribeTransaction` | `GRPC_URL=… GRPC_TOKEN=… go run examples/yellowstone_grpc_parse.go` | [yellowstone_grpc_parse.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/yellowstone_grpc_parse.go) |
 | **Multi-protocol** | | |
-| All supported DEX programs | `GEYSER_API_TOKEN=… go run examples/multi_protocol_grpc.go` | [multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
+| All supported DEX programs | `GRPC_URL=… GRPC_TOKEN=… go run examples/multi_protocol_grpc.go` | [multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
 | **Utility** | | |
 | Parse tx by signature (RPC, not gRPC stream) | `TX_SIGNATURE=… RPC_URL=… go run examples/parse_tx_by_signature.go` | [parse_tx_by_signature.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/parse_tx_by_signature.go) |
 

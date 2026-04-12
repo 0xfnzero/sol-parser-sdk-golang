@@ -3,7 +3,7 @@
 // ShredStream gRPC：订阅 SubscribeEntries，对 Entry.entries 做 DecodeGRPCEntry 解码（对齐 sol-parser-sdk-ts `shredstream/client.ts` + examples/shredstream_example.ts）。
 //
 // 环境变量：
-//   SHRED_URL / SHRED_GRPC_ADDR  必填，如 http://127.0.0.1:10800（解析为 host:port，明文 gRPC）
+//   SHRED_URL      必填，如 http://127.0.0.1:10800（解析为 host:port，明文 gRPC；与 GRPC_URL 不同服务勿混用）
 //   SHRED_MAX_MSG                可选，最大接收字节，默认 1GiB
 //   SHREDSTREAM_QUIET=1          关闭每条 gRPC Entry 的 [shredstream] 行（仅保留 10s 统计）
 //   SHRED_PRINT_SIGS=N           每条 Entry 额外打印最多 N 笔签名样本（默认 0）
@@ -44,12 +44,9 @@ func hr(ch byte) string {
 
 func main() {
 	raw := os.Getenv("SHRED_URL")
-	if raw == "" {
-		raw = os.Getenv("SHRED_GRPC_ADDR")
-	}
 	ep := dialTargetFromURL(raw)
 	if ep == "" {
-		fmt.Fprintf(os.Stderr, "请设置 SHRED_URL，例如: export SHRED_URL=\"http://127.0.0.1:10800\"\n")
+		fmt.Fprintf(os.Stderr, "请设置 SHRED_URL（ShredStream 端点，与 GRPC_URL 不同），例如: export SHRED_URL=\"http://127.0.0.1:10800\"\n")
 		os.Exit(1)
 	}
 

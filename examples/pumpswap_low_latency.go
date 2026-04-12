@@ -34,11 +34,11 @@ func nowUsPumpSwap() int64 {
 }
 
 func main() {
-	endpoint := os.Getenv("GEYSER_ENDPOINT")
+	endpoint := os.Getenv("GRPC_URL")
 	if endpoint == "" {
 		endpoint = "solana-yellowstone-grpc.publicnode.com:443"
 	}
-	token := os.Getenv("GEYSER_API_TOKEN")
+	token := os.Getenv("GRPC_TOKEN")
 
 	fmt.Println("🚀 PumpSwap Low-Latency Test")
 	fmt.Println("============================\n")

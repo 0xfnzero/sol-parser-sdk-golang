@@ -4,10 +4,9 @@
 // 分隔线、gRPC/事件时间与延迟、完整缩进 JSON（不截断）、末尾整段 signature。
 // 解析使用 ParseSubscribeTransaction（指令账户 + 日志 Program data，并合并 PumpSwap 重复事件以补全 mint/池子字段）。
 //
-// 环境变量（与常见部署一致）：
+// 环境变量（全仓库 Yellowstone 示例统一使用）：
 //   GRPC_URL       如 https://solana-yellowstone-grpc.publicnode.com:443（可写 host:port）
-//   GRPC_TOKEN     x-token（可与 GEYSER_API_TOKEN 二选一）
-//   GEYSER_ENDPOINT / GEYSER_API_TOKEN  若未设置 GRPC_* 则回退
+//   GRPC_TOKEN     x-token
 //
 // 运行：
 //
@@ -92,7 +91,7 @@ func printEventLikeRust(ev solparser.DexEvent, slot uint64, signatureFull string
 
 func main() {
 	endpoint := grpcEndpointFromEnv()
-	token := firstNonEmpty(os.Getenv("GRPC_TOKEN"), os.Getenv("GEYSER_API_TOKEN"))
+	token := os.Getenv("GRPC_TOKEN")
 
 	fmt.Println("Yellowstone gRPC → ParseSubscribeTransaction")
 	fmt.Println("=================================")
@@ -100,7 +99,7 @@ func main() {
 	if token != "" {
 		fmt.Println("token: (set)")
 	} else {
-		fmt.Println("warning: no GRPC_TOKEN / GEYSER_API_TOKEN — 部分节点会拒绝连接")
+		fmt.Println("warning: no GRPC_TOKEN — 部分节点会拒绝连接")
 	}
 	fmt.Println()
 
@@ -218,7 +217,7 @@ func main() {
 }
 
 func grpcEndpointFromEnv() string {
-	s := firstNonEmpty(os.Getenv("GRPC_URL"), os.Getenv("GEYSER_ENDPOINT"))
+	s := os.Getenv("GRPC_URL")
 	if s == "" {
 		return "solana-yellowstone-grpc.publicnode.com:443"
 	}
@@ -227,11 +226,4 @@ func grpcEndpointFromEnv() string {
 		return u.Host
 	}
 	return s
-}
-
-func firstNonEmpty(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }

@@ -55,14 +55,22 @@ replace sol-parser-sdk-golang => github.com/0xfnzero/sol-parser-sdk-golang v0.0.
 
 ### 2. 环境变量（示例）
 
-| 场景 | 变量 |
-|------|------|
-| 多数 Yellowstone 风格 gRPC 示例 | `GEYSER_ENDPOINT`、`GEYSER_API_TOKEN`（各示例文件内另有兼容变量名） |
-| [yellowstone_grpc_parse.go](examples/yellowstone_grpc_parse.go) | `GRPC_URL`、`GRPC_TOKEN`（未设置时回退 `GEYSER_*`） |
-| [shredstream_entries.go](examples/shredstream_entries.go) | **`SHRED_URL`** / **`SHRED_GRPC_ADDR`** — HTTP `host:port` 明文 ShredStream gRPC（**不是** `GRPC_URL`） |
-| [parse_tx_by_signature.go](examples/parse_tx_by_signature.go) | `TX_SIGNATURE`、`RPC_URL` |
+**Yellowstone / Geyser gRPC**（所有通过 gRPC 订阅的示例统一只用下面两个名字）：
 
-ShredStream 示例可选变量：`SHRED_PARSE_DEX`、`SHRED_MAX_JSON_PER_ENTRY`、`SHRED_JSON_COMPACT`、`SHREDSTREAM_QUIET`、`SHRED_MAX_MSG` 等，见 [examples/shredstream_entries.go](examples/shredstream_entries.go) 文件头注释。
+| 变量 | 含义 |
+|------|------|
+| **`GRPC_URL`** | 节点地址，可为完整 URL 或 `host:443`（示例内会解析为 `host:port`）。 |
+| **`GRPC_TOKEN`** | `x-token`（若节点允许无 token 可留空）。 |
+
+**ShredStream**（独立服务，**不是** `GRPC_URL`）：
+
+| 变量 | 含义 |
+|------|------|
+| **`SHRED_URL`** | 如 `http://127.0.0.1:10800`（明文 gRPC 连 ShredStream 代理）。 |
+
+ShredStream 可选：`SHRED_PARSE_DEX`、`SHRED_MAX_JSON_PER_ENTRY`、`SHRED_JSON_COMPACT`、`SHREDSTREAM_QUIET`、`SHRED_MAX_MSG` 等，见 [examples/shredstream_entries.go](examples/shredstream_entries.go)。
+
+**RPC 工具** [parse_tx_by_signature.go](examples/parse_tx_by_signature.go)：`TX_SIGNATURE`、`RPC_URL`。
 
 ### 3. 冒烟
 
@@ -90,7 +98,7 @@ for _, ev := range events {
 
 ### 5. ShredStream（HTTP 端点，不是 Yellowstone gRPC）
 
-使用 **`SHRED_URL`** / **`SHRED_GRPC_ADDR`**（如 `http://127.0.0.1:10800`），**不要**用 `GRPC_URL`。
+只使用 **`SHRED_URL`**（如 `http://127.0.0.1:10800`），与 **`GRPC_URL`** 不是同一服务。
 
 ```bash
 export SHRED_URL="http://127.0.0.1:10800"
@@ -108,20 +116,20 @@ go run examples/shredstream_entries.go
 | 描述 | 运行命令 | 源码 |
 |------|----------|------|
 | **PumpFun** | | |
-| PumpFun 事件 + 指标 | `GEYSER_API_TOKEN=… go run examples/pumpfun_with_metrics.go` | [pumpfun_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_with_metrics.go) |
-| PumpFun 交易过滤 | `GEYSER_API_TOKEN=… go run examples/pumpfun_trade_filter.go` | [pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) |
-| 快速连接测试 | `GEYSER_API_TOKEN=… go run examples/pumpfun_quick_test.go` | [pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) |
+| PumpFun 事件 + 指标 | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_with_metrics.go` | [pumpfun_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_with_metrics.go) |
+| PumpFun 交易过滤 | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_trade_filter.go` | [pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) |
+| 快速连接测试 | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_quick_test.go` | [pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) |
 | **PumpSwap** | | |
-| PumpSwap + 指标 | `GEYSER_API_TOKEN=… go run examples/pumpswap_with_metrics.go` | [pumpswap_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_with_metrics.go) |
-| 超低延迟 | `GEYSER_API_TOKEN=… go run examples/pumpswap_low_latency.go` | [pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) |
+| PumpSwap + 指标 | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_with_metrics.go` | [pumpswap_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_with_metrics.go) |
+| 超低延迟 | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_low_latency.go` | [pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) |
 | **Meteora DAMM** | | |
-| Meteora DAMM V2 | `GEYSER_API_TOKEN=… go run examples/meteora_damm_grpc.go` | [meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
+| Meteora DAMM V2 | `GRPC_URL=… GRPC_TOKEN=… go run examples/meteora_damm_grpc.go` | [meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) |
 | **ShredStream**（端点见上文步骤 5） | | |
 | SubscribeEntries + 解码 + 可选 DexEvent JSON | `SHRED_URL=http://host:port go run examples/shredstream_entries.go` | [shredstream_entries.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/shredstream_entries.go) |
 | **Yellowstone** | | |
 | Geyser 订阅 + `ParseSubscribeTransaction` | `GRPC_URL=… GRPC_TOKEN=… go run examples/yellowstone_grpc_parse.go` | [yellowstone_grpc_parse.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/yellowstone_grpc_parse.go) |
 | **多协议** | | |
-| 同时订阅多 DEX | `GEYSER_API_TOKEN=… go run examples/multi_protocol_grpc.go` | [multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
+| 同时订阅多 DEX | `GRPC_URL=… GRPC_TOKEN=… go run examples/multi_protocol_grpc.go` | [multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) |
 | **工具** | | |
 | 按签名拉 RPC 解析（非 gRPC 流） | `TX_SIGNATURE=… RPC_URL=… go run examples/parse_tx_by_signature.go` | [parse_tx_by_signature.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/parse_tx_by_signature.go) |
 

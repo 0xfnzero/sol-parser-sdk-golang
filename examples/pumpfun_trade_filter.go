@@ -8,7 +8,7 @@
 // - Display trade details with latency metrics
 //
 // Run: go run examples/pumpfun_trade_filter.go  (from sol-parser-sdk-golang/)
-// Or:  GEYSER_ENDPOINT=xxx GEYSER_API_TOKEN=yyy go run examples/pumpfun_trade_filter.go
+// Or:  GRPC_URL=host:443 GRPC_TOKEN=xxx go run examples/pumpfun_trade_filter.go
 
 package main
 
@@ -36,11 +36,11 @@ func nowUs() int64 {
 }
 
 func main() {
-	endpoint := os.Getenv("GEYSER_ENDPOINT")
+	endpoint := os.Getenv("GRPC_URL")
 	if endpoint == "" {
 		endpoint = defaultEndpoint
 	}
-	token := os.Getenv("GEYSER_API_TOKEN")
+	token := os.Getenv("GRPC_TOKEN")
 	if token == "" {
 		token = defaultToken
 	}
