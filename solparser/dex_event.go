@@ -19,6 +19,28 @@ func (e DexEvent) GetMetadata() EventMetadata {
 		return d.Metadata
 	case *PumpFunMigrateEvent:
 		return d.Metadata
+	case *PumpFeesCreateFeeSharingConfigEvent:
+		return d.Metadata
+	case *PumpFeesInitializeFeeConfigEvent:
+		return d.Metadata
+	case *PumpFeesResetFeeSharingConfigEvent:
+		return d.Metadata
+	case *PumpFeesRevokeFeeSharingAuthorityEvent:
+		return d.Metadata
+	case *PumpFeesTransferFeeSharingAuthorityEvent:
+		return d.Metadata
+	case *PumpFeesUpdateAdminEvent:
+		return d.Metadata
+	case *PumpFeesUpdateFeeConfigEvent:
+		return d.Metadata
+	case *PumpFeesUpdateFeeSharesEvent:
+		return d.Metadata
+	case *PumpFeesUpsertFeeTiersEvent:
+		return d.Metadata
+	case *PumpFunMigrateBondingCurveCreatorEvent:
+		return d.Metadata
+	case *PumpFunGlobalAccountEvent:
+		return d.Metadata
 	case *PumpSwapBuyEvent:
 		return d.Metadata
 	case *PumpSwapSellEvent:
@@ -36,6 +58,12 @@ func (e DexEvent) GetMetadata() EventMetadata {
 	case *RaydiumClmmDecreaseLiquidityEvent:
 		return d.Metadata
 	case *RaydiumClmmCreatePoolEvent:
+		return d.Metadata
+	case *RaydiumClmmOpenPositionEvent:
+		return d.Metadata
+	case *RaydiumClmmOpenPositionWithTokenExtNftEvent:
+		return d.Metadata
+	case *RaydiumClmmClosePositionEvent:
 		return d.Metadata
 	case *RaydiumClmmCollectFeeEvent:
 		return d.Metadata
@@ -130,6 +158,28 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 		d.Metadata.RecentBlockhash = h
 	case *PumpFunMigrateEvent:
 		d.Metadata.RecentBlockhash = h
+	case *PumpFeesCreateFeeSharingConfigEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesInitializeFeeConfigEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesResetFeeSharingConfigEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesRevokeFeeSharingAuthorityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesTransferFeeSharingAuthorityEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesUpdateAdminEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesUpdateFeeConfigEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesUpdateFeeSharesEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFeesUpsertFeeTiersEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunMigrateBondingCurveCreatorEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunGlobalAccountEvent:
+		d.Metadata.RecentBlockhash = h
 	case *PumpSwapBuyEvent:
 		d.Metadata.RecentBlockhash = h
 	case *PumpSwapSellEvent:
@@ -147,6 +197,12 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 	case *RaydiumClmmDecreaseLiquidityEvent:
 		d.Metadata.RecentBlockhash = h
 	case *RaydiumClmmCreatePoolEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmOpenPositionEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmOpenPositionWithTokenExtNftEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmClosePositionEvent:
 		d.Metadata.RecentBlockhash = h
 	case *RaydiumClmmCollectFeeEvent:
 		d.Metadata.RecentBlockhash = h
@@ -269,6 +325,22 @@ func (e DexEvent) AsPumpFunMigrate() *PumpFunMigrateEvent {
 	return nil
 }
 
+// AsPumpFunGlobalAccount 返回 PumpFunGlobalAccountEvent
+func (e DexEvent) AsPumpFunGlobalAccount() *PumpFunGlobalAccountEvent {
+	if p, ok := e.Data.(*PumpFunGlobalAccountEvent); ok {
+		return p
+	}
+	return nil
+}
+
+// AsPumpFeesUpdateFeeShares 返回 PumpFeesUpdateFeeSharesEvent
+func (e DexEvent) AsPumpFeesUpdateFeeShares() *PumpFeesUpdateFeeSharesEvent {
+	if p, ok := e.Data.(*PumpFeesUpdateFeeSharesEvent); ok {
+		return p
+	}
+	return nil
+}
+
 // AsPumpSwapBuy 返回 PumpSwapBuyEvent
 func (e DexEvent) AsPumpSwapBuy() *PumpSwapBuyEvent {
 	if p, ok := e.Data.(*PumpSwapBuyEvent); ok {
@@ -345,7 +417,14 @@ func (e DexEvent) AsBonkTrade() *BonkTradeEvent {
 func (e DexEvent) IsPumpFun() bool {
 	switch e.Type {
 	case EventTypePumpFunTrade, EventTypePumpFunBuy, EventTypePumpFunSell,
-		EventTypePumpFunBuyExactSolIn, EventTypePumpFunCreate, EventTypePumpFunMigrate:
+		EventTypePumpFunBuyExactSolIn, EventTypePumpFunCreate, EventTypePumpFunMigrate,
+		EventTypePumpFunCreateV2, EventTypePumpFunMigrateBondingCurveCreator,
+		EventTypeAccountPumpFunGlobal,
+		EventTypePumpFeesCreateFeeSharingConfig, EventTypePumpFeesInitializeFeeConfig,
+		EventTypePumpFeesResetFeeSharingConfig, EventTypePumpFeesRevokeFeeSharingAuthority,
+		EventTypePumpFeesTransferFeeSharingAuthority, EventTypePumpFeesUpdateAdmin,
+		EventTypePumpFeesUpdateFeeConfig, EventTypePumpFeesUpdateFeeShares,
+		EventTypePumpFeesUpsertFeeTiers:
 		return true
 	default:
 		return false

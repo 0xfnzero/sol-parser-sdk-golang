@@ -3,13 +3,17 @@ package solparser
 import (
 	"bytes"
 	"encoding/binary"
+	"strconv"
 )
 
 // 外层**指令** discriminator（Rust `instr/pump.rs` / `pump_amm.rs`）。Program log 里的 Buy/Sell 等 Event disc 仍见 `binary.go` / `matcher.go`，二者不可混用。
 var (
-	instrPumpOuterCreate   = disc8(24, 30, 200, 40, 5, 28, 7, 119)
-	instrPumpOuterCreateV2 = disc8(214, 144, 76, 236, 95, 139, 49, 180)
-	instrPumpMigrateCPI    = disc8(189, 233, 93, 185, 92, 148, 234, 148)
+	instrPumpOuterCreate            = disc8(24, 30, 200, 40, 5, 28, 7, 119)
+	instrPumpOuterCreateV2          = disc8(214, 144, 76, 236, 95, 139, 49, 180)
+	instrPumpOuterBuyV2             = disc8(184, 23, 238, 97, 103, 197, 211, 61)
+	instrPumpOuterSellV2            = disc8(93, 246, 130, 60, 231, 233, 64, 178)
+	instrPumpOuterBuyExactQuoteInV2 = disc8(194, 171, 28, 70, 104, 77, 91, 47)
+	instrPumpMigrateCPI             = disc8(189, 233, 93, 185, 92, 148, 234, 148)
 )
 
 var (
@@ -21,6 +25,17 @@ var (
 	instrPumpSwapWithdraw      = disc8(183, 18, 70, 156, 148, 109, 161, 34)
 )
 
+var (
+	instrClmmSwap                       = disc8(248, 198, 158, 145, 225, 117, 135, 200)
+	instrClmmSwapV2                     = disc8(43, 4, 237, 11, 26, 201, 30, 98)
+	instrClmmIncLiqV2                   = disc8(133, 29, 89, 223, 69, 238, 176, 10)
+	instrClmmDecLiqV2                   = disc8(58, 127, 188, 62, 79, 82, 196, 96)
+	instrClmmCreatePool                 = disc8(233, 146, 209, 142, 207, 104, 64, 188)
+	instrClmmOpenPositionV2             = disc8(77, 184, 74, 214, 112, 86, 241, 199)
+	instrClmmOpenPositionWithToken22Nft = disc8(77, 255, 174, 82, 125, 29, 201, 46)
+	instrClmmClosePosition              = disc8(123, 134, 81, 0, 49, 68, 98, 98)
+)
+
 // InstructionData 指令数据
 type InstructionData struct {
 	ProgramIDIndex uint32
@@ -28,7 +43,7 @@ type InstructionData struct {
 	Data           []byte
 }
 
-// parseInstructionUnifiedPreFilterRust 对齐 Rust `parse_instruction_unified`：
+// parseInstructionUnifiedPreFilterRust 执行统一入口的 include_only 快速预检：
 // 若 `EventTypeFilter` 为 `IncludeOnlyFilter` 且 `include_only` 非空，且其中**无一**与
 // `EventTypeFilterAllowsInstructionParsing` 所列类型相交，则整条入口不解析（返回空）。
 // `IncludeOnlyFilter` 且 `IncludeOnly` 长度为 0 时与 Rust `Some([])` 一致：不允许解析。
@@ -47,8 +62,7 @@ func parseInstructionUnifiedPreFilterRust(filter EventTypeFilter) bool {
 }
 
 // ParseInstructionUnified 统一的指令解析入口
-// **仅**与 Rust `parse_instruction_unified`（`src/instr/mod.rs`）一致：只路由
-// PumpFun、PumpSwap、Meteora DAMM V2。Raydium / Orca / Bonk 等请直接调用对应 `Parse*Instruction`。
+// 覆盖本包已有的外层指令解析器：PumpFun、PumpSwap、Pump Fees、Meteora DAMM V2、Raydium、Orca、Bonk。
 func ParseInstructionUnified(
 	instructionData []byte,
 	accounts []string,
@@ -85,9 +99,59 @@ func ParseInstructionUnified(
 			return DexEvent{}
 		}
 		return ParseMeteoraDammInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+
+	case PUMP_FEES_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesPumpFees(filter) {
+			return DexEvent{}
+		}
+		return ParsePumpFeesInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+
+	case RAYDIUM_CLMM_PROGRAM_ID, GrpcRaydiumClmmProgramID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumClmm(filter) {
+			return DexEvent{}
+		}
+		return ParseRaydiumClmmInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+
+	case RAYDIUM_CPMM_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumCpmm(filter) {
+			return DexEvent{}
+		}
+		return ParseRaydiumCpmmInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+
+	case RAYDIUM_AMM_V4_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumAmmV4(filter) {
+			return DexEvent{}
+		}
+		return ParseRaydiumAmmV4Instruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+
+	case ORCA_WHIRLPOOL_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesOrcaWhirlpool(filter) {
+			return DexEvent{}
+		}
+		return ParseOrcaWhirlpoolInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+
+	case BONK_PROGRAM_ID, GrpcBonkProgramID:
+		if filter != nil && !EventTypeFilterIncludesBonk(filter) {
+			return DexEvent{}
+		}
+		return ParseBonkInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 	}
 
 	return DexEvent{}
+}
+
+// ParsePumpFeesInstruction 对齐 Rust `pump_fees::parse_instruction`（pfeeUx...）。
+func ParsePumpFeesInstruction(
+	data []byte,
+	accounts []string,
+	signature string,
+	slot uint64,
+	txIndex uint32,
+	blockTimeUs *int64,
+	grpcRecvUs int64,
+) DexEvent {
+	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	return parsePumpFeesInstruction(data, accounts, meta)
 }
 
 // PumpFun / PumpSwap **inner** CPI 事件：16 字节 discriminator（与 Rust `pump_inner.rs` / `pump_amm_inner.rs` 一致）。
@@ -96,9 +160,9 @@ var (
 	pumpfunInnerCreateToken     = []byte{27, 114, 169, 77, 222, 235, 99, 118, 155, 167, 108, 32, 122, 76, 173, 64}
 	pumpfunInnerMigrateComplete = []byte{189, 233, 93, 185, 92, 148, 234, 148, 155, 167, 108, 32, 122, 76, 173, 64}
 
-	pumpswapInnerBuy           = []byte{228, 69, 165, 46, 81, 203, 154, 29, 103, 244, 82, 31, 44, 245, 119, 119}
-	pumpswapInnerSell          = []byte{228, 69, 165, 46, 81, 203, 154, 29, 62, 47, 55, 10, 165, 3, 220, 42}
-	pumpswapInnerCreatePool    = []byte{228, 69, 165, 46, 81, 203, 154, 29, 177, 49, 12, 210, 160, 118, 167, 116}
+	pumpswapInnerBuy             = []byte{228, 69, 165, 46, 81, 203, 154, 29, 103, 244, 82, 31, 44, 245, 119, 119}
+	pumpswapInnerSell            = []byte{228, 69, 165, 46, 81, 203, 154, 29, 62, 47, 55, 10, 165, 3, 220, 42}
+	pumpswapInnerCreatePool      = []byte{228, 69, 165, 46, 81, 203, 154, 29, 177, 49, 12, 210, 160, 118, 167, 116}
 	pumpswapInnerAddLiquidity    = []byte{228, 69, 165, 46, 81, 203, 154, 29, 120, 248, 61, 83, 31, 142, 107, 144}
 	pumpswapInnerRemoveLiquidity = []byte{228, 69, 165, 46, 81, 203, 154, 29, 22, 9, 133, 26, 160, 44, 71, 192}
 )
@@ -216,6 +280,15 @@ func ParsePumpfunInstruction(
 	if outer == instrPumpOuterCreate {
 		return parsePumpFunCreateInstr(data, accounts, meta)
 	}
+	if outer == instrPumpOuterBuyV2 {
+		return parsePumpFunTradeV2Instr("buy_v2", data[8:], accounts, meta)
+	}
+	if outer == instrPumpOuterBuyExactQuoteInV2 {
+		return parsePumpFunTradeV2Instr("buy_exact_quote_in_v2", data[8:], accounts, meta)
+	}
+	if outer == instrPumpOuterSellV2 {
+		return parsePumpFunTradeV2Instr("sell_v2", data[8:], accounts, meta)
+	}
 	if len(data) >= 16 {
 		cpi := binary.LittleEndian.Uint64(data[8:16])
 		if cpi == instrPumpMigrateCPI {
@@ -223,6 +296,48 @@ func ParsePumpfunInstruction(
 		}
 	}
 	return DexEvent{}
+}
+
+func readPumpFunV2Amount(data []byte, offset int) uint64 {
+	if offset+8 > len(data) {
+		return 0
+	}
+	return binary.LittleEndian.Uint64(data[offset : offset+8])
+}
+
+func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, meta EventMetadata) DexEvent {
+	minAcc := 27
+	if ixName == "sell_v2" {
+		minAcc = 26
+	}
+	if len(accounts) < minAcc {
+		return DexEvent{}
+	}
+	first := readPumpFunV2Amount(data, 0)
+	second := readPumpFunV2Amount(data, 8)
+	tokenAmount := first
+	solAmount := second
+	if ixName == "buy_exact_quote_in_v2" {
+		solAmount = first
+		tokenAmount = second
+	}
+	return DexEvent{
+		Type: EventTypePumpFunTrade,
+		Data: &PumpFunTradeEvent{
+			Metadata:               meta,
+			Mint:                   getAccountSafe(accounts, 1),
+			BondingCurve:           getAccountSafe(accounts, 10),
+			User:                   getAccountSafe(accounts, 13),
+			SolAmount:              solAmount,
+			TokenAmount:            tokenAmount,
+			FeeRecipient:           getAccountSafe(accounts, 6),
+			IsBuy:                  ixName != "sell_v2",
+			IxName:                 ixName,
+			AssociatedBondingCurve: getAccountSafe(accounts, 11),
+			TokenProgram:           getAccountSafe(accounts, 3),
+			CreatorVault:           getAccountSafe(accounts, 16),
+		},
+	}
 }
 
 func parsePumpFunCreateInstr(data []byte, accounts []string, meta EventMetadata) DexEvent {
@@ -576,46 +691,114 @@ func ParseRaydiumClmmInstruction(
 
 	discriminator := binary.LittleEndian.Uint64(data[:8])
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	payload := data[8:]
 
 	switch discriminator {
-	case discClmmSwap:
+	case instrClmmSwap, instrClmmSwapV2:
+		if len(payload) < 8+8+8+1 {
+			return DexEvent{}
+		}
+		sqrt, _ := readU64LE(payload, 16)
+		isBaseInput, ok := readBool(payload, 24)
+		if !ok {
+			return DexEvent{}
+		}
 		return DexEvent{
 			Type: EventTypeRaydiumClmmSwap,
 			Data: &RaydiumClmmSwapEvent{
 				Metadata:      meta,
-				PoolState:     getAccountSafe(accounts, 2),
-				Sender:        getAccountSafe(accounts, 0),
+				PoolState:     getAccountSafe(accounts, 0),
+				Sender:        getAccountSafe(accounts, 1),
 				TokenAccount0: zeroPubkey,
 				TokenAccount1: zeroPubkey,
+				ZeroForOne:    isBaseInput,
+				SqrtPriceX64:  strconv.FormatUint(sqrt, 10),
+				Liquidity:     "0",
 			},
 		}
-	case discClmmIncLiq:
+	case instrClmmIncLiqV2:
+		if len(payload) < 8+8+8 {
+			return DexEvent{}
+		}
+		liquidity, _ := readU64LE(payload, 0)
+		amount0Max, _ := readU64LE(payload, 8)
+		amount1Max, _ := readU64LE(payload, 16)
 		return DexEvent{
 			Type: EventTypeRaydiumClmmIncreaseLiquidity,
 			Data: &RaydiumClmmIncreaseLiquidityEvent{
 				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 3),
-				PositionNftMint: zeroPubkey,
-				User:            getAccountSafe(accounts, 0),
+				Pool:            getAccountSafe(accounts, 0),
+				PositionNftMint: getAccountSafe(accounts, 1),
+				User:            getAccountSafe(accounts, 2),
+				Liquidity:       strconv.FormatUint(liquidity, 10),
+				Amount0Max:      amount0Max,
+				Amount1Max:      amount1Max,
 			},
 		}
-	case discClmmDecLiq:
+	case instrClmmDecLiqV2:
+		if len(payload) < 8+8+8 {
+			return DexEvent{}
+		}
+		liquidity, _ := readU64LE(payload, 0)
+		amount0Min, _ := readU64LE(payload, 8)
+		amount1Min, _ := readU64LE(payload, 16)
 		return DexEvent{
 			Type: EventTypeRaydiumClmmDecreaseLiquidity,
 			Data: &RaydiumClmmDecreaseLiquidityEvent{
 				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 3),
-				PositionNftMint: zeroPubkey,
-				User:            getAccountSafe(accounts, 0),
+				Pool:            getAccountSafe(accounts, 0),
+				PositionNftMint: getAccountSafe(accounts, 1),
+				User:            getAccountSafe(accounts, 2),
+				Liquidity:       strconv.FormatUint(liquidity, 10),
+				Amount0Min:      amount0Min,
+				Amount1Min:      amount1Min,
 			},
 		}
-	case discClmmCreate:
+	case instrClmmCreatePool:
+		if len(payload) < 8+8 {
+			return DexEvent{}
+		}
+		sqrt, _ := readU64LE(payload, 0)
+		openTime, _ := readU64LE(payload, 8)
 		return DexEvent{
 			Type: EventTypeRaydiumClmmCreatePool,
 			Data: &RaydiumClmmCreatePoolEvent{
-				Metadata: meta,
-				Pool:     getAccountSafe(accounts, 4),
-				Creator:  getAccountSafe(accounts, 0),
+				Metadata:     meta,
+				Pool:         getAccountSafe(accounts, 0),
+				Creator:      getAccountSafe(accounts, 1),
+				Token0Mint:   getAccountSafe(accounts, 2),
+				Token1Mint:   getAccountSafe(accounts, 3),
+				SqrtPriceX64: strconv.FormatUint(sqrt, 10),
+				OpenTime:     openTime,
+			},
+		}
+	case instrClmmOpenPositionV2, instrClmmOpenPositionWithToken22Nft:
+		if len(payload) < 4+4+4+4+8+8+8 {
+			return DexEvent{}
+		}
+		tickLower, _ := readI32LE(payload, 0)
+		tickUpper, _ := readI32LE(payload, 4)
+		liquidity, _ := readU64LE(payload, 16)
+		return DexEvent{
+			Type: EventTypeRaydiumClmmOpenPosition,
+			Data: &RaydiumClmmOpenPositionEvent{
+				Metadata:        meta,
+				Pool:            getAccountSafe(accounts, 0),
+				User:            getAccountSafe(accounts, 1),
+				PositionNftMint: getAccountSafe(accounts, 2),
+				TickLowerIndex:  tickLower,
+				TickUpperIndex:  tickUpper,
+				Liquidity:       strconv.FormatUint(liquidity, 10),
+			},
+		}
+	case instrClmmClosePosition:
+		return DexEvent{
+			Type: EventTypeRaydiumClmmClosePosition,
+			Data: &RaydiumClmmClosePositionEvent{
+				Metadata:        meta,
+				Pool:            getAccountSafe(accounts, 0),
+				User:            getAccountSafe(accounts, 1),
+				PositionNftMint: getAccountSafe(accounts, 2),
 			},
 		}
 	}

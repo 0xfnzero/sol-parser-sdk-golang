@@ -32,9 +32,9 @@ func TestFillRpcDexEventsPump_LogDerivedBuyExactSolIn(t *testing.T) {
 	ev := DexEvent{
 		Type: EventTypePumpFunBuyExactSolIn,
 		Data: &PumpFunTradeEvent{
-			Metadata:    EventMetadata{},
-			IsBuy:       true,
-			IxName:      "buy_exact_sol_in",
+			Metadata:     EventMetadata{},
+			IsBuy:        true,
+			IxName:       "buy_exact_sol_in",
 			BondingCurve: "",
 		},
 	}

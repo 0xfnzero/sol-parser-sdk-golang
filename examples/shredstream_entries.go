@@ -13,7 +13,7 @@
 //
 // 输出：每条 gRPC 消息用分隔线包围；摘要一行对齐；DexEvent 带序号与类型，JSON 默认缩进。
 //
-// 运行：cd sol-parser-sdk-golang && export SHRED_URL=http://host:10800 && go run examples/shredstream_entries.go
+// 运行：cd github.com/0xfnzero/sol-parser-sdk-golang && export SHRED_URL=http://host:10800 && go run examples/shredstream_entries.go
 //
 // 完整账户+ALT 与主网 RPC 路径见 sol-parser-sdk-ts `shredstream_pumpfun_json.ts`。
 
@@ -32,8 +32,8 @@ import (
 	"syscall"
 	"time"
 
-	"sol-parser-sdk-golang/shredstream"
-	"sol-parser-sdk-golang/solparser"
+	"github.com/0xfnzero/sol-parser-sdk-golang/shredstream"
+	"github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 )
 
 const lineW = 80
@@ -110,10 +110,10 @@ func main() {
 	}
 
 	var (
-		entryMsgs uint64 // gRPC Entry 消息条数（对应 Node grpc_entry_msgs）
-		txTotal   uint64 // 解码出的交易总数（对应 Node txs_decoded）
+		entryMsgs  uint64 // gRPC Entry 消息条数（对应 Node grpc_entry_msgs）
+		txTotal    uint64 // 解码出的交易总数（对应 Node txs_decoded）
 		decodeErrs uint64 // 对应 Node entryDecodeFailures
-		dexQueued uint64 // 对应 Node dexEventsQueued（静态账户解析出的 DexEvent 条数）
+		dexQueued  uint64 // 对应 Node dexEventsQueued（静态账户解析出的 DexEvent 条数）
 	)
 
 	go func() {

@@ -18,6 +18,7 @@ type AccountData struct {
 
 // 程序 ID 常量（accounts 包内部使用）
 const pumpswapProgramID = PUMPSWAP_PROGRAM_ID
+const pumpfunProgramID = PUMPFUN_PROGRAM_ID
 
 // ParseAccountUnified 统一的账户解析入口
 // 对齐 Rust `parse_account_unified`
@@ -29,21 +30,24 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 	// Early filtering based on event type filter
 	accountTypes := []EventType{
 		EventTypeTokenAccount, EventTypeTokenInfo, EventTypeNonceAccount,
+		EventTypeAccountPumpFunGlobal,
 		EventTypeAccountPumpSwapGlobalConfig, EventTypeAccountPumpSwapPool,
 	}
-	shouldParse := false
-	for _, t := range accountTypes {
-		if filter.ShouldInclude(t) {
-			shouldParse = true
-			break
+	if filter != nil {
+		shouldParse := false
+		for _, t := range accountTypes {
+			if filter.ShouldInclude(t) {
+				shouldParse = true
+				break
+			}
 		}
-	}
-	if !shouldParse {
-		return DexEvent{}
+		if !shouldParse {
+			return DexEvent{}
+		}
 	}
 
 	// PumpSwap 账户解析
-	if account.Owner == pumpswapProgramID {
+	if account.Owner == pumpswapProgramID && filter != nil {
 		if filter.ShouldInclude(EventTypeAccountPumpSwapGlobalConfig) ||
 			filter.ShouldInclude(EventTypeAccountPumpSwapPool) {
 			event := parsePumpswapAccount(account, metadata)
@@ -53,16 +57,26 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 		}
 	}
 
+	// PumpFun 账户解析
+	if account.Owner == pumpfunProgramID && filter != nil {
+		if filter.ShouldInclude(EventTypeAccountPumpFunGlobal) {
+			event := parsePumpfunAccount(account, metadata)
+			if event.Type != "" {
+				return event
+			}
+		}
+	}
+
 	// Nonce 账户解析
 	if IsNonceAccount(account.Data) {
-		if !filter.ShouldInclude(EventTypeNonceAccount) {
+		if filter != nil && !filter.ShouldInclude(EventTypeNonceAccount) {
 			return DexEvent{}
 		}
 		return ParseNonceAccount(account, metadata)
 	}
 
 	// Token 账户解析
-	if !filter.ShouldInclude(EventTypeTokenAccount) && !filter.ShouldInclude(EventTypeTokenInfo) {
+	if filter != nil && !filter.ShouldInclude(EventTypeTokenAccount) && !filter.ShouldInclude(EventTypeTokenInfo) {
 		return DexEvent{}
 	}
 	return ParseTokenAccount(account, metadata)
@@ -188,6 +202,99 @@ func IsNonceAccount(data []byte) bool {
 	return true
 }
 
+// ParsePumpfunGlobal 解析 PumpFun Global 账户
+// 对齐 Rust `parse_pumpfun_account` 中的 Global 分支。
+func ParsePumpfunGlobal(account *AccountData, metadata EventMetadata) DexEvent {
+	const globalBody = 1021
+	if len(account.Data) < 8+globalBody {
+		return DexEvent{}
+	}
+	globalDisc := []byte{167, 232, 232, 177, 200, 108, 114, 127}
+	if !HasDiscriminator(account.Data, globalDisc) {
+		return DexEvent{}
+	}
+
+	data := account.Data[8:]
+	offset := 0
+
+	initialized := data[offset] != 0
+	offset++
+	authority := ReadPubkey(data, offset)
+	offset += 32
+	feeRecipient := ReadPubkey(data, offset)
+	offset += 32
+	initialVirtualTokenReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	initialVirtualSolReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	initialRealTokenReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	tokenTotalSupply := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	feeBasisPoints := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	withdrawAuthority := ReadPubkey(data, offset)
+	offset += 32
+	enableMigrate := data[offset] != 0
+	offset++
+	poolMigrationFee := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	creatorFeeBasisPoints := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	feeRecipients := make([]string, 8)
+	for i := 0; i < 8; i++ {
+		feeRecipients[i] = ReadPubkey(data, offset)
+		offset += 32
+	}
+	setCreatorAuthority := ReadPubkey(data, offset)
+	offset += 32
+	adminSetCreatorAuthority := ReadPubkey(data, offset)
+	offset += 32
+	createV2Enabled := data[offset] != 0
+	offset++
+	whitelistPda := ReadPubkey(data, offset)
+	offset += 32
+	reservedFeeRecipient := ReadPubkey(data, offset)
+	offset += 32
+	mayhemModeEnabled := data[offset] != 0
+	offset++
+	reservedFeeRecipients := make([]string, 7)
+	for i := 0; i < 7; i++ {
+		reservedFeeRecipients[i] = ReadPubkey(data, offset)
+		offset += 32
+	}
+
+	return DexEvent{
+		Type: EventTypeAccountPumpFunGlobal,
+		Data: &PumpFunGlobalAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			Global: PumpFunGlobal{
+				Initialized:                 initialized,
+				Authority:                   authority,
+				FeeRecipient:                feeRecipient,
+				InitialVirtualTokenReserves: initialVirtualTokenReserves,
+				InitialVirtualSolReserves:   initialVirtualSolReserves,
+				InitialRealTokenReserves:    initialRealTokenReserves,
+				TokenTotalSupply:            tokenTotalSupply,
+				FeeBasisPoints:              feeBasisPoints,
+				WithdrawAuthority:           withdrawAuthority,
+				EnableMigrate:               enableMigrate,
+				PoolMigrationFee:            poolMigrationFee,
+				CreatorFeeBasisPoints:       creatorFeeBasisPoints,
+				FeeRecipients:               feeRecipients,
+				SetCreatorAuthority:         setCreatorAuthority,
+				AdminSetCreatorAuthority:    adminSetCreatorAuthority,
+				CreateV2Enabled:             createV2Enabled,
+				WhitelistPda:                whitelistPda,
+				ReservedFeeRecipient:        reservedFeeRecipient,
+				MayhemModeEnabled:           mayhemModeEnabled,
+				ReservedFeeRecipients:       reservedFeeRecipients,
+			},
+		},
+	}
+}
+
 // ParsePumpswapGlobalConfig 解析 PumpSwap Global Config 账户
 // 对齐 Rust `parse_pumpswap_global_config`
 func ParsePumpswapGlobalConfig(account *AccountData, metadata EventMetadata) DexEvent {
@@ -253,17 +360,17 @@ func ParsePumpswapGlobalConfig(account *AccountData, metadata EventMetadata) Dex
 			Metadata: metadata,
 			Pubkey:   account.Pubkey,
 			Config: PumpSwapGlobalConfigAccountData{
-				Admin:                         admin,
-				LpFeeBasisPoints:              lpFeeBasisPoints,
-				ProtocolFeeBasisPoints:        protocolFeeBasisPoints,
-				DisableFlags:                  disableFlags,
-				ProtocolFeeRecipients:         protocolFeeRecipients,
-				CoinCreatorFeeBasisPoints:     coinCreatorFeeBasisPoints,
-				AdminSetCoinCreatorAuthority:  adminSetCoinCreatorAuthority,
-				WhitelistPda:                  whitelistPda,
-				ReservedFeeRecipient:          reservedFeeRecipient,
-				MayhemModeEnabled:             mayhemModeEnabled,
-				ReservedFeeRecipients:         reservedFeeRecipients,
+				Admin:                        admin,
+				LpFeeBasisPoints:             lpFeeBasisPoints,
+				ProtocolFeeBasisPoints:       protocolFeeBasisPoints,
+				DisableFlags:                 disableFlags,
+				ProtocolFeeRecipients:        protocolFeeRecipients,
+				CoinCreatorFeeBasisPoints:    coinCreatorFeeBasisPoints,
+				AdminSetCoinCreatorAuthority: adminSetCoinCreatorAuthority,
+				WhitelistPda:                 whitelistPda,
+				ReservedFeeRecipient:         reservedFeeRecipient,
+				MayhemModeEnabled:            mayhemModeEnabled,
+				ReservedFeeRecipients:        reservedFeeRecipients,
 			},
 		},
 	}
@@ -370,6 +477,20 @@ func parsePumpswapAccount(account *AccountData, metadata EventMetadata) DexEvent
 	}
 
 	return DexEvent{}
+}
+
+// parsePumpfunAccount 解析 PumpFun 账户（内部函数）
+func parsePumpfunAccount(account *AccountData, metadata EventMetadata) DexEvent {
+	if IsPumpfunGlobalAccount(account.Data) {
+		return ParsePumpfunGlobal(account, metadata)
+	}
+	return DexEvent{}
+}
+
+// IsPumpfunGlobalAccount 检查是否为 PumpFun Global 账户
+func IsPumpfunGlobalAccount(data []byte) bool {
+	globalDisc := []byte{167, 232, 232, 177, 200, 108, 114, 127}
+	return HasDiscriminator(data, globalDisc)
 }
 
 // IsGlobalConfigAccount 检查是否为 Global Config 账户

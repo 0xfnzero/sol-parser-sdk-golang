@@ -31,7 +31,7 @@
 | Rust | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) |
 | Node.js | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) |
 | Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) |
-| Go | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) |
+| Go | [github.com/0xfnzero/sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) |
 
 ---
 
@@ -39,25 +39,23 @@
 
 ### 1. Install
 
-This repo’s `go.mod` module path is **`sol-parser-sdk-golang`** (see [`go.mod`](go.mod)). Examples import `sol-parser-sdk-golang/solparser`.
+This repo’s `go.mod` module path is **`github.com/0xfnzero/sol-parser-sdk-golang`** (see [`go.mod`](go.mod)). Examples import `github.com/0xfnzero/sol-parser-sdk-golang/solparser`.
 
 **From source** (recommended)
 
 ```bash
 git clone https://github.com/0xfnzero/sol-parser-sdk-golang
-cd sol-parser-sdk-golang
+cd github.com/0xfnzero/sol-parser-sdk-golang
 go mod tidy
 ```
 
-**Use in another module** — add a `replace` to this GitHub repo (or a local clone), for example:
+**Use in another module**
 
-```go
-require sol-parser-sdk-golang v0.1.0
-
-replace sol-parser-sdk-golang => github.com/0xfnzero/sol-parser-sdk-golang v0.1.0
+```bash
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.4.4
 ```
 
-(Or `replace ... => ../sol-parser-sdk-golang` for local dev without pulling the tag.)
+(Or use `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` for local development.)
 
 ### 2. Environment (examples)
 
@@ -89,7 +87,7 @@ go test ./...
 Use **`ParseSubscribeTransaction`** (Geyser `SubscribeUpdateTransactionInfo` → RPC-shaped tx + meta) for **instruction accounts + Program data logs + merge + Pump fills**, aligned with Rust `parse_rpc_transaction` behavior.
 
 ```go
-import "sol-parser-sdk-golang/solparser" // module path: see go.mod
+import "github.com/0xfnzero/sol-parser-sdk-golang/solparser" // module path: see go.mod
 
 events, err := solparser.ParseSubscribeTransaction(slot, txInfo, nil, grpcRecvUs)
 if err != nil {

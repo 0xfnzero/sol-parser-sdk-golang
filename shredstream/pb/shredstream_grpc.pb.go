@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: shredstream/shredstream.proto
+// source: shredstream.proto
 
 package pb
 
@@ -121,7 +121,7 @@ var Shredstream_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "shredstream/shredstream.proto",
+	Metadata: "shredstream.proto",
 }
 
 const (
@@ -230,5 +230,5 @@ var ShredstreamProxy_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "shredstream/shredstream.proto",
+	Metadata: "shredstream.proto",
 }

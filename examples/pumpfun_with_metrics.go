@@ -19,8 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 	base58 "github.com/mr-tron/base58"
-	solparser "sol-parser-sdk-golang/solparser"
 )
 
 func main() {
@@ -45,11 +45,11 @@ func main() {
 	defer client.Disconnect()
 
 	var (
-		eventCount    int64
-		totalLatency  int64
-		minLatency    int64 = 1<<62 - 1
-		maxLatency    int64
-		lastCount     int64
+		eventCount   int64
+		totalLatency int64
+		minLatency   int64 = 1<<62 - 1
+		maxLatency   int64
+		lastCount    int64
 	)
 
 	// 10s periodic stats reporter

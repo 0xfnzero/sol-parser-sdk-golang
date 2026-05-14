@@ -13,6 +13,7 @@ func ParseLogsOnly(logs []string, signature string, slot uint64, blockTimeUs *in
 			out = append(out, ev)
 		}
 	}
+	enrichPumpfunSameTxPostMerge(out)
 	return out
 }
 
@@ -89,6 +90,9 @@ func ParseRpcTransaction(tx *RpcTransactionResponse, signature string, filter Ev
 // 实现位于 accounts.go
 
 // IsNonceAccount 对齐 Rust `is_nonce_account` - 检测是否为 Nonce 账户
+// 实现位于 accounts.go
+
+// ParsePumpfunGlobal 对齐 Rust PumpFun Global 账户解析
 // 实现位于 accounts.go
 
 // ParsePumpswapGlobalConfig 对齐 Rust `parse_pumpswap_global_config` - 解析 PumpSwap Global Config

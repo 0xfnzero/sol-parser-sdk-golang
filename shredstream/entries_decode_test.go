@@ -26,7 +26,7 @@ func TestDecodeEntriesBincode_OneEntryZeroTx(t *testing.T) {
 	binary.LittleEndian.PutUint64(n, 0) // num_hashes
 	buf = append(buf, n...)
 	buf = append(buf, make([]byte, 32)...) // hash
-	binary.LittleEndian.PutUint64(n, 0) // tx_count
+	binary.LittleEndian.PutUint64(n, 0)    // tx_count
 	buf = append(buf, n...)
 
 	txs, err := DecodeEntriesBincode(buf)

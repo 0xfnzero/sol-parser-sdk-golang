@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "sol-parser-sdk-golang/shredstream/pb"
+	pb "github.com/0xfnzero/sol-parser-sdk-golang/shredstream/pb"
 )
 
 // Client Jito ShredStream gRPC 客户端（与 `0xfnzero/solana-streamer` 中 prost 生成的

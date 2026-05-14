@@ -5,7 +5,7 @@
 // Subscribe to multiple DEX protocols simultaneously:
 // PumpFun, PumpSwap, Raydium, Orca, Meteora, Bonk
 //
-// Run: go run examples/multi_protocol_grpc.go  (from sol-parser-sdk-golang/)
+// Run: go run examples/multi_protocol_grpc.go  (from github.com/0xfnzero/sol-parser-sdk-golang/)
 
 package main
 
@@ -18,8 +18,8 @@ import (
 	"syscall"
 	"time"
 
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 	base58 "github.com/mr-tron/base58"
-	solparser "sol-parser-sdk-golang/solparser"
 )
 
 var allProgramIDs = []string{

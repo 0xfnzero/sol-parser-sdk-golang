@@ -50,6 +50,7 @@ type PumpFunTradeEvent struct {
 	AssociatedBondingCurve string        `json:"associated_bonding_curve"`
 	TokenProgram           string        `json:"token_program"`
 	CreatorVault           string        `json:"creator_vault"`
+	Account                string        `json:"account,omitempty"`
 }
 
 func (e *PumpFunTradeEvent) EventType() EventType       { return EventTypePumpFunTrade }
@@ -108,6 +109,7 @@ type PumpFunCreateV2TokenEvent struct {
 	MayhemTokenVault       string        `json:"mayhem_token_vault"`
 	EventAuthority         string        `json:"event_authority"`
 	Program                string        `json:"program"`
+	ObservedFeeRecipient   string        `json:"observed_fee_recipient"`
 }
 
 func (e *PumpFunCreateV2TokenEvent) EventType() EventType       { return EventTypePumpFunCreateV2 }
@@ -128,6 +130,204 @@ type PumpFunMigrateEvent struct {
 
 func (e *PumpFunMigrateEvent) EventType() EventType       { return EventTypePumpFunMigrate }
 func (e *PumpFunMigrateEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFunGlobalAccountEvent struct {
+	Metadata EventMetadata `json:"metadata"`
+	Pubkey   string        `json:"pubkey"`
+	Global   PumpFunGlobal `json:"global"`
+}
+
+func (e *PumpFunGlobalAccountEvent) EventType() EventType {
+	return EventTypeAccountPumpFunGlobal
+}
+func (e *PumpFunGlobalAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFunGlobal struct {
+	Initialized                 bool     `json:"initialized"`
+	Authority                   string   `json:"authority"`
+	FeeRecipient                string   `json:"fee_recipient"`
+	InitialVirtualTokenReserves uint64   `json:"initial_virtual_token_reserves"`
+	InitialVirtualSolReserves   uint64   `json:"initial_virtual_sol_reserves"`
+	InitialRealTokenReserves    uint64   `json:"initial_real_token_reserves"`
+	TokenTotalSupply            uint64   `json:"token_total_supply"`
+	FeeBasisPoints              uint64   `json:"fee_basis_points"`
+	WithdrawAuthority           string   `json:"withdraw_authority"`
+	EnableMigrate               bool     `json:"enable_migrate"`
+	PoolMigrationFee            uint64   `json:"pool_migration_fee"`
+	CreatorFeeBasisPoints       uint64   `json:"creator_fee_basis_points"`
+	FeeRecipients               []string `json:"fee_recipients"`
+	SetCreatorAuthority         string   `json:"set_creator_authority"`
+	AdminSetCreatorAuthority    string   `json:"admin_set_creator_authority"`
+	CreateV2Enabled             bool     `json:"create_v2_enabled"`
+	WhitelistPda                string   `json:"whitelist_pda"`
+	ReservedFeeRecipient        string   `json:"reserved_fee_recipient"`
+	MayhemModeEnabled           bool     `json:"mayhem_mode_enabled"`
+	ReservedFeeRecipients       []string `json:"reserved_fee_recipients"`
+}
+
+type PumpFeesShareholder struct {
+	Address  string `json:"address"`
+	ShareBps uint16 `json:"share_bps"`
+}
+
+type PumpFeesConfigStatus string
+
+const (
+	PumpFeesConfigStatusPaused PumpFeesConfigStatus = "Paused"
+	PumpFeesConfigStatusActive PumpFeesConfigStatus = "Active"
+)
+
+type PumpFeesFees struct {
+	LpFeeBps       uint64 `json:"lp_fee_bps"`
+	ProtocolFeeBps uint64 `json:"protocol_fee_bps"`
+	CreatorFeeBps  uint64 `json:"creator_fee_bps"`
+}
+
+type PumpFeesFeeTier struct {
+	MarketCapLamportsThreshold string       `json:"market_cap_lamports_threshold"`
+	Fees                       PumpFeesFees `json:"fees"`
+}
+
+type PumpFeesCreateFeeSharingConfigEvent struct {
+	Metadata            EventMetadata         `json:"metadata"`
+	Timestamp           int64                 `json:"timestamp"`
+	Mint                string                `json:"mint"`
+	BondingCurve        string                `json:"bonding_curve"`
+	Pool                string                `json:"pool,omitempty"`
+	SharingConfig       string                `json:"sharing_config"`
+	Admin               string                `json:"admin"`
+	InitialShareholders []PumpFeesShareholder `json:"initial_shareholders"`
+	Status              PumpFeesConfigStatus  `json:"status"`
+}
+
+func (e *PumpFeesCreateFeeSharingConfigEvent) EventType() EventType {
+	return EventTypePumpFeesCreateFeeSharingConfig
+}
+func (e *PumpFeesCreateFeeSharingConfigEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesInitializeFeeConfigEvent struct {
+	Metadata  EventMetadata `json:"metadata"`
+	Timestamp int64         `json:"timestamp"`
+	Admin     string        `json:"admin"`
+	FeeConfig string        `json:"fee_config"`
+}
+
+func (e *PumpFeesInitializeFeeConfigEvent) EventType() EventType {
+	return EventTypePumpFeesInitializeFeeConfig
+}
+func (e *PumpFeesInitializeFeeConfigEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesResetFeeSharingConfigEvent struct {
+	Metadata        EventMetadata         `json:"metadata"`
+	Timestamp       int64                 `json:"timestamp"`
+	Mint            string                `json:"mint"`
+	SharingConfig   string                `json:"sharing_config"`
+	OldAdmin        string                `json:"old_admin"`
+	OldShareholders []PumpFeesShareholder `json:"old_shareholders"`
+	NewAdmin        string                `json:"new_admin"`
+	NewShareholders []PumpFeesShareholder `json:"new_shareholders"`
+}
+
+func (e *PumpFeesResetFeeSharingConfigEvent) EventType() EventType {
+	return EventTypePumpFeesResetFeeSharingConfig
+}
+func (e *PumpFeesResetFeeSharingConfigEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesRevokeFeeSharingAuthorityEvent struct {
+	Metadata      EventMetadata `json:"metadata"`
+	Timestamp     int64         `json:"timestamp"`
+	Mint          string        `json:"mint"`
+	SharingConfig string        `json:"sharing_config"`
+	Admin         string        `json:"admin"`
+}
+
+func (e *PumpFeesRevokeFeeSharingAuthorityEvent) EventType() EventType {
+	return EventTypePumpFeesRevokeFeeSharingAuthority
+}
+func (e *PumpFeesRevokeFeeSharingAuthorityEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesTransferFeeSharingAuthorityEvent struct {
+	Metadata      EventMetadata `json:"metadata"`
+	Timestamp     int64         `json:"timestamp"`
+	Mint          string        `json:"mint"`
+	SharingConfig string        `json:"sharing_config"`
+	OldAdmin      string        `json:"old_admin"`
+	NewAdmin      string        `json:"new_admin"`
+}
+
+func (e *PumpFeesTransferFeeSharingAuthorityEvent) EventType() EventType {
+	return EventTypePumpFeesTransferFeeSharingAuthority
+}
+func (e *PumpFeesTransferFeeSharingAuthorityEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesUpdateAdminEvent struct {
+	Metadata  EventMetadata `json:"metadata"`
+	Timestamp int64         `json:"timestamp"`
+	OldAdmin  string        `json:"old_admin"`
+	NewAdmin  string        `json:"new_admin"`
+}
+
+func (e *PumpFeesUpdateAdminEvent) EventType() EventType       { return EventTypePumpFeesUpdateAdmin }
+func (e *PumpFeesUpdateAdminEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesUpdateFeeConfigEvent struct {
+	Metadata  EventMetadata     `json:"metadata"`
+	Timestamp int64             `json:"timestamp"`
+	Admin     string            `json:"admin"`
+	FeeConfig string            `json:"fee_config"`
+	FeeTiers  []PumpFeesFeeTier `json:"fee_tiers"`
+	FlatFees  PumpFeesFees      `json:"flat_fees"`
+}
+
+func (e *PumpFeesUpdateFeeConfigEvent) EventType() EventType {
+	return EventTypePumpFeesUpdateFeeConfig
+}
+func (e *PumpFeesUpdateFeeConfigEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesUpdateFeeSharesEvent struct {
+	Metadata         EventMetadata         `json:"metadata"`
+	Timestamp        int64                 `json:"timestamp"`
+	Mint             string                `json:"mint"`
+	SharingConfig    string                `json:"sharing_config"`
+	Admin            string                `json:"admin"`
+	BondingCurve     string                `json:"bonding_curve"`
+	PumpCreatorVault string                `json:"pump_creator_vault"`
+	NewShareholders  []PumpFeesShareholder `json:"new_shareholders"`
+}
+
+func (e *PumpFeesUpdateFeeSharesEvent) EventType() EventType {
+	return EventTypePumpFeesUpdateFeeShares
+}
+func (e *PumpFeesUpdateFeeSharesEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFeesUpsertFeeTiersEvent struct {
+	Metadata  EventMetadata     `json:"metadata"`
+	Timestamp int64             `json:"timestamp"`
+	Admin     string            `json:"admin"`
+	FeeConfig string            `json:"fee_config"`
+	FeeTiers  []PumpFeesFeeTier `json:"fee_tiers"`
+	Offset    uint8             `json:"offset"`
+}
+
+func (e *PumpFeesUpsertFeeTiersEvent) EventType() EventType {
+	return EventTypePumpFeesUpsertFeeTiers
+}
+func (e *PumpFeesUpsertFeeTiersEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFunMigrateBondingCurveCreatorEvent struct {
+	Metadata      EventMetadata `json:"metadata"`
+	Timestamp     int64         `json:"timestamp"`
+	Mint          string        `json:"mint"`
+	BondingCurve  string        `json:"bonding_curve"`
+	SharingConfig string        `json:"sharing_config"`
+	OldCreator    string        `json:"old_creator"`
+	NewCreator    string        `json:"new_creator"`
+}
+
+func (e *PumpFunMigrateBondingCurveCreatorEvent) EventType() EventType {
+	return EventTypePumpFunMigrateBondingCurveCreator
+}
+func (e *PumpFunMigrateBondingCurveCreatorEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // ============================================================
 // PumpSwap 事件结构体
@@ -360,6 +560,53 @@ func (e *RaydiumClmmDecreaseLiquidityEvent) EventType() EventType {
 	return EventTypeRaydiumClmmDecreaseLiquidity
 }
 func (e *RaydiumClmmDecreaseLiquidityEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// RaydiumClmmOpenPositionEvent Raydium CLMM 开启仓位事件
+type RaydiumClmmOpenPositionEvent struct {
+	Metadata        EventMetadata `json:"metadata"`
+	Pool            string        `json:"pool"`
+	User            string        `json:"user"`
+	PositionNftMint string        `json:"position_nft_mint"`
+	TickLowerIndex  int32         `json:"tick_lower_index"`
+	TickUpperIndex  int32         `json:"tick_upper_index"`
+	Liquidity       string        `json:"liquidity"`
+}
+
+func (e *RaydiumClmmOpenPositionEvent) EventType() EventType {
+	return EventTypeRaydiumClmmOpenPosition
+}
+func (e *RaydiumClmmOpenPositionEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// RaydiumClmmOpenPositionWithTokenExtNftEvent Raydium CLMM Token-2022 NFT 开启仓位事件
+type RaydiumClmmOpenPositionWithTokenExtNftEvent struct {
+	Metadata        EventMetadata `json:"metadata"`
+	Pool            string        `json:"pool"`
+	User            string        `json:"user"`
+	PositionNftMint string        `json:"position_nft_mint"`
+	TickLowerIndex  int32         `json:"tick_lower_index"`
+	TickUpperIndex  int32         `json:"tick_upper_index"`
+	Liquidity       string        `json:"liquidity"`
+}
+
+func (e *RaydiumClmmOpenPositionWithTokenExtNftEvent) EventType() EventType {
+	return EventTypeRaydiumClmmOpenPositionWithTokenExtNft
+}
+func (e *RaydiumClmmOpenPositionWithTokenExtNftEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+
+// RaydiumClmmClosePositionEvent Raydium CLMM 关闭仓位事件
+type RaydiumClmmClosePositionEvent struct {
+	Metadata        EventMetadata `json:"metadata"`
+	Pool            string        `json:"pool"`
+	User            string        `json:"user"`
+	PositionNftMint string        `json:"position_nft_mint"`
+}
+
+func (e *RaydiumClmmClosePositionEvent) EventType() EventType {
+	return EventTypeRaydiumClmmClosePosition
+}
+func (e *RaydiumClmmClosePositionEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // RaydiumClmmCreatePoolEvent Raydium CLMM 创建池子事件
 type RaydiumClmmCreatePoolEvent struct {

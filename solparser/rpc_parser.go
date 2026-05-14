@@ -6,7 +6,7 @@ import (
 
 	"github.com/mr-tron/base58"
 
-	pb "sol-parser-sdk-golang/proto"
+	pb "github.com/0xfnzero/sol-parser-sdk-golang/proto"
 )
 
 // ParseError RPC 解析错误
@@ -42,9 +42,9 @@ type RpcClient interface {
 
 // RpcTransactionResponse RPC 交易响应
 type RpcTransactionResponse struct {
-	Slot       uint64
-	BlockTime  *int64
-	Meta       *RpcTransactionMeta
+	Slot        uint64
+	BlockTime   *int64
+	Meta        *RpcTransactionMeta
 	Transaction *RpcTransaction
 }
 
@@ -220,17 +220,18 @@ func parseRpcTransactionImpl(
 		}
 	}
 
-	events := mergeRpcInstructionEvents(ixEvents)
+	instrEvents := mergeRpcInstructionEvents(ixEvents)
 	recentBlockhash := ""
 	if msg.RecentBlockhash != "" {
 		recentBlockhash = msg.RecentBlockhash
 	}
-	for i := range events {
-		events[i].SetRecentBlockhash(recentBlockhash)
+	for i := range instrEvents {
+		instrEvents[i].SetRecentBlockhash(recentBlockhash)
 	}
 
 	// 解析日志（PumpFun/PumpSwap 等成交多数来自 Program data 日志，非指令表）
 	isCreatedBuy := false
+	logEvents := make([]DexEvent, 0)
 
 	for _, log := range meta.LogMessages {
 		ev := ParseLogOptimized(
@@ -249,15 +250,16 @@ func parseRpcTransactionImpl(
 			if ev.Type == EventTypePumpFunCreate || ev.Type == EventTypePumpFunCreateV2 {
 				isCreatedBuy = true
 			}
-			events = append(events, ev)
+			logEvents = append(logEvents, ev)
 		}
 	}
 
-	// 必须在追加日志事件之后再补账户：否则 Program data 解析出的 PumpFun Trade / PumpSwap 等拿不到 msg/meta 里的指令账户。
+	// Rust gRPC 路径先分别补齐 log / instruction 侧账户与数据，再按业务键去重合并。
+	fillRpcDexEventsPump(instrEvents, msg, meta)
+	fillRpcDexEventsPump(logEvents, msg, meta)
+	events := DedupeLogInstructionEvents(logEvents, instrEvents)
 	fillRpcDexEventsPump(events, msg, meta)
-
-	// 合并同一 signature 下指令事件与 Program data 日志事件（PumpSwap Buy/Sell 互补账户与数值）
-	events = CoalescePumpSwapBuySellBySignature(events)
+	enrichPumpfunSameTxPostMerge(events)
 
 	return events, nil
 }
@@ -309,12 +311,12 @@ func ConvertRpcToGrpc(
 
 	// 转换 TransactionStatusMeta
 	grpcMeta := &pb.TransactionStatusMeta{
-		Fee:              meta.Fee,
-		PreBalances:      meta.PreBalances,
-		PostBalances:     meta.PostBalances,
-		LogMessages:      meta.LogMessages,
+		Fee:               meta.Fee,
+		PreBalances:       meta.PreBalances,
+		PostBalances:      meta.PostBalances,
+		LogMessages:       meta.LogMessages,
 		InnerInstructions: make([]*pb.InnerInstructions, len(meta.InnerInstructions)),
-		PreTokenBalances: make([]*pb.TokenBalance, len(meta.PreTokenBalances)),
+		PreTokenBalances:  make([]*pb.TokenBalance, len(meta.PreTokenBalances)),
 		PostTokenBalances: make([]*pb.TokenBalance, len(meta.PostTokenBalances)),
 	}
 

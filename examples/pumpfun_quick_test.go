@@ -14,8 +14,8 @@ import (
 	"os"
 	"time"
 
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 	base58 "github.com/mr-tron/base58"
-	solparser "sol-parser-sdk-golang/solparser"
 )
 
 func main() {

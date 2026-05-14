@@ -1,4 +1,4 @@
-module sol-parser-sdk-golang
+module github.com/0xfnzero/sol-parser-sdk-golang
 
 go 1.22
 

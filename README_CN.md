@@ -31,7 +31,7 @@
 | Rust | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) |
 | Node.js | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) |
 | Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) |
-| Go | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) |
+| Go | [github.com/0xfnzero/sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) |
 
 ---
 
@@ -39,25 +39,23 @@
 
 ### 1. 安装
 
-本仓库 `go.mod` 的 module 路径为 **`sol-parser-sdk-golang`**（见 [`go.mod`](go.mod)），示例里使用 `import "sol-parser-sdk-golang/solparser"`。
+本仓库 `go.mod` 的 module 路径为 **`github.com/0xfnzero/sol-parser-sdk-golang`**（见 [`go.mod`](go.mod)），示例里使用 `import "github.com/0xfnzero/sol-parser-sdk-golang/solparser"`。
 
 **源码克隆**（推荐）
 
 ```bash
 git clone https://github.com/0xfnzero/sol-parser-sdk-golang
-cd sol-parser-sdk-golang
+cd github.com/0xfnzero/sol-parser-sdk-golang
 go mod tidy
 ```
 
-**在其他 Go 工程引用** — 在 `go.mod` 中用 `replace` 指向上游或本地目录，例如：
+**在其他 Go 工程引用**
 
-```go
-require sol-parser-sdk-golang v0.1.0
-
-replace sol-parser-sdk-golang => github.com/0xfnzero/sol-parser-sdk-golang v0.1.0
+```bash
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.4.4
 ```
 
-（或本地开发用 `replace ... => ../sol-parser-sdk-golang` 指向克隆目录。）
+（本地开发可用 `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` 指向克隆目录。）
 
 ### 2. 环境变量（示例）
 
@@ -89,7 +87,7 @@ go test ./...
 使用 **`ParseSubscribeTransaction`**（Geyser `SubscribeUpdateTransactionInfo` → 与 RPC 对齐的 message/meta），得到 **指令账户 + Program data 日志 + merge + Pump 系账户补全**，行为对齐 Rust `parse_rpc_transaction`。
 
 ```go
-import "sol-parser-sdk-golang/solparser" // module 路径见 go.mod
+import "github.com/0xfnzero/sol-parser-sdk-golang/solparser" // module 路径见 go.mod
 
 events, err := solparser.ParseSubscribeTransaction(slot, txInfo, nil, grpcRecvUs)
 if err != nil {

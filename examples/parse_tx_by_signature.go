@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"os"
 
-	solparser "sol-parser-sdk-golang/solparser"
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 )
 
 const defaultRPCURL = "https://api.mainnet-beta.solana.com"

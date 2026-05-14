@@ -10,7 +10,7 @@ import (
 
 	"github.com/mr-tron/base58"
 
-	pb "sol-parser-sdk-golang/shredstream/pb"
+	pb "github.com/0xfnzero/sol-parser-sdk-golang/shredstream/pb"
 )
 
 // DecodedTransaction 表示从 `entries` 负载中解出的一笔线格式交易（签名 + 原始字节）。

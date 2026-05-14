@@ -8,15 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mr-tron/base58"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
-	pb "sol-parser-sdk-golang/proto"
+	pb "github.com/0xfnzero/sol-parser-sdk-golang/proto"
 )
-
 
 // tlsConfigForGRPCEndpoint 为 gRPC over TLS 设置 SNI（ServerName）。空 tls.Config 在部分环境下会导致握手阶段 EOF。
 func tlsConfigForGRPCEndpoint(endpoint string) *tls.Config {
@@ -47,6 +47,15 @@ type Subscription struct {
 	callbacks SubscribeCallbacks
 }
 
+// DexEventSubscription 直接产出解析后的 DexEvent。
+// Events/Errors 使用有界缓冲；缓冲满时丢弃新消息，避免阻塞 gRPC 读循环。
+type DexEventSubscription struct {
+	ID     string
+	Events <-chan DexEvent
+	Errors <-chan error
+	Cancel func()
+}
+
 // YellowstoneGrpc Yellowstone gRPC 客户端
 type YellowstoneGrpc struct {
 	endpoint    string
@@ -57,6 +66,7 @@ type YellowstoneGrpc struct {
 	conn        *grpc.ClientConn
 	client      pb.GeyserClient
 	stream      pb.Geyser_SubscribeClient
+	dexControl  chan *pb.SubscribeRequest
 	mu          sync.RWMutex
 	connected   bool
 	subscribers map[string]*Subscription
@@ -240,30 +250,420 @@ func (c *YellowstoneGrpc) SubscribeTransactions(filter TransactionFilter, callba
 	return sub, nil
 }
 
-// buildSubscribeRequest 构建订阅请求
-func (c *YellowstoneGrpc) buildSubscribeRequest(filter TransactionFilter) *pb.SubscribeRequest {
-	req := &pb.SubscribeRequest{
-		Transactions: map[string]*pb.SubscribeRequestFilterTransactions{
-			"client": {
-				AccountInclude:  filter.AccountInclude,
-				AccountExclude:  filter.AccountExclude,
-				AccountRequired: filter.AccountRequired,
-			},
-		},
+// SubscribeDexEvents 订阅交易/账户更新并直接产出 DexEvent。
+// 解析路径与 Rust gRPC 订阅对齐：交易走指令 + 日志 + 字段填充，账户更新走 ParseAccountUnified。
+func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFilter, accountFilters []AccountFilter, filter EventTypeFilter) (*DexEventSubscription, error) {
+	if err := c.Connect(); err != nil {
+		return nil, err
 	}
 
+	bufferSize := c.config.BufferSize
+	if bufferSize <= 0 {
+		bufferSize = 8192
+	}
+
+	eventCh := make(chan DexEvent, bufferSize)
+	errCh := make(chan error, bufferSize)
+	ctx, cancelCtx := context.WithCancel(c.ctx)
+	dexID := generateSubID()
+	controlCh := make(chan *pb.SubscribeRequest, 100)
+	reqMu := sync.RWMutex{}
+	currentReq := c.buildSubscribeRequestMulti(transactionFilters, accountFilters)
+
+	var closeOnce sync.Once
+	var sendMu sync.RWMutex
+	closed := false
+	closeChannels := func() {
+		closeOnce.Do(func() {
+			sendMu.Lock()
+			closed = true
+			close(eventCh)
+			close(errCh)
+			sendMu.Unlock()
+		})
+	}
+	sendError := func(err error) {
+		if err == nil {
+			return
+		}
+		sendMu.RLock()
+		defer sendMu.RUnlock()
+		if closed {
+			return
+		}
+		select {
+		case errCh <- err:
+		default:
+		}
+	}
+	sendEvent := func(event DexEvent) {
+		if event.Type == "" {
+			return
+		}
+		sendMu.RLock()
+		defer sendMu.RUnlock()
+		if closed {
+			return
+		}
+		select {
+		case eventCh <- event:
+		default:
+		}
+	}
+
+	var cancelOnce sync.Once
+	cancel := func() {
+		cancelOnce.Do(func() {
+			cancelCtx()
+			c.mu.Lock()
+			delete(c.subscribers, dexID)
+			c.mu.Unlock()
+			closeChannels()
+		})
+	}
+
+	c.mu.RLock()
+	client := c.client
+	c.mu.RUnlock()
+	if client == nil {
+		cancel()
+		return nil, fmt.Errorf("client not connected")
+	}
+
+	orderDispatcher := newDexOrderDispatcher(c.config)
+	orderDispatcher.start(ctx, sendEvent)
+
+	c.mu.Lock()
+	c.subscribers[dexID] = &Subscription{ID: dexID, Cancel: cancelCtx}
+	c.dexControl = controlCh
+	c.mu.Unlock()
+
+	go func() {
+		defer func() {
+			orderDispatcher.stop()
+			orderDispatcher.flushAll(sendEvent)
+			c.mu.Lock()
+			delete(c.subscribers, dexID)
+			if c.dexControl == controlCh {
+				c.dexControl = nil
+			}
+			c.mu.Unlock()
+			closeChannels()
+		}()
+
+		backoff := time.Duration(c.config.RetryDelayMs) * time.Millisecond
+		if backoff <= 0 {
+			backoff = time.Second
+		}
+		const maxBackoff = 60 * time.Second
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			for {
+				select {
+				case nextReq := <-controlCh:
+					reqMu.Lock()
+					currentReq = nextReq
+					reqMu.Unlock()
+				default:
+					goto drainedControl
+				}
+			}
+		drainedControl:
+
+			stream, err := client.Subscribe(ctx)
+			if err != nil {
+				if !sleepBeforeReconnect(ctx, backoff, sendError, err) {
+					return
+				}
+				backoff = minDuration(backoff*2, maxBackoff)
+				continue
+			}
+
+			sendMu := sync.Mutex{}
+			reqMu.RLock()
+			req := currentReq
+			reqMu.RUnlock()
+			sendMu.Lock()
+			err = stream.Send(req)
+			sendMu.Unlock()
+			if err != nil {
+				if !sleepBeforeReconnect(ctx, backoff, sendError, err) {
+					return
+				}
+				backoff = minDuration(backoff*2, maxBackoff)
+				continue
+			}
+
+			backoff = time.Duration(c.config.RetryDelayMs) * time.Millisecond
+			if backoff <= 0 {
+				backoff = time.Second
+			}
+			streamDone := make(chan struct{})
+			var streamDoneOnce sync.Once
+			closeStreamDone := func() {
+				streamDoneOnce.Do(func() { close(streamDone) })
+			}
+			go func() {
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-streamDone:
+						return
+					case nextReq := <-controlCh:
+						reqMu.Lock()
+						currentReq = nextReq
+						reqMu.Unlock()
+						sendMu.Lock()
+						err := stream.Send(nextReq)
+						sendMu.Unlock()
+						if err != nil {
+							sendError(err)
+							return
+						}
+					}
+				}
+			}()
+
+			for {
+				resp, err := stream.Recv()
+				if err != nil {
+					closeStreamDone()
+					if !sleepBeforeReconnect(ctx, backoff, sendError, err) {
+						return
+					}
+					backoff = minDuration(backoff*2, maxBackoff)
+					break
+				}
+
+				if resp.GetPing() != nil {
+					sendMu.Lock()
+					err := stream.Send(&pb.SubscribeRequest{
+						Ping: &pb.SubscribeRequestPing{Id: 1},
+					})
+					sendMu.Unlock()
+					if err != nil {
+						sendError(err)
+						closeStreamDone()
+						break
+					}
+					continue
+				}
+
+				grpcRecvUs := NowUs()
+				update := c.convertSubscribeUpdate(resp)
+				blockTimeUs := update.CreatedAt
+				if update.Transaction != nil && update.Transaction.Transaction != nil {
+					events, perr := ParseSubscribeTransactionWithBlockTime(
+						update.Transaction.Slot,
+						update.Transaction.Transaction,
+						filter,
+						grpcRecvUs,
+						blockTimeUs,
+					)
+					if perr != nil {
+						sendError(perr)
+					}
+					orderDispatcher.pushTransactionEvents(events, update.Transaction.Slot, update.Transaction.Transaction.Index, sendEvent)
+				}
+				if update.Account != nil {
+					sendEvent(parseAccountDexEvent(update.Account, filter, grpcRecvUs, blockTimeUs))
+				}
+
+				select {
+				case <-ctx.Done():
+					closeStreamDone()
+					return
+				default:
+				}
+			}
+			closeStreamDone()
+		}
+	}()
+
+	return &DexEventSubscription{
+		ID:     dexID,
+		Events: eventCh,
+		Errors: errCh,
+		Cancel: cancel,
+	}, nil
+}
+
+// UpdateSubscription 动态更新当前 DEX 订阅过滤器（与 Rust update_subscription 对齐）。
+func (c *YellowstoneGrpc) UpdateSubscription(transactionFilters []TransactionFilter, accountFilters []AccountFilter) error {
+	req := c.buildSubscribeRequestMulti(transactionFilters, accountFilters)
+	c.mu.RLock()
+	controlCh := c.dexControl
+	c.mu.RUnlock()
+	if controlCh == nil {
+		return fmt.Errorf("no active DEX subscription")
+	}
+	select {
+	case controlCh <- req:
+		return nil
+	default:
+		return fmt.Errorf("subscription control channel is full")
+	}
+}
+
+func sleepBeforeReconnect(ctx context.Context, backoff time.Duration, sendError func(error), err error) bool {
+	if ctx.Err() != nil {
+		return false
+	}
+	sendError(err)
+	timer := time.NewTimer(backoff)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+func minDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func parseAccountDexEvent(update *SubscribeUpdateAccount, filter EventTypeFilter, grpcRecvUs int64, blockTimeUs *int64) DexEvent {
+	if update == nil || update.Account == nil {
+		return DexEvent{}
+	}
+	acc := update.Account
+	signature := ""
+	if len(acc.TxnSignature) > 0 {
+		signature = base58.Encode(acc.TxnSignature)
+	}
+	account := &AccountData{
+		Pubkey:     base58.Encode(acc.Pubkey),
+		Executable: acc.Executable,
+		Lamports:   acc.Lamports,
+		Owner:      base58.Encode(acc.Owner),
+		RentEpoch:  acc.RentEpoch,
+		Data:       acc.Data,
+	}
+	meta := makeMetadata(signature, update.Slot, 0, blockTimeUs, grpcRecvUs, "")
+	return ParseAccountUnified(account, meta, filter)
+}
+
+// buildSubscribeRequest 构建订阅请求
+func (c *YellowstoneGrpc) buildSubscribeRequest(filter TransactionFilter) *pb.SubscribeRequest {
+	req := c.buildSubscribeRequestMulti(nil, nil)
+	req.Transactions["client"] = transactionFilterToProto(filter)
+	return req
+}
+
+func (c *YellowstoneGrpc) buildSubscribeRequestMulti(transactionFilters []TransactionFilter, accountFilters []AccountFilter) *pb.SubscribeRequest {
+	commitment := pb.CommitmentLevel_PROCESSED
+	req := &pb.SubscribeRequest{
+		Accounts:           map[string]*pb.SubscribeRequestFilterAccounts{},
+		Slots:              map[string]*pb.SubscribeRequestFilterSlots{},
+		Transactions:       map[string]*pb.SubscribeRequestFilterTransactions{},
+		TransactionsStatus: map[string]*pb.SubscribeRequestFilterTransactions{},
+		Blocks:             map[string]*pb.SubscribeRequestFilterBlocks{},
+		BlocksMeta:         map[string]*pb.SubscribeRequestFilterBlocksMeta{},
+		Entry:              map[string]*pb.SubscribeRequestFilterEntry{},
+		Commitment:         &commitment,
+		AccountsDataSlice:  []*pb.SubscribeRequestAccountsDataSlice{},
+	}
+	for i, filter := range transactionFilters {
+		req.Transactions[fmt.Sprintf("tx_%d", i)] = transactionFilterToProto(filter)
+	}
+	for i, filter := range accountFilters {
+		req.Accounts[fmt.Sprintf("acc_%d", i)] = accountFilterToProto(filter)
+	}
+	return req
+}
+
+func transactionFilterToProto(filter TransactionFilter) *pb.SubscribeRequestFilterTransactions {
+	out := &pb.SubscribeRequestFilterTransactions{
+		AccountInclude:  filter.AccountInclude,
+		AccountExclude:  filter.AccountExclude,
+		AccountRequired: filter.AccountRequired,
+	}
 	if filter.Vote != nil {
-		req.Transactions["client"].Vote = filter.Vote
+		out.Vote = filter.Vote
 	}
 	if filter.Failed != nil {
-		req.Transactions["client"].Failed = filter.Failed
+		out.Failed = filter.Failed
 	}
 	if filter.Signature != "" {
 		sig := filter.Signature
-		req.Transactions["client"].Signature = &sig
+		out.Signature = &sig
 	}
+	return out
+}
 
-	return req
+func accountFilterToProto(filter AccountFilter) *pb.SubscribeRequestFilterAccounts {
+	out := &pb.SubscribeRequestFilterAccounts{
+		Account: filter.Account,
+		Owner:   filter.Owner,
+		Filters: make([]*pb.SubscribeRequestFilterAccountsFilter, 0, len(filter.Filters)),
+	}
+	for _, item := range filter.Filters {
+		if item == nil {
+			continue
+		}
+		out.Filters = append(out.Filters, accountFilterItemToProto(item))
+	}
+	return out
+}
+
+func accountFilterItemToProto(filter *SubscribeRequestFilterAccountsFilter) *pb.SubscribeRequestFilterAccountsFilter {
+	switch {
+	case filter.Memcmp != nil:
+		memcmp := &pb.SubscribeRequestFilterAccountsFilterMemcmp{
+			Offset: filter.Memcmp.Offset,
+		}
+		switch {
+		case len(filter.Memcmp.Bytes) > 0:
+			memcmp.Data = &pb.SubscribeRequestFilterAccountsFilterMemcmp_Bytes{Bytes: filter.Memcmp.Bytes}
+		case filter.Memcmp.Base58 != "":
+			memcmp.Data = &pb.SubscribeRequestFilterAccountsFilterMemcmp_Base58{Base58: filter.Memcmp.Base58}
+		case filter.Memcmp.Base64 != "":
+			memcmp.Data = &pb.SubscribeRequestFilterAccountsFilterMemcmp_Base64{Base64: filter.Memcmp.Base64}
+		}
+		return &pb.SubscribeRequestFilterAccountsFilter{
+			Filter: &pb.SubscribeRequestFilterAccountsFilter_Memcmp{Memcmp: memcmp},
+		}
+	case filter.Datasize != nil:
+		return &pb.SubscribeRequestFilterAccountsFilter{
+			Filter: &pb.SubscribeRequestFilterAccountsFilter_Datasize{Datasize: *filter.Datasize},
+		}
+	case filter.TokenAccountState != nil:
+		return &pb.SubscribeRequestFilterAccountsFilter{
+			Filter: &pb.SubscribeRequestFilterAccountsFilter_TokenAccountState{TokenAccountState: *filter.TokenAccountState},
+		}
+	case filter.Lamports != nil:
+		return &pb.SubscribeRequestFilterAccountsFilter{
+			Filter: &pb.SubscribeRequestFilterAccountsFilter_Lamports{Lamports: lamportsFilterToProto(filter.Lamports)},
+		}
+	default:
+		return &pb.SubscribeRequestFilterAccountsFilter{}
+	}
+}
+
+func lamportsFilterToProto(filter *SubscribeRequestFilterAccountsFilterLamports) *pb.SubscribeRequestFilterAccountsFilterLamports {
+	out := &pb.SubscribeRequestFilterAccountsFilterLamports{}
+	switch {
+	case filter.Eq != nil:
+		out.Cmp = &pb.SubscribeRequestFilterAccountsFilterLamports_Eq{Eq: *filter.Eq}
+	case filter.Ne != nil:
+		out.Cmp = &pb.SubscribeRequestFilterAccountsFilterLamports_Ne{Ne: *filter.Ne}
+	case filter.Lt != nil:
+		out.Cmp = &pb.SubscribeRequestFilterAccountsFilterLamports_Lt{Lt: *filter.Lt}
+	case filter.Gt != nil:
+		out.Cmp = &pb.SubscribeRequestFilterAccountsFilterLamports_Gt{Gt: *filter.Gt}
+	}
+	return out
 }
 
 // handleStream 处理流式响应
@@ -318,6 +718,10 @@ func (c *YellowstoneGrpc) convertSubscribeUpdate(pbUpdate *pb.SubscribeUpdate) *
 	update := &SubscribeUpdate{
 		Filters: pbUpdate.Filters,
 	}
+	if ts := pbUpdate.GetCreatedAt(); ts != nil {
+		us := ts.Seconds*1_000_000 + int64(ts.Nanos)/1_000
+		update.CreatedAt = &us
+	}
 
 	// 转换账户更新
 	if pbUpdate.GetAccount() != nil {
@@ -328,14 +732,14 @@ func (c *YellowstoneGrpc) convertSubscribeUpdate(pbUpdate *pb.SubscribeUpdate) *
 		}
 		if acc.Account != nil {
 			update.Account.Account = &SubscribeUpdateAccountInfo{
-				Pubkey:        acc.Account.Pubkey,
-				Lamports:      acc.Account.Lamports,
-				Owner:         acc.Account.Owner,
-				Executable:    acc.Account.Executable,
-				RentEpoch:     acc.Account.RentEpoch,
-				Data:          acc.Account.Data,
-				WriteVersion:  acc.Account.WriteVersion,
-				TxnSignature:  acc.Account.TxnSignature,
+				Pubkey:       acc.Account.Pubkey,
+				Lamports:     acc.Account.Lamports,
+				Owner:        acc.Account.Owner,
+				Executable:   acc.Account.Executable,
+				RentEpoch:    acc.Account.RentEpoch,
+				Data:         acc.Account.Data,
+				WriteVersion: acc.Account.WriteVersion,
+				TxnSignature: acc.Account.TxnSignature,
 			}
 		}
 	}
@@ -476,8 +880,8 @@ func (c *YellowstoneGrpc) GetLatestBlockhash(commitment *CommitmentLevel) (*GetL
 	}
 
 	return &GetLatestBlockhashResponse{
-		Slot:               resp.Slot,
-		Blockhash:          resp.Blockhash,
+		Slot:                 resp.Slot,
+		Blockhash:            resp.Blockhash,
 		LastValidBlockHeight: resp.LastValidBlockHeight,
 	}, nil
 }

@@ -149,9 +149,21 @@ func u128LEDecimalStringInline(u [16]byte) string {
 
 var (
 	// PumpFun
-	discPumpCreate  = disc8(27, 114, 169, 77, 222, 235, 99, 118)
-	discPumpTrade   = disc8(189, 219, 127, 211, 78, 230, 97, 238)
-	discPumpMigrate = disc8(189, 233, 93, 185, 92, 148, 234, 148)
+	discPumpCreate                     = disc8(27, 114, 169, 77, 222, 235, 99, 118)
+	discPumpTrade                      = disc8(189, 219, 127, 211, 78, 230, 97, 238)
+	discPumpMigrate                    = disc8(189, 233, 93, 185, 92, 148, 234, 148)
+	discPumpMigrateBondingCurveCreator = disc8(155, 167, 104, 220, 213, 108, 243, 3)
+
+	// Pump Fees
+	discPumpFeesCreateFeeSharingConfig      = disc8(133, 105, 170, 200, 184, 116, 251, 88)
+	discPumpFeesInitializeFeeConfig         = disc8(89, 138, 244, 230, 10, 56, 226, 126)
+	discPumpFeesResetFeeSharingConfig       = disc8(203, 204, 151, 226, 120, 55, 214, 243)
+	discPumpFeesRevokeFeeSharingAuthority   = disc8(114, 23, 101, 60, 14, 190, 153, 62)
+	discPumpFeesTransferFeeSharingAuthority = disc8(124, 143, 198, 245, 77, 184, 8, 236)
+	discPumpFeesUpdateAdmin                 = disc8(225, 152, 171, 87, 246, 63, 66, 234)
+	discPumpFeesUpdateFeeConfig             = disc8(90, 23, 65, 35, 62, 244, 188, 208)
+	discPumpFeesUpdateFeeShares             = disc8(21, 186, 196, 184, 91, 228, 225, 203)
+	discPumpFeesUpsertFeeTiers              = disc8(171, 89, 169, 187, 122, 186, 33, 204)
 
 	// PumpSwap
 	discPSBuy        = disc8(103, 244, 82, 31, 44, 245, 119, 119)
@@ -168,30 +180,30 @@ var (
 	discClmmCollect = disc8(164, 152, 207, 99, 187, 104, 171, 119)
 
 	// Raydium CPMM
-	discCpmmSwapIn  = disc8(143, 190, 90, 218, 196, 30, 51, 222)
-	discCpmmSwapOut = disc8(55, 217, 98, 86, 163, 74, 180, 173)
-	discCpmmDeposit = disc8(242, 35, 198, 137, 82, 225, 242, 182)
+	discCpmmSwapIn   = disc8(143, 190, 90, 218, 196, 30, 51, 222)
+	discCpmmSwapOut  = disc8(55, 217, 98, 86, 163, 74, 180, 173)
+	discCpmmDeposit  = disc8(242, 35, 198, 137, 82, 225, 242, 182)
 	discCpmmWithdraw = disc8(183, 18, 70, 156, 148, 109, 161, 34)
 
 	// Raydium AMM V4 (单字节 discriminator 作为 u64)
-	discAmmSwapIn     = disc8(0, 0, 0, 0, 0, 0, 0, 9)
-	discAmmSwapOut    = disc8(0, 0, 0, 0, 0, 0, 0, 11)
-	discAmmDeposit    = disc8(0, 0, 0, 0, 0, 0, 0, 3)
-	discAmmWithdraw   = disc8(0, 0, 0, 0, 0, 0, 0, 4)
+	discAmmSwapIn      = disc8(0, 0, 0, 0, 0, 0, 0, 9)
+	discAmmSwapOut     = disc8(0, 0, 0, 0, 0, 0, 0, 11)
+	discAmmDeposit     = disc8(0, 0, 0, 0, 0, 0, 0, 3)
+	discAmmWithdraw    = disc8(0, 0, 0, 0, 0, 0, 0, 4)
 	discAmmWithdrawPnl = disc8(0, 0, 0, 0, 0, 0, 0, 7)
-	discAmmInit2      = disc8(0, 0, 0, 0, 0, 0, 0, 1)
+	discAmmInit2       = disc8(0, 0, 0, 0, 0, 0, 0, 1)
 
 	// Orca
-	discOrcaSwap    = disc8(225, 202, 73, 175, 147, 43, 160, 150)
-	discOrcaIncLiq  = disc8(30, 7, 144, 181, 102, 254, 155, 161)
-	discOrcaDecLiq  = disc8(166, 1, 36, 71, 112, 202, 181, 171)
+	discOrcaSwap     = disc8(225, 202, 73, 175, 147, 43, 160, 150)
+	discOrcaIncLiq   = disc8(30, 7, 144, 181, 102, 254, 155, 161)
+	discOrcaDecLiq   = disc8(166, 1, 36, 71, 112, 202, 181, 171)
 	discOrcaPoolInit = disc8(100, 118, 173, 87, 12, 198, 254, 229)
 
 	// Meteora Pools
-	discMeteoraSwap      = disc8(81, 108, 227, 190, 205, 208, 10, 196)
-	discMeteoraAdd       = disc8(31, 94, 125, 90, 227, 52, 61, 186)
-	discMeteoraRemove    = disc8(116, 244, 97, 232, 103, 31, 152, 58)
-	discMeteoraBootstrap = disc8(121, 127, 38, 136, 92, 55, 14, 247)
+	discMeteoraSwap        = disc8(81, 108, 227, 190, 205, 208, 10, 196)
+	discMeteoraAdd         = disc8(31, 94, 125, 90, 227, 52, 61, 186)
+	discMeteoraRemove      = disc8(116, 244, 97, 232, 103, 31, 152, 58)
+	discMeteoraBootstrap   = disc8(121, 127, 38, 136, 92, 55, 14, 247)
 	discMeteoraPoolCreated = disc8(202, 44, 41, 88, 104, 220, 157, 82)
 	discMeteoraSetPoolFees = disc8(245, 26, 198, 164, 88, 18, 75, 9)
 
@@ -212,9 +224,9 @@ var (
 	discDammInitPool       = discDammInit
 
 	// Bonk (Raydium Launchpad)
-	discBonkTrade       = disc8(2, 3, 4, 5, 6, 7, 8, 9)
-	discBonkPoolCreate  = disc8(1, 2, 3, 4, 5, 6, 7, 8)
-	discBonkMigrateAmm  = disc8(3, 4, 5, 6, 7, 8, 9, 10)
+	discBonkTrade      = disc8(2, 3, 4, 5, 6, 7, 8, 9)
+	discBonkPoolCreate = disc8(1, 2, 3, 4, 5, 6, 7, 8)
+	discBonkMigrateAmm = disc8(3, 4, 5, 6, 7, 8, 9, 10)
 
 	// Meteora DLMM
 	dlmmSwap      = disc8(142, 35, 199, 193, 77, 169, 172, 85)

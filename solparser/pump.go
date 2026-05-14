@@ -134,11 +134,11 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	}
 
 	switch ixName {
-	case "buy":
+	case "buy", "buy_v2":
 		return DexEvent{Type: EventTypePumpFunBuy, Data: ev}
-	case "sell":
+	case "sell", "sell_v2":
 		return DexEvent{Type: EventTypePumpFunSell, Data: ev}
-	case "buy_exact_sol_in":
+	case "buy_exact_sol_in", "buy_exact_quote_in_v2":
 		return DexEvent{Type: EventTypePumpFunBuyExactSolIn, Data: ev}
 	default:
 		return DexEvent{Type: EventTypePumpFunTrade, Data: ev}
@@ -255,6 +255,37 @@ func parseMigrateFromData(data []byte, meta EventMetadata) DexEvent {
 	}
 }
 
+func parseMigrateBondingCurveCreatorFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 8+32*5 {
+		return DexEvent{}
+	}
+	o := 0
+	ts, _ := readI64LE(data, o)
+	o += 8
+	mint, _ := readPubkey(data, o)
+	o += 32
+	bondingCurve, _ := readPubkey(data, o)
+	o += 32
+	sharingConfig, _ := readPubkey(data, o)
+	o += 32
+	oldCreator, _ := readPubkey(data, o)
+	o += 32
+	newCreator, _ := readPubkey(data, o)
+
+	return DexEvent{
+		Type: EventTypePumpFunMigrateBondingCurveCreator,
+		Data: &PumpFunMigrateBondingCurveCreatorEvent{
+			Metadata:      meta,
+			Timestamp:     ts,
+			Mint:          mint,
+			BondingCurve:  bondingCurve,
+			SharingConfig: sharingConfig,
+			OldCreator:    oldCreator,
+			NewCreator:    newCreator,
+		},
+	}
+}
+
 // enrichPumpFunTradeFromAccounts 按 pump.json IDL 从 **内层 CPI 指令账户** 补全（与 Rust `instr/pump.rs` buy/sell 一致）。
 // Program data 日志不含 bonding_curve / token_program 等，仅靠 parseTradeFromData 会得到空字段。
 func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
@@ -270,6 +301,14 @@ func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
 			*dst = s
 		}
 	}
+	if ev.IxName == "buy_v2" || ev.IxName == "sell_v2" || ev.IxName == "buy_exact_quote_in_v2" {
+		set(&ev.BondingCurve, 10)
+		set(&ev.AssociatedBondingCurve, 11)
+		set(&ev.User, 13)
+		set(&ev.TokenProgram, 3)
+		set(&ev.CreatorVault, 16)
+		return
+	}
 	set(&ev.BondingCurve, 3)
 	set(&ev.AssociatedBondingCurve, 4)
 	if ev.IsBuy {
@@ -279,4 +318,5 @@ func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
 		set(&ev.CreatorVault, 8)
 		set(&ev.TokenProgram, 9)
 	}
+	set(&ev.Account, 16)
 }

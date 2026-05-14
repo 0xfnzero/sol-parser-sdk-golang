@@ -309,17 +309,17 @@ func parseOrcaTradedFromData(data []byte, meta EventMetadata) DexEvent {
 	return DexEvent{
 		Type: EventTypeOrcaWhirlpoolSwap,
 		Data: &OrcaWhirlpoolSwapEvent{
-			Metadata:         meta,
-			Whirlpool:        w,
-			AToB:             atb,
-			PreSqrtPrice:     u128LEDecimalString(pre),
-			PostSqrtPrice:    u128LEDecimalString(post),
-			InputAmount:      ia,
-			OutputAmount:     oa,
-			InputTransferFee: itf,
+			Metadata:          meta,
+			Whirlpool:         w,
+			AToB:              atb,
+			PreSqrtPrice:      u128LEDecimalString(pre),
+			PostSqrtPrice:     u128LEDecimalString(post),
+			InputAmount:       ia,
+			OutputAmount:      oa,
+			InputTransferFee:  itf,
 			OutputTransferFee: otf,
-			LpFee:            lpf,
-			ProtocolFee:      pf,
+			LpFee:             lpf,
+			ProtocolFee:       pf,
 		},
 	}
 }
@@ -429,17 +429,17 @@ func parseOrcaPoolInitFromData(data []byte, meta EventMetadata) DexEvent {
 	return DexEvent{
 		Type: EventTypeOrcaWhirlpoolPoolInitialized,
 		Data: &OrcaWhirlpoolPoolInitializedEvent{
-			Metadata:          meta,
-			Whirlpool:         w,
-			WhirlpoolsConfig:  cfg,
-			TokenMintA:        ma,
-			TokenMintB:        mb,
-			TickSpacing:       ts,
-			TokenProgramA:     tpa,
-			TokenProgramB:     tpb,
-			DecimalsA:         da,
-			DecimalsB:         db,
-			InitialSqrtPrice:  u128LEDecimalString(isp),
+			Metadata:         meta,
+			Whirlpool:        w,
+			WhirlpoolsConfig: cfg,
+			TokenMintA:       ma,
+			TokenMintB:       mb,
+			TickSpacing:      ts,
+			TokenProgramA:    tpa,
+			TokenProgramB:    tpb,
+			DecimalsA:        da,
+			DecimalsB:        db,
+			InitialSqrtPrice: u128LEDecimalString(isp),
 		},
 	}
 }
@@ -493,10 +493,10 @@ func parseMeteoraRemoveFromData(data []byte, meta EventMetadata) DexEvent {
 	return DexEvent{
 		Type: EventTypeMeteoraPoolsRemoveLiquidity,
 		Data: &MeteoraPoolsRemoveLiquidityEvent{
-			Metadata:         meta,
-			LpUnmintAmount:   readU64At(data, &o),
-			TokenAOutAmount:  readU64At(data, &o),
-			TokenBOutAmount:  readU64At(data, &o),
+			Metadata:        meta,
+			LpUnmintAmount:  readU64At(data, &o),
+			TokenAOutAmount: readU64At(data, &o),
+			TokenBOutAmount: readU64At(data, &o),
 		},
 	}
 }
@@ -579,9 +579,9 @@ func parseAmmSwapOutFromData(data []byte, meta EventMetadata) DexEvent {
 	return DexEvent{
 		Type: EventTypeRaydiumAmmV4Swap,
 		Data: &RaydiumAmmV4SwapEvent{
-			Metadata:         meta,
-			MaxAmountIn:      mai,
-			AmountOut:        ao,
+			Metadata:    meta,
+			MaxAmountIn: mai,
+			AmountOut:   ao,
 		},
 	}
 }

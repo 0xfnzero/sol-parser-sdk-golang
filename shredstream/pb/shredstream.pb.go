@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: shredstream/shredstream.proto
+// source: shredstream.proto
 
 package pb
 
@@ -32,7 +32,7 @@ type Socket struct {
 
 func (x *Socket) Reset() {
 	*x = Socket{}
-	mi := &file_shredstream_shredstream_proto_msgTypes[0]
+	mi := &file_shredstream_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *Socket) String() string {
 func (*Socket) ProtoMessage() {}
 
 func (x *Socket) ProtoReflect() protoreflect.Message {
-	mi := &file_shredstream_shredstream_proto_msgTypes[0]
+	mi := &file_shredstream_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *Socket) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Socket.ProtoReflect.Descriptor instead.
 func (*Socket) Descriptor() ([]byte, []int) {
-	return file_shredstream_shredstream_proto_rawDescGZIP(), []int{0}
+	return file_shredstream_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Socket) GetIp() string {
@@ -85,7 +85,7 @@ type Heartbeat struct {
 
 func (x *Heartbeat) Reset() {
 	*x = Heartbeat{}
-	mi := &file_shredstream_shredstream_proto_msgTypes[1]
+	mi := &file_shredstream_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +97,7 @@ func (x *Heartbeat) String() string {
 func (*Heartbeat) ProtoMessage() {}
 
 func (x *Heartbeat) ProtoReflect() protoreflect.Message {
-	mi := &file_shredstream_shredstream_proto_msgTypes[1]
+	mi := &file_shredstream_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +110,7 @@ func (x *Heartbeat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Heartbeat.ProtoReflect.Descriptor instead.
 func (*Heartbeat) Descriptor() ([]byte, []int) {
-	return file_shredstream_shredstream_proto_rawDescGZIP(), []int{1}
+	return file_shredstream_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Heartbeat) GetSocket() *Socket {
@@ -136,7 +136,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_shredstream_shredstream_proto_msgTypes[2]
+	mi := &file_shredstream_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -148,7 +148,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shredstream_shredstream_proto_msgTypes[2]
+	mi := &file_shredstream_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -161,7 +161,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_shredstream_shredstream_proto_rawDescGZIP(), []int{2}
+	return file_shredstream_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *HeartbeatResponse) GetTtlMs() uint32 {
@@ -182,7 +182,7 @@ type TraceShred struct {
 
 func (x *TraceShred) Reset() {
 	*x = TraceShred{}
-	mi := &file_shredstream_shredstream_proto_msgTypes[3]
+	mi := &file_shredstream_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -194,7 +194,7 @@ func (x *TraceShred) String() string {
 func (*TraceShred) ProtoMessage() {}
 
 func (x *TraceShred) ProtoReflect() protoreflect.Message {
-	mi := &file_shredstream_shredstream_proto_msgTypes[3]
+	mi := &file_shredstream_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +207,7 @@ func (x *TraceShred) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TraceShred.ProtoReflect.Descriptor instead.
 func (*TraceShred) Descriptor() ([]byte, []int) {
-	return file_shredstream_shredstream_proto_rawDescGZIP(), []int{3}
+	return file_shredstream_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *TraceShred) GetRegion() string {
@@ -239,7 +239,7 @@ type SubscribeEntriesRequest struct {
 
 func (x *SubscribeEntriesRequest) Reset() {
 	*x = SubscribeEntriesRequest{}
-	mi := &file_shredstream_shredstream_proto_msgTypes[4]
+	mi := &file_shredstream_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +251,7 @@ func (x *SubscribeEntriesRequest) String() string {
 func (*SubscribeEntriesRequest) ProtoMessage() {}
 
 func (x *SubscribeEntriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shredstream_shredstream_proto_msgTypes[4]
+	mi := &file_shredstream_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +264,7 @@ func (x *SubscribeEntriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeEntriesRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeEntriesRequest) Descriptor() ([]byte, []int) {
-	return file_shredstream_shredstream_proto_rawDescGZIP(), []int{4}
+	return file_shredstream_proto_rawDescGZIP(), []int{4}
 }
 
 type Entry struct {
@@ -277,7 +277,7 @@ type Entry struct {
 
 func (x *Entry) Reset() {
 	*x = Entry{}
-	mi := &file_shredstream_shredstream_proto_msgTypes[5]
+	mi := &file_shredstream_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -289,7 +289,7 @@ func (x *Entry) String() string {
 func (*Entry) ProtoMessage() {}
 
 func (x *Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_shredstream_shredstream_proto_msgTypes[5]
+	mi := &file_shredstream_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -302,7 +302,7 @@ func (x *Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Entry.ProtoReflect.Descriptor instead.
 func (*Entry) Descriptor() ([]byte, []int) {
-	return file_shredstream_shredstream_proto_rawDescGZIP(), []int{5}
+	return file_shredstream_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Entry) GetSlot() uint64 {
@@ -319,11 +319,11 @@ func (x *Entry) GetEntries() []byte {
 	return nil
 }
 
-var File_shredstream_shredstream_proto protoreflect.FileDescriptor
+var File_shredstream_proto protoreflect.FileDescriptor
 
-const file_shredstream_shredstream_proto_rawDesc = "" +
+const file_shredstream_proto_rawDesc = "" +
 	"\n" +
-	"\x1dshredstream/shredstream.proto\x12\vshredstream\x1a\x1fgoogle/protobuf/timestamp.proto\",\n" +
+	"\x11shredstream.proto\x12\vshredstream\x1a\x1fgoogle/protobuf/timestamp.proto\",\n" +
 	"\x06Socket\x12\x0e\n" +
 	"\x02ip\x18\x01 \x01(\tR\x02ip\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\x03R\x04port\"R\n" +
@@ -345,22 +345,22 @@ const file_shredstream_shredstream_proto_rawDesc = "" +
 	"\vShredstream\x12G\n" +
 	"\rSendHeartbeat\x12\x16.shredstream.Heartbeat\x1a\x1e.shredstream.HeartbeatResponse2b\n" +
 	"\x10ShredstreamProxy\x12N\n" +
-	"\x10SubscribeEntries\x12$.shredstream.SubscribeEntriesRequest\x1a\x12.shredstream.Entry0\x01B)Z'sol-parser-sdk-golang/shredstream/pb;pbb\x06proto3"
+	"\x10SubscribeEntries\x12$.shredstream.SubscribeEntriesRequest\x1a\x12.shredstream.Entry0\x01B=Z;github.com/0xfnzero/sol-parser-sdk-golang/shredstream/pb;pbb\x06proto3"
 
 var (
-	file_shredstream_shredstream_proto_rawDescOnce sync.Once
-	file_shredstream_shredstream_proto_rawDescData []byte
+	file_shredstream_proto_rawDescOnce sync.Once
+	file_shredstream_proto_rawDescData []byte
 )
 
-func file_shredstream_shredstream_proto_rawDescGZIP() []byte {
-	file_shredstream_shredstream_proto_rawDescOnce.Do(func() {
-		file_shredstream_shredstream_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_shredstream_shredstream_proto_rawDesc), len(file_shredstream_shredstream_proto_rawDesc)))
+func file_shredstream_proto_rawDescGZIP() []byte {
+	file_shredstream_proto_rawDescOnce.Do(func() {
+		file_shredstream_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_shredstream_proto_rawDesc), len(file_shredstream_proto_rawDesc)))
 	})
-	return file_shredstream_shredstream_proto_rawDescData
+	return file_shredstream_proto_rawDescData
 }
 
-var file_shredstream_shredstream_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_shredstream_shredstream_proto_goTypes = []any{
+var file_shredstream_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_shredstream_proto_goTypes = []any{
 	(*Socket)(nil),                  // 0: shredstream.Socket
 	(*Heartbeat)(nil),               // 1: shredstream.Heartbeat
 	(*HeartbeatResponse)(nil),       // 2: shredstream.HeartbeatResponse
@@ -369,7 +369,7 @@ var file_shredstream_shredstream_proto_goTypes = []any{
 	(*Entry)(nil),                   // 5: shredstream.Entry
 	(*timestamppb.Timestamp)(nil),   // 6: google.protobuf.Timestamp
 }
-var file_shredstream_shredstream_proto_depIdxs = []int32{
+var file_shredstream_proto_depIdxs = []int32{
 	0, // 0: shredstream.Heartbeat.socket:type_name -> shredstream.Socket
 	6, // 1: shredstream.TraceShred.created_at:type_name -> google.protobuf.Timestamp
 	1, // 2: shredstream.Shredstream.SendHeartbeat:input_type -> shredstream.Heartbeat
@@ -383,26 +383,26 @@ var file_shredstream_shredstream_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_shredstream_shredstream_proto_init() }
-func file_shredstream_shredstream_proto_init() {
-	if File_shredstream_shredstream_proto != nil {
+func init() { file_shredstream_proto_init() }
+func file_shredstream_proto_init() {
+	if File_shredstream_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shredstream_shredstream_proto_rawDesc), len(file_shredstream_shredstream_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shredstream_proto_rawDesc), len(file_shredstream_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_shredstream_shredstream_proto_goTypes,
-		DependencyIndexes: file_shredstream_shredstream_proto_depIdxs,
-		MessageInfos:      file_shredstream_shredstream_proto_msgTypes,
+		GoTypes:           file_shredstream_proto_goTypes,
+		DependencyIndexes: file_shredstream_proto_depIdxs,
+		MessageInfos:      file_shredstream_proto_msgTypes,
 	}.Build()
-	File_shredstream_shredstream_proto = out.File
-	file_shredstream_shredstream_proto_goTypes = nil
-	file_shredstream_shredstream_proto_depIdxs = nil
+	File_shredstream_proto = out.File
+	file_shredstream_proto_goTypes = nil
+	file_shredstream_proto_depIdxs = nil
 }

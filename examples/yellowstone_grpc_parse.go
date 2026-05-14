@@ -5,15 +5,15 @@
 // 解析使用 ParseSubscribeTransaction（指令账户 + 日志 Program data，并合并 PumpSwap 重复事件以补全 mint/池子字段）。
 //
 // 环境变量（全仓库 Yellowstone 示例统一使用）：
-//   GRPC_URL       如 https://solana-yellowstone-grpc.publicnode.com:443（可写 host:port）
-//   GRPC_TOKEN     x-token
+//
+//	GRPC_URL       如 https://solana-yellowstone-grpc.publicnode.com:443（可写 host:port）
+//	GRPC_TOKEN     x-token
 //
 // 运行：
 //
 //	export GRPC_URL="https://solana-yellowstone-grpc.publicnode.com:443"
 //	export GRPC_TOKEN="your_token"
 //	go run examples/yellowstone_grpc_parse.go
-//
 package main
 
 import (
@@ -27,7 +27,7 @@ import (
 	"syscall"
 	"time"
 
-	solparser "sol-parser-sdk-golang/solparser"
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 )
 
 // eventEnvelope 与 Rust `println!("{:?}", event)` 对应：完整 JSON，便于人工阅读（不截断）。

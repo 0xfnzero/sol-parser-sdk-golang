@@ -7,7 +7,7 @@
 // - Measure end-to-end latency
 // - Per-event and periodic performance statistics
 //
-// Run: go run examples/pumpswap_low_latency.go  (from sol-parser-sdk-golang/)
+// Run: go run examples/pumpswap_low_latency.go  (from github.com/0xfnzero/sol-parser-sdk-golang/)
 
 package main
 
@@ -20,8 +20,8 @@ import (
 	"syscall"
 	"time"
 
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 	base58 "github.com/mr-tron/base58"
-	solparser "sol-parser-sdk-golang/solparser"
 )
 
 var pumpSwapProgramIDs = []string{

@@ -5,7 +5,7 @@
 // Demonstrates subscribing to Meteora DAMM V2 events:
 // Swap, AddLiquidity, RemoveLiquidity, CreatePosition, ClosePosition
 //
-// Run: go run examples/meteora_damm_grpc.go  (from sol-parser-sdk-golang/)
+// Run: go run examples/meteora_damm_grpc.go  (from github.com/0xfnzero/sol-parser-sdk-golang/)
 
 package main
 
@@ -15,8 +15,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 	base58 "github.com/mr-tron/base58"
-	solparser "sol-parser-sdk-golang/solparser"
 )
 
 var meteoraProgramIDs = []string{

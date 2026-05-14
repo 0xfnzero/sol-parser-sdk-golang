@@ -4,7 +4,7 @@ package shredstream;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "sol-parser-sdk-golang/shredstream/pb;pb";
+option go_package = "github.com/0xfnzero/sol-parser-sdk-golang/shredstream/pb;pb";
 
 // 与 `github.com/0xfnzero/solana-streamer` 中 `src/protos/shredstream.rs`（prost-build 生成）对齐。
 

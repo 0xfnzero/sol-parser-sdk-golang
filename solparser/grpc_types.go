@@ -1,6 +1,6 @@
 package solparser
 
-import pb "sol-parser-sdk-golang/proto"
+import pb "github.com/0xfnzero/sol-parser-sdk-golang/proto"
 
 // OrderMode gRPC 订阅顺序模式
 type OrderMode string
@@ -23,48 +23,48 @@ const (
 
 // ClientConfig gRPC 客户端配置
 type ClientConfig struct {
-	EnableMetrics           bool
-	ConnectionTimeoutMs     int
-	RequestTimeoutMs        int
-	EnableTLS               bool
-	MaxRetries              int
-	RetryDelayMs            int
-	MaxConcurrentStreams    int
-	KeepAliveIntervalMs     int
-	KeepAliveTimeoutMs      int
-	BufferSize              int
-	OrderMode               OrderMode
-	OrderTimeoutMs          int
-	MicroBatchUs            int
+	EnableMetrics        bool
+	ConnectionTimeoutMs  int
+	RequestTimeoutMs     int
+	EnableTLS            bool
+	MaxRetries           int
+	RetryDelayMs         int
+	MaxConcurrentStreams int
+	KeepAliveIntervalMs  int
+	KeepAliveTimeoutMs   int
+	BufferSize           int
+	OrderMode            OrderMode
+	OrderTimeoutMs       int
+	MicroBatchUs         int
 }
 
 // DefaultClientConfig 返回默认客户端配置
 func DefaultClientConfig() ClientConfig {
 	return ClientConfig{
-		EnableMetrics:           false,
-		ConnectionTimeoutMs:     8000,
-		RequestTimeoutMs:        15000,
-		EnableTLS:               true,
-		MaxRetries:              3,
-		RetryDelayMs:            1000,
-		MaxConcurrentStreams:    100,
-		KeepAliveIntervalMs:     30000,
-		KeepAliveTimeoutMs:      5000,
-		BufferSize:              8192,
-		OrderMode:               OrderModeUnordered,
-		OrderTimeoutMs:          100,
-		MicroBatchUs:            100,
+		EnableMetrics:        false,
+		ConnectionTimeoutMs:  8000,
+		RequestTimeoutMs:     15000,
+		EnableTLS:            true,
+		MaxRetries:           3,
+		RetryDelayMs:         1000,
+		MaxConcurrentStreams: 100,
+		KeepAliveIntervalMs:  30000,
+		KeepAliveTimeoutMs:   5000,
+		BufferSize:           8192,
+		OrderMode:            OrderModeUnordered,
+		OrderTimeoutMs:       100,
+		MicroBatchUs:         100,
 	}
 }
 
 // TransactionFilter 交易过滤器
 type TransactionFilter struct {
-	AccountInclude []string
-	AccountExclude []string
+	AccountInclude  []string
+	AccountExclude  []string
 	AccountRequired []string
-	Vote           *bool
-	Failed         *bool
-	Signature      string
+	Vote            *bool
+	Failed          *bool
+	Signature       string
 }
 
 // NewTransactionFilter 创建新的交易过滤器
@@ -76,38 +76,84 @@ func NewTransactionFilter() TransactionFilter {
 	}
 }
 
+// AccountFilter 账户过滤器（Yellowstone SubscribeRequest.accounts）。
+type AccountFilter struct {
+	Account []string
+	Owner   []string
+	Filters []*SubscribeRequestFilterAccountsFilter
+}
+
+// NewAccountFilter 创建新的账户过滤器
+func NewAccountFilter() AccountFilter {
+	return AccountFilter{
+		Account: []string{},
+		Owner:   []string{},
+		Filters: []*SubscribeRequestFilterAccountsFilter{},
+	}
+}
+
+// AccountFilterFromProgramOwners 从程序 owner 列表创建账户过滤器
+func AccountFilterFromProgramOwners(programIDs []string) AccountFilter {
+	return AccountFilter{
+		Account: []string{},
+		Owner:   append([]string(nil), programIDs...),
+		Filters: []*SubscribeRequestFilterAccountsFilter{},
+	}
+}
+
+// AccountFilterMemcmp 构造 memcmp 账户过滤器。
+func AccountFilterMemcmp(offset uint64, bytes []byte) *SubscribeRequestFilterAccountsFilter {
+	return &SubscribeRequestFilterAccountsFilter{
+		Memcmp: &SubscribeRequestFilterAccountsFilterMemcmp{
+			Offset: offset,
+			Bytes:  append([]byte(nil), bytes...),
+		},
+	}
+}
+
 // EventType 事件类型
 type EventType string
 
 const (
-	EventTypeBlockMeta                   EventType = "BlockMeta"
-	EventTypeBonkTrade                   EventType = "BonkTrade"
-	EventTypeBonkPoolCreate              EventType = "BonkPoolCreate"
-	EventTypeBonkMigrateAmm              EventType = "BonkMigrateAmm"
-	EventTypePumpFunTrade                EventType = "PumpFunTrade"
-	EventTypePumpFunBuy                  EventType = "PumpFunBuy"
-	EventTypePumpFunSell                 EventType = "PumpFunSell"
-	EventTypePumpFunBuyExactSolIn        EventType = "PumpFunBuyExactSolIn"
-	EventTypePumpFunCreate               EventType = "PumpFunCreate"
-	EventTypePumpFunCreateV2             EventType = "PumpFunCreateV2"
-	EventTypePumpFunComplete             EventType = "PumpFunComplete"
-	EventTypePumpFunMigrate              EventType = "PumpFunMigrate"
-	EventTypePumpSwapBuy                 EventType = "PumpSwapBuy"
-	EventTypePumpSwapSell                EventType = "PumpSwapSell"
-	EventTypePumpSwapCreatePool          EventType = "PumpSwapCreatePool"
-	EventTypePumpSwapLiquidityAdded      EventType = "PumpSwapLiquidityAdded"
-	EventTypePumpSwapLiquidityRemoved    EventType = "PumpSwapLiquidityRemoved"
-	EventTypeMeteoraDammV2Swap           EventType = "MeteoraDammV2Swap"
-	EventTypeMeteoraDammV2AddLiquidity   EventType = "MeteoraDammV2AddLiquidity"
-	EventTypeMeteoraDammV2RemoveLiquidity EventType = "MeteoraDammV2RemoveLiquidity"
-	EventTypeMeteoraDammV2CreatePosition EventType = "MeteoraDammV2CreatePosition"
-	EventTypeMeteoraDammV2ClosePosition  EventType = "MeteoraDammV2ClosePosition"
-	EventTypeMeteoraDammV2InitializePool EventType = "MeteoraDammV2InitializePool"
-	EventTypeTokenAccount                EventType = "TokenAccount"
-	EventTypeTokenInfo                   EventType = "TokenInfo"
-	EventTypeNonceAccount                EventType = "NonceAccount"
-	EventTypeAccountPumpSwapGlobalConfig EventType = "AccountPumpSwapGlobalConfig"
-	EventTypeAccountPumpSwapPool         EventType = "AccountPumpSwapPool"
+	EventTypeBlockMeta                           EventType = "BlockMeta"
+	EventTypeBonkTrade                           EventType = "BonkTrade"
+	EventTypeBonkPoolCreate                      EventType = "BonkPoolCreate"
+	EventTypeBonkMigrateAmm                      EventType = "BonkMigrateAmm"
+	EventTypePumpFunTrade                        EventType = "PumpFunTrade"
+	EventTypePumpFunBuy                          EventType = "PumpFunBuy"
+	EventTypePumpFunSell                         EventType = "PumpFunSell"
+	EventTypePumpFunBuyExactSolIn                EventType = "PumpFunBuyExactSolIn"
+	EventTypePumpFunCreate                       EventType = "PumpFunCreate"
+	EventTypePumpFunCreateV2                     EventType = "PumpFunCreateV2"
+	EventTypePumpFunComplete                     EventType = "PumpFunComplete"
+	EventTypePumpFunMigrate                      EventType = "PumpFunMigrate"
+	EventTypePumpFeesCreateFeeSharingConfig      EventType = "PumpFeesCreateFeeSharingConfig"
+	EventTypePumpFeesInitializeFeeConfig         EventType = "PumpFeesInitializeFeeConfig"
+	EventTypePumpFeesResetFeeSharingConfig       EventType = "PumpFeesResetFeeSharingConfig"
+	EventTypePumpFeesRevokeFeeSharingAuthority   EventType = "PumpFeesRevokeFeeSharingAuthority"
+	EventTypePumpFeesTransferFeeSharingAuthority EventType = "PumpFeesTransferFeeSharingAuthority"
+	EventTypePumpFeesUpdateAdmin                 EventType = "PumpFeesUpdateAdmin"
+	EventTypePumpFeesUpdateFeeConfig             EventType = "PumpFeesUpdateFeeConfig"
+	EventTypePumpFeesUpdateFeeShares             EventType = "PumpFeesUpdateFeeShares"
+	EventTypePumpFeesUpsertFeeTiers              EventType = "PumpFeesUpsertFeeTiers"
+	EventTypePumpFunMigrateBondingCurveCreator   EventType = "PumpFunMigrateBondingCurveCreator"
+	EventTypePumpSwapBuy                         EventType = "PumpSwapBuy"
+	EventTypePumpSwapSell                        EventType = "PumpSwapSell"
+	EventTypePumpSwapCreatePool                  EventType = "PumpSwapCreatePool"
+	EventTypePumpSwapLiquidityAdded              EventType = "PumpSwapLiquidityAdded"
+	EventTypePumpSwapLiquidityRemoved            EventType = "PumpSwapLiquidityRemoved"
+	EventTypeMeteoraDammV2Swap                   EventType = "MeteoraDammV2Swap"
+	EventTypeMeteoraDammV2AddLiquidity           EventType = "MeteoraDammV2AddLiquidity"
+	EventTypeMeteoraDammV2RemoveLiquidity        EventType = "MeteoraDammV2RemoveLiquidity"
+	EventTypeMeteoraDammV2CreatePosition         EventType = "MeteoraDammV2CreatePosition"
+	EventTypeMeteoraDammV2ClosePosition          EventType = "MeteoraDammV2ClosePosition"
+	EventTypeMeteoraDammV2InitializePool         EventType = "MeteoraDammV2InitializePool"
+	EventTypeTokenAccount                        EventType = "TokenAccount"
+	EventTypeTokenInfo                           EventType = "TokenInfo"
+	EventTypeNonceAccount                        EventType = "NonceAccount"
+	EventTypeAccountPumpFunGlobal                EventType = "AccountPumpFunGlobal"
+	EventTypeAccountPumpSwapGlobalConfig         EventType = "AccountPumpSwapGlobalConfig"
+	EventTypeAccountPumpSwapPool                 EventType = "AccountPumpSwapPool"
 
 	// Raydium CLMM
 	EventTypeRaydiumClmmSwap                        EventType = "RaydiumClmmSwap"
@@ -172,10 +218,6 @@ type IncludeOnlyFilter struct {
 
 // ShouldInclude 判断是否包含指定事件类型
 func (f *IncludeOnlyFilter) ShouldInclude(eventType EventType) bool {
-	// 空列表表示包含所有类型
-	if len(f.IncludeOnly) == 0 {
-		return true
-	}
 	for _, t := range f.IncludeOnly {
 		if t == eventType {
 			return true
@@ -215,6 +257,36 @@ func EventTypeFilterExclude(types []EventType) EventTypeFilter {
 	return &ExcludeFilter{ExcludeTypes: types}
 }
 
+func eventTypeSlicesIntersect(a, b []EventType) bool {
+	for _, x := range a {
+		for _, y := range b {
+			if x == y {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func eventTypeFilterIncludesAny(filter EventTypeFilter, types []EventType) bool {
+	if filter == nil {
+		return true
+	}
+	switch f := filter.(type) {
+	case *IncludeOnlyFilter:
+		return eventTypeSlicesIntersect(f.IncludeOnly, types)
+	case *ExcludeFilter:
+		return !eventTypeSlicesIntersect(f.ExcludeTypes, types)
+	default:
+		for _, t := range types {
+			if filter.ShouldInclude(t) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 // EventTypeFilterIncludesPumpfun 判断过滤器是否包含 PumpFun 相关类型
 func EventTypeFilterIncludesPumpfun(filter EventTypeFilter) bool {
 	pumpfunTypes := []EventType{
@@ -226,13 +298,35 @@ func EventTypeFilterIncludesPumpfun(filter EventTypeFilter) bool {
 		EventTypePumpFunCreateV2,
 		EventTypePumpFunComplete,
 		EventTypePumpFunMigrate,
+		EventTypePumpFeesCreateFeeSharingConfig,
+		EventTypePumpFeesInitializeFeeConfig,
+		EventTypePumpFeesResetFeeSharingConfig,
+		EventTypePumpFeesRevokeFeeSharingAuthority,
+		EventTypePumpFeesTransferFeeSharingAuthority,
+		EventTypePumpFeesUpdateAdmin,
+		EventTypePumpFeesUpdateFeeConfig,
+		EventTypePumpFeesUpdateFeeShares,
+		EventTypePumpFeesUpsertFeeTiers,
+		EventTypePumpFunMigrateBondingCurveCreator,
+		EventTypeAccountPumpFunGlobal,
 	}
-	for _, t := range pumpfunTypes {
-		if filter.ShouldInclude(t) {
-			return true
-		}
+	return eventTypeFilterIncludesAny(filter, pumpfunTypes)
+}
+
+// EventTypeFilterIncludesPumpFees 判断过滤器是否包含 Pump Fees 相关类型
+func EventTypeFilterIncludesPumpFees(filter EventTypeFilter) bool {
+	pumpFeesTypes := []EventType{
+		EventTypePumpFeesCreateFeeSharingConfig,
+		EventTypePumpFeesInitializeFeeConfig,
+		EventTypePumpFeesResetFeeSharingConfig,
+		EventTypePumpFeesRevokeFeeSharingAuthority,
+		EventTypePumpFeesTransferFeeSharingAuthority,
+		EventTypePumpFeesUpdateAdmin,
+		EventTypePumpFeesUpdateFeeConfig,
+		EventTypePumpFeesUpdateFeeShares,
+		EventTypePumpFeesUpsertFeeTiers,
 	}
-	return false
+	return eventTypeFilterIncludesAny(filter, pumpFeesTypes)
 }
 
 // EventTypeFilterIncludesPumpswap 判断过滤器是否包含 PumpSwap 相关类型
@@ -244,12 +338,7 @@ func EventTypeFilterIncludesPumpswap(filter EventTypeFilter) bool {
 		EventTypePumpSwapLiquidityAdded,
 		EventTypePumpSwapLiquidityRemoved,
 	}
-	for _, t := range pumpswapTypes {
-		if filter.ShouldInclude(t) {
-			return true
-		}
-	}
-	return false
+	return eventTypeFilterIncludesAny(filter, pumpswapTypes)
 }
 
 // EventTypeFilterIncludesMeteoraDammV2 判断过滤器是否包含 Meteora DAMM V2 相关类型
@@ -262,24 +351,64 @@ func EventTypeFilterIncludesMeteoraDammV2(filter EventTypeFilter) bool {
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2RemoveLiquidity,
 	}
-	for _, t := range meteoraTypes {
-		if filter.ShouldInclude(t) {
-			return true
-		}
-	}
-	return false
+	return eventTypeFilterIncludesAny(filter, meteoraTypes)
 }
 
-// EventTypeFilterAllowsInstructionParsing 与 Rust `parse_instruction_unified` 中
-// `include_only` 预检的 `matches!(…)` 列表一致（见 sol-parser-sdk `src/instr/mod.rs`）。
+// EventTypeFilterAllowsInstructionParsing 与 ParseInstructionUnified 可路由的外层指令事件保持一致。
 func EventTypeFilterAllowsInstructionParsing(includeOnly []EventType) bool {
 	ixTypes := []EventType{
+		EventTypePumpFunTrade,
+		EventTypePumpFunBuy,
+		EventTypePumpFunSell,
+		EventTypePumpFunBuyExactSolIn,
+		EventTypePumpFunCreate,
+		EventTypePumpFunCreateV2,
 		EventTypePumpFunMigrate,
+		EventTypePumpFunMigrateBondingCurveCreator,
+		EventTypeAccountPumpFunGlobal,
+		EventTypePumpFeesCreateFeeSharingConfig,
+		EventTypePumpFeesInitializeFeeConfig,
+		EventTypePumpFeesResetFeeSharingConfig,
+		EventTypePumpFeesRevokeFeeSharingAuthority,
+		EventTypePumpFeesTransferFeeSharingAuthority,
+		EventTypePumpFeesUpdateAdmin,
+		EventTypePumpFeesUpdateFeeConfig,
+		EventTypePumpFeesUpdateFeeShares,
+		EventTypePumpFeesUpsertFeeTiers,
+		EventTypePumpSwapBuy,
+		EventTypePumpSwapSell,
+		EventTypePumpSwapCreatePool,
+		EventTypePumpSwapLiquidityAdded,
+		EventTypePumpSwapLiquidityRemoved,
 		EventTypeMeteoraDammV2Swap,
 		EventTypeMeteoraDammV2AddLiquidity,
 		EventTypeMeteoraDammV2CreatePosition,
 		EventTypeMeteoraDammV2ClosePosition,
 		EventTypeMeteoraDammV2RemoveLiquidity,
+		EventTypeRaydiumClmmSwap,
+		EventTypeRaydiumClmmIncreaseLiquidity,
+		EventTypeRaydiumClmmDecreaseLiquidity,
+		EventTypeRaydiumClmmCreatePool,
+		EventTypeRaydiumClmmOpenPosition,
+		EventTypeRaydiumClmmOpenPositionWithTokenExtNft,
+		EventTypeRaydiumClmmClosePosition,
+		EventTypeRaydiumClmmCollectFee,
+		EventTypeRaydiumCpmmSwap,
+		EventTypeRaydiumCpmmDeposit,
+		EventTypeRaydiumCpmmWithdraw,
+		EventTypeRaydiumCpmmInitialize,
+		EventTypeRaydiumAmmV4Swap,
+		EventTypeRaydiumAmmV4Deposit,
+		EventTypeRaydiumAmmV4Withdraw,
+		EventTypeRaydiumAmmV4WithdrawPnl,
+		EventTypeRaydiumAmmV4Initialize2,
+		EventTypeOrcaWhirlpoolSwap,
+		EventTypeOrcaWhirlpoolLiquidityIncreased,
+		EventTypeOrcaWhirlpoolLiquidityDecreased,
+		EventTypeOrcaWhirlpoolPoolInitialized,
+		EventTypeBonkTrade,
+		EventTypeBonkPoolCreate,
+		EventTypeBonkMigrateAmm,
 	}
 	for _, t := range ixTypes {
 		for _, include := range includeOnly {
@@ -293,33 +422,33 @@ func EventTypeFilterAllowsInstructionParsing(includeOnly []EventType) bool {
 
 // SubscribeRequest 订阅请求
 type SubscribeRequest struct {
-	Accounts         map[string]*SubscribeRequestFilterAccounts
-	Slots            map[string]*SubscribeRequestFilterSlots
-	Transactions     map[string]*SubscribeRequestFilterTransactions
+	Accounts           map[string]*SubscribeRequestFilterAccounts
+	Slots              map[string]*SubscribeRequestFilterSlots
+	Transactions       map[string]*SubscribeRequestFilterTransactions
 	TransactionsStatus map[string]*SubscribeRequestFilterTransactions
-	Blocks           map[string]*SubscribeRequestFilterBlocks
-	BlocksMeta       map[string]*SubscribeRequestFilterBlocksMeta
-	Entry            map[string]*SubscribeRequestFilterEntry
-	Commitment       *CommitmentLevel
-	AccountsDataSlice []*SubscribeRequestAccountsDataSlice
-	Ping             *SubscribeRequestPing
-	FromSlot         *uint64
+	Blocks             map[string]*SubscribeRequestFilterBlocks
+	BlocksMeta         map[string]*SubscribeRequestFilterBlocksMeta
+	Entry              map[string]*SubscribeRequestFilterEntry
+	Commitment         *CommitmentLevel
+	AccountsDataSlice  []*SubscribeRequestAccountsDataSlice
+	Ping               *SubscribeRequestPing
+	FromSlot           *uint64
 }
 
 // SubscribeRequestFilterAccounts 账户过滤器
 type SubscribeRequestFilterAccounts struct {
-	Account            []string
-	Owner              []string
-	Filters            []*SubscribeRequestFilterAccountsFilter
+	Account              []string
+	Owner                []string
+	Filters              []*SubscribeRequestFilterAccountsFilter
 	NonemptyTxnSignature *bool
 }
 
 // SubscribeRequestFilterAccountsFilter 账户过滤条件
 type SubscribeRequestFilterAccountsFilter struct {
-	Memcmp         *SubscribeRequestFilterAccountsFilterMemcmp
-	Datasize       *uint64
+	Memcmp            *SubscribeRequestFilterAccountsFilterMemcmp
+	Datasize          *uint64
 	TokenAccountState *bool
-	Lamports       *SubscribeRequestFilterAccountsFilterLamports
+	Lamports          *SubscribeRequestFilterAccountsFilterLamports
 }
 
 // SubscribeRequestFilterAccountsFilterMemcmp Memcmp 过滤器
@@ -403,14 +532,14 @@ type SubscribeUpdateAccount struct {
 
 // SubscribeUpdateAccountInfo 账户信息
 type SubscribeUpdateAccountInfo struct {
-	Pubkey        []byte
-	Lamports      uint64
-	Owner         []byte
-	Executable    bool
-	RentEpoch     uint64
-	Data          []byte
-	WriteVersion  uint64
-	TxnSignature  []byte
+	Pubkey       []byte
+	Lamports     uint64
+	Owner        []byte
+	Executable   bool
+	RentEpoch    uint64
+	Data         []byte
+	WriteVersion uint64
+	TxnSignature []byte
 }
 
 // SubscribeUpdateSlot Slot 更新
@@ -425,13 +554,13 @@ type SubscribeUpdateSlot struct {
 type SlotStatus int32
 
 const (
-	SlotStatusProcessed      SlotStatus = 0
-	SlotStatusConfirmed      SlotStatus = 1
-	SlotStatusFinalized      SlotStatus = 2
+	SlotStatusProcessed          SlotStatus = 0
+	SlotStatusConfirmed          SlotStatus = 1
+	SlotStatusFinalized          SlotStatus = 2
 	SlotStatusFirstShredReceived SlotStatus = 3
-	SlotStatusCompleted      SlotStatus = 4
-	SlotStatusCreatedBank    SlotStatus = 5
-	SlotStatusDead           SlotStatus = 6
+	SlotStatusCompleted          SlotStatus = 4
+	SlotStatusCreatedBank        SlotStatus = 5
+	SlotStatusDead               SlotStatus = 6
 )
 
 // SubscribeUpdateTransaction 交易更新
@@ -442,11 +571,11 @@ type SubscribeUpdateTransaction struct {
 
 // SubscribeUpdateTransactionInfo 交易信息
 type SubscribeUpdateTransactionInfo struct {
-	Signature      []byte
-	IsVote         bool
-	Transaction    *pb.Transaction
-	Meta           *pb.TransactionStatusMeta
-	Index          uint64
+	Signature   []byte
+	IsVote      bool
+	Transaction *pb.Transaction
+	Meta        *pb.TransactionStatusMeta
+	Index       uint64
 }
 
 // SubscribeUpdateTransactionStatus 交易状态更新
@@ -460,12 +589,12 @@ type SubscribeUpdateTransactionStatus struct {
 
 // SubscribeUpdateBlock 区块更新
 type SubscribeUpdateBlock struct {
-	Slot                   uint64
-	Blockhash              string
-	ParentSlot             uint64
-	ParentBlockhash        string
+	Slot                     uint64
+	Blockhash                string
+	ParentSlot               uint64
+	ParentBlockhash          string
 	ExecutedTransactionCount uint64
-	Transactions           []*SubscribeUpdateTransactionInfo
+	Transactions             []*SubscribeUpdateTransactionInfo
 }
 
 // SubscribeUpdatePing Ping 更新
@@ -478,19 +607,19 @@ type SubscribeUpdatePong struct {
 
 // SubscribeUpdateBlockMeta 区块元数据更新
 type SubscribeUpdateBlockMeta struct {
-	Slot                   uint64
-	Blockhash              string
-	ParentSlot             uint64
-	ParentBlockhash        string
+	Slot                     uint64
+	Blockhash                string
+	ParentSlot               uint64
+	ParentBlockhash          string
 	ExecutedTransactionCount uint64
 }
 
 // SubscribeUpdateEntry Entry 更新
 type SubscribeUpdateEntry struct {
-	Slot                   uint64
-	Index                  uint64
-	NumHashes              uint64
-	Hash                   []byte
+	Slot                     uint64
+	Index                    uint64
+	NumHashes                uint64
+	Hash                     []byte
 	ExecutedTransactionCount uint64
 	StartingTransactionIndex uint64
 }
@@ -502,8 +631,8 @@ type GetLatestBlockhashRequest struct {
 
 // GetLatestBlockhashResponse 获取最新区块哈希响应
 type GetLatestBlockhashResponse struct {
-	Slot               uint64
-	Blockhash          string
+	Slot                 uint64
+	Blockhash            string
 	LastValidBlockHeight uint64
 }
 
@@ -567,69 +696,44 @@ type SubscribeReplayInfoResponse struct {
 
 // EventTypeFilterIncludesOrcaWhirlpool 判断过滤器是否包含 Orca Whirlpool 相关类型
 func EventTypeFilterIncludesOrcaWhirlpool(filter EventTypeFilter) bool {
-	for _, t := range []EventType{
+	return eventTypeFilterIncludesAny(filter, []EventType{
 		EventTypeOrcaWhirlpoolSwap, EventTypeOrcaWhirlpoolLiquidityIncreased,
 		EventTypeOrcaWhirlpoolLiquidityDecreased, EventTypeOrcaWhirlpoolPoolInitialized,
-	} {
-		if filter.ShouldInclude(t) {
-			return true
-		}
-	}
-	return false
+	})
 }
 
 // EventTypeFilterIncludesBonk 判断过滤器是否包含 Bonk 相关类型
 func EventTypeFilterIncludesBonk(filter EventTypeFilter) bool {
-	for _, t := range []EventType{
+	return eventTypeFilterIncludesAny(filter, []EventType{
 		EventTypeBonkTrade, EventTypeBonkPoolCreate, EventTypeBonkMigrateAmm,
-	} {
-		if filter.ShouldInclude(t) {
-			return true
-		}
-	}
-	return false
+	})
 }
 
 // EventTypeFilterIncludesRaydiumClmm 判断过滤器是否包含 Raydium CLMM 相关类型
 func EventTypeFilterIncludesRaydiumClmm(filter EventTypeFilter) bool {
-	for _, t := range []EventType{
+	return eventTypeFilterIncludesAny(filter, []EventType{
 		EventTypeRaydiumClmmSwap, EventTypeRaydiumClmmIncreaseLiquidity,
 		EventTypeRaydiumClmmDecreaseLiquidity, EventTypeRaydiumClmmCreatePool,
 		EventTypeRaydiumClmmOpenPosition, EventTypeRaydiumClmmOpenPositionWithTokenExtNft,
 		EventTypeRaydiumClmmClosePosition, EventTypeRaydiumClmmCollectFee,
-	} {
-		if filter.ShouldInclude(t) {
-			return true
-		}
-	}
-	return false
+	})
 }
 
 // EventTypeFilterIncludesRaydiumCpmm 判断过滤器是否包含 Raydium CPMM 相关类型
 func EventTypeFilterIncludesRaydiumCpmm(filter EventTypeFilter) bool {
-	for _, t := range []EventType{
+	return eventTypeFilterIncludesAny(filter, []EventType{
 		EventTypeRaydiumCpmmSwap, EventTypeRaydiumCpmmDeposit,
 		EventTypeRaydiumCpmmWithdraw, EventTypeRaydiumCpmmInitialize,
-	} {
-		if filter.ShouldInclude(t) {
-			return true
-		}
-	}
-	return false
+	})
 }
 
 // EventTypeFilterIncludesRaydiumAmmV4 判断过滤器是否包含 Raydium AMM V4 相关类型
 func EventTypeFilterIncludesRaydiumAmmV4(filter EventTypeFilter) bool {
-	for _, t := range []EventType{
+	return eventTypeFilterIncludesAny(filter, []EventType{
 		EventTypeRaydiumAmmV4Swap, EventTypeRaydiumAmmV4Deposit,
 		EventTypeRaydiumAmmV4Withdraw, EventTypeRaydiumAmmV4WithdrawPnl,
 		EventTypeRaydiumAmmV4Initialize2,
-	} {
-		if filter.ShouldInclude(t) {
-			return true
-		}
-	}
-	return false
+	})
 }
 
 // AllEventTypes 返回所有支持的事件类型列表
@@ -647,6 +751,16 @@ func AllEventTypes() []EventType {
 		EventTypePumpFunCreateV2,
 		EventTypePumpFunComplete,
 		EventTypePumpFunMigrate,
+		EventTypePumpFeesCreateFeeSharingConfig,
+		EventTypePumpFeesInitializeFeeConfig,
+		EventTypePumpFeesResetFeeSharingConfig,
+		EventTypePumpFeesRevokeFeeSharingAuthority,
+		EventTypePumpFeesTransferFeeSharingAuthority,
+		EventTypePumpFeesUpdateAdmin,
+		EventTypePumpFeesUpdateFeeConfig,
+		EventTypePumpFeesUpdateFeeShares,
+		EventTypePumpFeesUpsertFeeTiers,
+		EventTypePumpFunMigrateBondingCurveCreator,
 
 		// PumpSwap
 		EventTypePumpSwapBuy,
@@ -720,6 +834,7 @@ func AllEventTypes() []EventType {
 		EventTypeTokenAccount,
 		EventTypeTokenInfo,
 		EventTypeNonceAccount,
+		EventTypeAccountPumpFunGlobal,
 		EventTypeAccountPumpSwapGlobalConfig,
 		EventTypeAccountPumpSwapPool,
 	}

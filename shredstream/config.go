@@ -16,6 +16,6 @@ func DefaultShredStreamConfig() ShredStreamConfig {
 		RequestTimeoutMs:       15000,
 		MaxDecodingMessageSize: 1024 * 1024 * 100,
 		ReconnectDelayMs:       1000,
-		MaxReconnectAttempts:     3,
+		MaxReconnectAttempts:   3,
 	}
 }

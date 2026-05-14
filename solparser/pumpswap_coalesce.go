@@ -9,6 +9,12 @@ func ApplyMetadataTxIndex(events []DexEvent, txIndex uint64) {
 	}
 }
 
+func ApplyMetadataBlockTimeUs(events []DexEvent, blockTimeUs int64) {
+	for i := range events {
+		setEventMetadataBlockTimeUs(&events[i], blockTimeUs)
+	}
+}
+
 func setEventMetadataTxIndex(ev *DexEvent, txIndex uint64) {
 	d := ev.Data
 	if d == nil {
@@ -26,6 +32,26 @@ func setEventMetadataTxIndex(ev *DexEvent, txIndex uint64) {
 	txF := md.FieldByName("TxIndex")
 	if txF.IsValid() && txF.CanSet() && txF.Kind() == reflect.Uint64 {
 		txF.SetUint(txIndex)
+	}
+}
+
+func setEventMetadataBlockTimeUs(ev *DexEvent, blockTimeUs int64) {
+	d := ev.Data
+	if d == nil {
+		return
+	}
+	v := reflect.ValueOf(d)
+	if v.Kind() != reflect.Ptr {
+		return
+	}
+	v = v.Elem()
+	md := v.FieldByName("Metadata")
+	if !md.IsValid() || md.Kind() != reflect.Struct {
+		return
+	}
+	bt := md.FieldByName("BlockTimeUs")
+	if bt.IsValid() && bt.CanSet() && bt.Kind() == reflect.Int64 {
+		bt.SetInt(blockTimeUs)
 	}
 }
 

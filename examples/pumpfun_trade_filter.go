@@ -7,7 +7,7 @@
 // - Filter specific trade types: Buy, Sell, BuyExactSolIn, Create
 // - Display trade details with latency metrics
 //
-// Run: go run examples/pumpfun_trade_filter.go  (from sol-parser-sdk-golang/)
+// Run: go run examples/pumpfun_trade_filter.go  (from github.com/0xfnzero/sol-parser-sdk-golang/)
 // Or:  GRPC_URL=host:443 GRPC_TOKEN=xxx go run examples/pumpfun_trade_filter.go
 
 package main
@@ -20,8 +20,8 @@ import (
 	"syscall"
 	"time"
 
+	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 	base58 "github.com/mr-tron/base58"
-	solparser "sol-parser-sdk-golang/solparser"
 )
 
 const defaultEndpoint = "solana-yellowstone-grpc.publicnode.com:443"

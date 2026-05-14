@@ -5,7 +5,7 @@ import (
 
 	"github.com/mr-tron/base58"
 
-	pb "sol-parser-sdk-golang/proto"
+	pb "github.com/0xfnzero/sol-parser-sdk-golang/proto"
 )
 
 // SubscribeUpdateInfoToRpc 将 gRPC 回调中的 SubscribeUpdateTransactionInfo（与 Yellowstone 一致）
@@ -131,6 +131,16 @@ func ParseSubscribeTransaction(
 	filter EventTypeFilter,
 	grpcRecvUs int64,
 ) ([]DexEvent, *ParseError) {
+	return ParseSubscribeTransactionWithBlockTime(slot, info, filter, grpcRecvUs, nil)
+}
+
+func ParseSubscribeTransactionWithBlockTime(
+	slot uint64,
+	info *SubscribeUpdateTransactionInfo,
+	filter EventTypeFilter,
+	grpcRecvUs int64,
+	blockTimeUs *int64,
+) ([]DexEvent, *ParseError) {
 	rpcTx, err := SubscribeUpdateInfoToRpc(slot, info)
 	if err != nil {
 		return nil, &ParseError{Kind: "ConversionError", Message: err.Error()}
@@ -144,5 +154,8 @@ func ParseSubscribeTransaction(
 		return events, perr
 	}
 	ApplyMetadataTxIndex(events, info.Index)
+	if blockTimeUs != nil {
+		ApplyMetadataBlockTimeUs(events, *blockTimeUs)
+	}
 	return events, nil
 }
