@@ -45,7 +45,7 @@ This repo’s `go.mod` module path is **`github.com/0xfnzero/sol-parser-sdk-gola
 
 ```bash
 git clone https://github.com/0xfnzero/sol-parser-sdk-golang
-cd github.com/0xfnzero/sol-parser-sdk-golang
+cd sol-parser-sdk-golang
 go mod tidy
 ```
 
