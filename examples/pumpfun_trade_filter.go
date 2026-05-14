@@ -3,12 +3,11 @@
 // PumpFun Trade Event Filter Example
 //
 // Demonstrates how to:
-// - Subscribe to PumpFun protocol events
+// - Subscribe to PumpFun protocol events through SubscribeDexEvents
 // - Filter specific trade types: Buy, Sell, BuyExactSolIn, Create
 // - Display trade details with latency metrics
 //
 // Run: go run examples/pumpfun_trade_filter.go  (from github.com/0xfnzero/sol-parser-sdk-golang/)
-// Or:  GRPC_URL=host:443 GRPC_TOKEN=xxx go run examples/pumpfun_trade_filter.go
 
 package main
 
@@ -18,39 +17,25 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
-	base58 "github.com/mr-tron/base58"
 )
-
-const defaultEndpoint = "solana-yellowstone-grpc.publicnode.com:443"
-const defaultToken = ""
-
-var pumpFunProgramIDs = []string{
-	"6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", // PumpFun
-}
-
-func nowUs() int64 {
-	return time.Now().UnixMicro()
-}
 
 func main() {
 	endpoint := os.Getenv("GRPC_URL")
 	if endpoint == "" {
-		endpoint = defaultEndpoint
+		endpoint = "solana-yellowstone-grpc.publicnode.com:443"
 	}
 	token := os.Getenv("GRPC_TOKEN")
-	if token == "" {
-		token = defaultToken
-	}
 
 	fmt.Println("🚀 PumpFun Trade Event Filter Example")
 	fmt.Println("======================================\n")
 	fmt.Printf("📡 Endpoint: %s\n", endpoint)
-	fmt.Printf("🎯 Program: %s\n\n", pumpFunProgramIDs[0])
+	fmt.Println("🎯 Protocol: PumpFun\n")
 
-	client := solparser.NewYellowstoneGrpc(endpoint)
+	cfg := solparser.DefaultClientConfig()
+	cfg.OrderMode = solparser.OrderModeUnordered
+	client := solparser.NewYellowstoneGrpc(endpoint, cfg)
 	if token != "" {
 		client.SetXToken(token)
 	}
@@ -61,6 +46,31 @@ func main() {
 	}
 	defer client.Disconnect()
 
+	protocols := []solparser.Protocol{solparser.ProtocolPumpFun}
+	txFilter := solparser.TransactionFilterForProtocols(protocols)
+	voteF := false
+	failedF := false
+	txFilter.Vote = &voteF
+	txFilter.Failed = &failedF
+
+	eventFilter := solparser.EventTypeFilterIncludeOnly([]solparser.EventType{
+		solparser.EventTypePumpFunBuy,
+		solparser.EventTypePumpFunSell,
+		solparser.EventTypePumpFunBuyExactSolIn,
+		solparser.EventTypePumpFunCreate,
+	})
+
+	sub, err := client.SubscribeDexEvents(
+		[]solparser.TransactionFilter{txFilter},
+		nil,
+		eventFilter,
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Subscribe failed: %v\n", err)
+		os.Exit(1)
+	}
+	defer sub.Cancel()
+
 	var (
 		eventCount    int
 		buyCount      int
@@ -69,161 +79,101 @@ func main() {
 		createCount   int
 	)
 
-	voteF := false
-	failedF := false
-	filter := solparser.TransactionFilter{
-		AccountInclude:  pumpFunProgramIDs,
-		AccountExclude:  []string{},
-		AccountRequired: []string{},
-		Vote:            &voteF,
-		Failed:          &failedF,
-	}
-
-	done := make(chan struct{})
-
-	callbacks := solparser.SubscribeCallbacks{
-		OnUpdate: func(update *solparser.SubscribeUpdate) {
-			if update.Transaction == nil || update.Transaction.Transaction == nil {
-				return
-			}
-			txInfo := update.Transaction.Transaction
-			if txInfo.Meta == nil || len(txInfo.Meta.LogMessages) == 0 {
-				return
-			}
-
-			logs := txInfo.Meta.LogMessages
-			sigStr := base58.Encode(txInfo.Signature)
-			if len(sigStr) > 16 {
-				sigStr = sigStr[:16]
-			}
-			slot := update.Transaction.Slot
-			queueRecvUs := nowUs()
-
-			events := solparser.ParseLogsOnly(logs, sigStr+"...", slot, nil)
-
-			for _, ev := range events {
-				for key := range ev {
-					data := ev[key]
-					dataMap, _ := data.(map[string]any)
-					eventCount++
-
-					var grpcRecvUs int64
-					if md, ok := dataMap["metadata"].(map[string]any); ok {
-						if v, ok := md["grpc_recv_us"].(float64); ok {
-							grpcRecvUs = int64(v)
-						}
-					}
-					latencyUs := queueRecvUs - grpcRecvUs
-
-					switch key {
-					case "PumpFunBuy":
-						buyCount++
-						fmt.Println("┌─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 🟢 PumpFun BUY #%d\n", eventCount)
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ Slot       : %d\n", slot)
-						printField(dataMap, "mint", "Mint")
-						printField(dataMap, "sol_amount", "SOL Amount")
-						printField(dataMap, "token_amount", "Token Amt")
-						printField(dataMap, "user", "User")
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 📊 Latency : %d μs\n", latencyUs)
-						fmt.Printf("│ 📊 Stats   : Buy=%d Sell=%d BuyExact=%d\n", buyCount, sellCount, buyExactCount)
-						fmt.Println("└─────────────────────────────────────────────────────────────\n")
-
-					case "PumpFunBuyExactSolIn":
-						buyExactCount++
-						fmt.Println("┌─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 🟡 PumpFun BUY_EXACT_SOL_IN #%d\n", eventCount)
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ Slot       : %d\n", slot)
-						printField(dataMap, "mint", "Mint")
-						printField(dataMap, "sol_amount", "SOL Amount")
-						printField(dataMap, "user", "User")
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 📊 Latency : %d μs\n", latencyUs)
-						fmt.Printf("│ 📊 Stats   : Buy=%d Sell=%d BuyExact=%d\n", buyCount, sellCount, buyExactCount)
-						fmt.Println("└─────────────────────────────────────────────────────────────\n")
-
-					case "PumpFunSell":
-						sellCount++
-						fmt.Println("┌─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 🔴 PumpFun SELL #%d\n", eventCount)
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ Slot       : %d\n", slot)
-						printField(dataMap, "mint", "Mint")
-						printField(dataMap, "sol_amount", "SOL Amount")
-						printField(dataMap, "user", "User")
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 📊 Latency : %d μs\n", latencyUs)
-						fmt.Printf("│ 📊 Stats   : Buy=%d Sell=%d BuyExact=%d\n", buyCount, sellCount, buyExactCount)
-						fmt.Println("└─────────────────────────────────────────────────────────────\n")
-
-					case "PumpFunCreate":
-						createCount++
-						fmt.Println("┌─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 🆕 PumpFun CREATE #%d\n", eventCount)
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ Slot       : %d\n", slot)
-						printField(dataMap, "name", "Name")
-						printField(dataMap, "symbol", "Symbol")
-						printField(dataMap, "mint", "Mint")
-						printField(dataMap, "creator", "Creator")
-						fmt.Println("├─────────────────────────────────────────────────────────────")
-						fmt.Printf("│ 📊 Latency : %d μs\n", latencyUs)
-						fmt.Printf("│ 📊 Creates : %d\n", createCount)
-						fmt.Println("└─────────────────────────────────────────────────────────────\n")
-
-					default:
-						b, _ := json.Marshal(ev)
-						fmt.Printf("[%s] %s\n\n", key, string(b)[:min(len(string(b)), 300)])
-					}
-					break
-				}
-			}
-		},
-		OnError: func(err error) {
-			fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
-		},
-		OnEnd: func() {
-			fmt.Println("Stream ended")
-			select {
-			case <-done:
-			default:
-				close(done)
-			}
-		},
-	}
-
-	sub, err := client.SubscribeTransactions(filter, callbacks)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Subscribe failed: %v\n", err)
-		os.Exit(1)
-	}
 	fmt.Printf("✅ Subscribed (id=%s)\n", sub.ID)
 	fmt.Println("🛑 Press Ctrl+C to stop...\n")
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-	select {
-	case <-done:
-	case <-interrupt:
-	}
 
-	client.Unsubscribe(sub.ID)
-	fmt.Printf("\n👋 Total events: %d (Buy=%d Sell=%d BuyExact=%d Create=%d)\n",
-		eventCount, buyCount, sellCount, buyExactCount, createCount)
+	for {
+		select {
+		case ev, ok := <-sub.Events:
+			if !ok {
+				return
+			}
+			eventCount++
+			meta := ev.GetMetadata()
+			latencyUs := solparser.NowUs() - meta.GrpcRecvUs
+			if latencyUs < 0 {
+				latencyUs = 0
+			}
+
+			switch ev.Type {
+			case solparser.EventTypePumpFunBuy:
+				buyCount++
+				printTrade("🟢 PumpFun BUY", eventCount, meta, latencyUs, ev)
+				fmt.Printf("│ 📊 Stats   : Buy=%d Sell=%d BuyExact=%d\n", buyCount, sellCount, buyExactCount)
+				fmt.Println("└─────────────────────────────────────────────────────────────\n")
+			case solparser.EventTypePumpFunBuyExactSolIn:
+				buyExactCount++
+				printTrade("🟡 PumpFun BUY_EXACT_SOL_IN", eventCount, meta, latencyUs, ev)
+				fmt.Printf("│ 📊 Stats   : Buy=%d Sell=%d BuyExact=%d\n", buyCount, sellCount, buyExactCount)
+				fmt.Println("└─────────────────────────────────────────────────────────────\n")
+			case solparser.EventTypePumpFunSell:
+				sellCount++
+				printTrade("🔴 PumpFun SELL", eventCount, meta, latencyUs, ev)
+				fmt.Printf("│ 📊 Stats   : Buy=%d Sell=%d BuyExact=%d\n", buyCount, sellCount, buyExactCount)
+				fmt.Println("└─────────────────────────────────────────────────────────────\n")
+			case solparser.EventTypePumpFunCreate:
+				createCount++
+				printCreate(eventCount, meta, latencyUs, ev)
+				fmt.Printf("│ 📊 Creates : %d\n", createCount)
+				fmt.Println("└─────────────────────────────────────────────────────────────\n")
+			default:
+				b, _ := json.Marshal(ev)
+				fmt.Printf("[%s] %s\n\n", ev.Type, truncate(string(b), 300))
+			}
+		case err, ok := <-sub.Errors:
+			if ok {
+				fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
+			}
+		case <-interrupt:
+			fmt.Printf("\n👋 Total events: %d (Buy=%d Sell=%d BuyExact=%d Create=%d)\n",
+				eventCount, buyCount, sellCount, buyExactCount, createCount)
+			return
+		}
+	}
 }
 
-func printField(m map[string]any, key, label string) {
-	if v, ok := m[key]; ok {
-		fmt.Printf("│ %-11s: %v\n", label, v)
+func printTrade(title string, count int, meta solparser.EventMetadata, latencyUs int64, ev solparser.DexEvent) {
+	trade := ev.AsPumpFunTrade()
+	fmt.Println("┌─────────────────────────────────────────────────────────────")
+	fmt.Printf("│ %s #%d\n", title, count)
+	fmt.Println("├─────────────────────────────────────────────────────────────")
+	fmt.Printf("│ Signature  : %s\n", meta.Signature)
+	fmt.Printf("│ Slot       : %d\n", meta.Slot)
+	fmt.Println("├─────────────────────────────────────────────────────────────")
+	if trade != nil {
+		fmt.Printf("│ Mint       : %s\n", trade.Mint)
+		fmt.Printf("│ SOL Amount : %d\n", trade.SolAmount)
+		fmt.Printf("│ Token Amt  : %d\n", trade.TokenAmount)
+		fmt.Printf("│ User       : %s\n", trade.User)
 	}
+	fmt.Println("├─────────────────────────────────────────────────────────────")
+	fmt.Printf("│ 📊 Latency : %d μs\n", latencyUs)
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
+func printCreate(count int, meta solparser.EventMetadata, latencyUs int64, ev solparser.DexEvent) {
+	create := ev.AsPumpFunCreate()
+	fmt.Println("┌─────────────────────────────────────────────────────────────")
+	fmt.Printf("│ 🆕 PumpFun CREATE #%d\n", count)
+	fmt.Println("├─────────────────────────────────────────────────────────────")
+	fmt.Printf("│ Signature  : %s\n", meta.Signature)
+	fmt.Printf("│ Slot       : %d\n", meta.Slot)
+	fmt.Println("├─────────────────────────────────────────────────────────────")
+	if create != nil {
+		fmt.Printf("│ Name       : %s\n", create.Name)
+		fmt.Printf("│ Symbol     : %s\n", create.Symbol)
+		fmt.Printf("│ Mint       : %s\n", create.Mint)
+		fmt.Printf("│ Creator    : %s\n", create.Creator)
 	}
-	return b
+	fmt.Println("├─────────────────────────────────────────────────────────────")
+	fmt.Printf("│ 📊 Latency : %d μs\n", latencyUs)
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }

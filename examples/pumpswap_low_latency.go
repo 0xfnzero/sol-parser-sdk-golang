@@ -3,9 +3,9 @@
 // PumpSwap Low-Latency Example
 //
 // Demonstrates:
-// - Subscribe to PumpSwap protocol events
-// - Measure end-to-end latency
-// - Per-event and periodic performance statistics
+// - Subscribe to PumpSwap protocol events through SubscribeDexEvents
+// - Use the latest protocol/event filters instead of hand-written Program IDs
+// - Measure gRPC recv time, queue recv time, and per-event latency
 //
 // Run: go run examples/pumpswap_low_latency.go  (from github.com/0xfnzero/sol-parser-sdk-golang/)
 
@@ -21,17 +21,7 @@ import (
 	"time"
 
 	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
-	base58 "github.com/mr-tron/base58"
 )
-
-var pumpSwapProgramIDs = []string{
-	solparser.PUMPSWAP_PROGRAM_ID,
-	solparser.GrpcPumpSwapFeesProgramID,
-}
-
-func nowUsPumpSwap() int64 {
-	return time.Now().UnixMicro()
-}
 
 func main() {
 	endpoint := os.Getenv("GRPC_URL")
@@ -43,7 +33,12 @@ func main() {
 	fmt.Println("🚀 PumpSwap Low-Latency Test")
 	fmt.Println("============================\n")
 
-	client := solparser.NewYellowstoneGrpc(endpoint)
+	cfg := solparser.DefaultClientConfig()
+	cfg.EnableMetrics = true
+	cfg.OrderMode = solparser.OrderModeUnordered
+	cfg.BufferSize = 16_384
+
+	client := solparser.NewYellowstoneGrpc(endpoint, cfg)
 	if token != "" {
 		client.SetXToken(token)
 	}
@@ -53,6 +48,31 @@ func main() {
 	}
 	defer client.Disconnect()
 
+	protocols := []solparser.Protocol{solparser.ProtocolPumpSwap}
+	txFilter := solparser.TransactionFilterForProtocols(protocols)
+	accountFilter := solparser.AccountFilterForProtocols(protocols)
+	voteF := false
+	failedF := false
+	txFilter.Vote = &voteF
+	txFilter.Failed = &failedF
+
+	eventFilter := solparser.EventTypeFilterIncludeOnly([]solparser.EventType{
+		solparser.EventTypePumpSwapBuy,
+		solparser.EventTypePumpSwapSell,
+		solparser.EventTypePumpSwapCreatePool,
+	})
+
+	sub, err := client.SubscribeDexEvents(
+		[]solparser.TransactionFilter{txFilter},
+		[]solparser.AccountFilter{accountFilter},
+		eventFilter,
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Subscribe failed: %v\n", err)
+		os.Exit(1)
+	}
+	defer sub.Cancel()
+
 	var (
 		eventCount   int64
 		totalLatency int64
@@ -60,7 +80,6 @@ func main() {
 		maxLatency   int64
 	)
 
-	// Stats reporter every 10s
 	go func() {
 		lastCount := int64(0)
 		for range time.Tick(10 * time.Second) {
@@ -91,105 +110,79 @@ func main() {
 		}
 	}()
 
-	voteF := false
-	failedF := false
-	filter := solparser.TransactionFilter{
-		AccountInclude:  pumpSwapProgramIDs,
-		AccountExclude:  []string{},
-		AccountRequired: []string{},
-		Vote:            &voteF,
-		Failed:          &failedF,
-	}
-
-	done := make(chan struct{})
-	callbacks := solparser.SubscribeCallbacks{
-		OnUpdate: func(update *solparser.SubscribeUpdate) {
-			if update.Transaction == nil || update.Transaction.Transaction == nil {
-				return
-			}
-			txInfo := update.Transaction.Transaction
-			if txInfo.Meta == nil || len(txInfo.Meta.LogMessages) == 0 {
-				return
-			}
-
-			logs := txInfo.Meta.LogMessages
-			sigStr := base58.Encode(txInfo.Signature)
-			slot := update.Transaction.Slot
-			queueRecvUs := nowUsPumpSwap()
-
-			events := solparser.ParseLogsOnly(logs, sigStr, slot, nil)
-			for _, ev := range events {
-				for key := range ev {
-					if len(key) < 8 || key[:8] != "PumpSwap" {
-						break
-					}
-					data, _ := ev[key].(map[string]any)
-					var grpcRecvUs int64
-					if md, ok := data["metadata"].(map[string]any); ok {
-						if v, ok := md["grpc_recv_us"].(float64); ok {
-							grpcRecvUs = int64(v)
-						}
-					}
-					latencyUs := queueRecvUs - grpcRecvUs
-
-					atomic.AddInt64(&eventCount, 1)
-					atomic.AddInt64(&totalLatency, latencyUs)
-					for {
-						cur := atomic.LoadInt64(&minLatency)
-						if latencyUs >= cur || atomic.CompareAndSwapInt64(&minLatency, cur, latencyUs) {
-							break
-						}
-					}
-					for {
-						cur := atomic.LoadInt64(&maxLatency)
-						if latencyUs <= cur || atomic.CompareAndSwapInt64(&maxLatency, cur, latencyUs) {
-							break
-						}
-					}
-
-					fmt.Printf("\n================================================\n")
-					fmt.Printf("gRPC recv time : %d μs\n", grpcRecvUs)
-					fmt.Printf("Queue recv time: %d μs\n", queueRecvUs)
-					fmt.Printf("Latency        : %d μs\n", latencyUs)
-					fmt.Printf("================================================\n")
-					fmt.Printf("Event: %s\n", key)
-					if v, ok := data["pool"]; ok {
-						fmt.Printf("  pool : %v\n", v)
-					}
-					if v, ok := data["user"]; ok {
-						fmt.Printf("  user : %v\n", v)
-					}
-					fmt.Println()
-					break
-				}
-			}
-		},
-		OnError: func(err error) {
-			fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
-		},
-		OnEnd: func() {
-			fmt.Println("Stream ended")
-			select {
-			case <-done:
-			default:
-				close(done)
-			}
-		},
-	}
-
-	sub, err := client.SubscribeTransactions(filter, callbacks)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Subscribe failed: %v\n", err)
-		os.Exit(1)
-	}
 	fmt.Printf("✅ Subscribed (id=%s)\n", sub.ID)
+	fmt.Printf("📊 Protocols: %v | OrderMode=%s\n", protocols, cfg.OrderMode)
 	fmt.Println("🛑 Press Ctrl+C to stop...\n")
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-	select {
-	case <-done:
-	case <-interrupt:
+
+	for {
+		select {
+		case ev, ok := <-sub.Events:
+			if !ok {
+				return
+			}
+			queueRecvUs := solparser.NowUs()
+			meta := ev.GetMetadata()
+			latencyUs := queueRecvUs - meta.GrpcRecvUs
+			if latencyUs < 0 {
+				latencyUs = 0
+			}
+
+			atomic.AddInt64(&eventCount, 1)
+			atomic.AddInt64(&totalLatency, latencyUs)
+			updateMin(&minLatency, latencyUs)
+			updateMax(&maxLatency, latencyUs)
+
+			fmt.Printf("\n================================================\n")
+			fmt.Printf("gRPC recv time : %d μs\n", meta.GrpcRecvUs)
+			fmt.Printf("Queue recv time: %d μs\n", queueRecvUs)
+			fmt.Printf("Latency        : %d μs\n", latencyUs)
+			fmt.Printf("================================================\n")
+			fmt.Printf("Event: %s\n", ev.Type)
+			fmt.Printf("  sig  : %s\n", meta.Signature)
+			fmt.Printf("  slot : %d\n", meta.Slot)
+			printPumpSwapFields(ev)
+			fmt.Println()
+		case err, ok := <-sub.Errors:
+			if ok {
+				fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
+			}
+		case <-interrupt:
+			return
+		}
 	}
-	client.Unsubscribe(sub.ID)
+}
+
+func updateMin(target *int64, value int64) {
+	for {
+		cur := atomic.LoadInt64(target)
+		if value >= cur || atomic.CompareAndSwapInt64(target, cur, value) {
+			return
+		}
+	}
+}
+
+func updateMax(target *int64, value int64) {
+	for {
+		cur := atomic.LoadInt64(target)
+		if value <= cur || atomic.CompareAndSwapInt64(target, cur, value) {
+			return
+		}
+	}
+}
+
+func printPumpSwapFields(ev solparser.DexEvent) {
+	switch d := ev.Data.(type) {
+	case *solparser.PumpSwapBuyEvent:
+		fmt.Printf("  pool : %s\n", d.Pool)
+		fmt.Printf("  user : %s\n", d.User)
+	case *solparser.PumpSwapSellEvent:
+		fmt.Printf("  pool : %s\n", d.Pool)
+		fmt.Printf("  user : %s\n", d.User)
+	case *solparser.PumpSwapCreatePoolEvent:
+		fmt.Printf("  pool : %s\n", d.Pool)
+		fmt.Printf("  user : %s\n", d.Creator)
+	}
 }

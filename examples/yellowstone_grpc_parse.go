@@ -135,17 +135,12 @@ func main() {
 
 	voteF := false
 	failedF := false
-	filter := solparser.TransactionFilter{
-		AccountInclude: []string{
-			solparser.PUMPFUN_PROGRAM_ID,
-			solparser.PUMPSWAP_PROGRAM_ID,
-			solparser.GrpcPumpSwapFeesProgramID,
-		},
-		AccountExclude:  []string{},
-		AccountRequired: []string{},
-		Vote:            &voteF,
-		Failed:          &failedF,
-	}
+	filter := solparser.TransactionFilterForProtocols([]solparser.Protocol{
+		solparser.ProtocolPumpFun,
+		solparser.ProtocolPumpSwap,
+	})
+	filter.Vote = &voteF
+	filter.Failed = &failedF
 
 	done := make(chan struct{})
 	callbacks := solparser.SubscribeCallbacks{

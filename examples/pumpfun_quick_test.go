@@ -2,7 +2,7 @@
 
 // PumpFun Quick Test
 //
-// Quick connection test - subscribes to ALL PumpFun events,
+// Quick connection test - subscribes to ALL PumpFun DexEvents,
 // prints the first 10, then exits.
 //
 // Run: GRPC_URL=host:443 GRPC_TOKEN=your_token go run examples/pumpfun_quick_test.go
@@ -15,7 +15,6 @@ import (
 	"time"
 
 	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
-	base58 "github.com/mr-tron/base58"
 )
 
 func main() {
@@ -38,89 +37,57 @@ func main() {
 	}
 	defer client.Disconnect()
 
+	protocols := []solparser.Protocol{solparser.ProtocolPumpFun}
+	txFilter := solparser.TransactionFilterForProtocols(protocols)
 	voteF := false
 	failedF := false
-	filter := solparser.TransactionFilter{
-		AccountInclude: []string{"6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"},
-		Vote:           &voteF,
-		Failed:         &failedF,
-	}
+	txFilter.Vote = &voteF
+	txFilter.Failed = &failedF
 
-	fmt.Println("✅ Subscribing... (no event filter - will show ALL events)")
-	fmt.Println("🎧 Listening for events... (waiting up to 60 seconds)\n")
-
-	eventCount := 0
-	start := time.Now()
-	done := make(chan struct{})
-
-	callbacks := solparser.SubscribeCallbacks{
-		OnUpdate: func(update *solparser.SubscribeUpdate) {
-			if update.Transaction == nil || update.Transaction.Transaction == nil {
-				return
-			}
-			txInfo := update.Transaction.Transaction
-			if txInfo.Meta == nil || len(txInfo.Meta.LogMessages) == 0 {
-				return
-			}
-			logs := txInfo.Meta.LogMessages
-			sigStr := base58.Encode(txInfo.Signature)
-			slot := update.Transaction.Slot
-			events := solparser.ParseLogsOnly(logs, sigStr, slot, nil)
-
-			for _, ev := range events {
-				for key := range ev {
-					eventCount++
-					fmt.Printf("✅ Event #%d: %s (slot=%d)\n", eventCount, key, slot)
-					if eventCount >= 10 {
-						fmt.Printf("\n🎉 Received %d events! Test successful!\n", eventCount)
-						select {
-						case <-done:
-						default:
-							close(done)
-						}
-						return
-					}
-					break
-				}
-			}
-
-			if time.Since(start) > 60*time.Second {
-				if eventCount == 0 {
-					fmt.Println("⏰ Timeout: No events received in 60 seconds.")
-					fmt.Println("   This might indicate:")
-					fmt.Println("   - Network connectivity issues")
-					fmt.Println("   - gRPC endpoint is down")
-					fmt.Println("   - Missing or invalid API token")
-				} else {
-					fmt.Printf("\n✅ Received %d events in 60 seconds\n", eventCount)
-				}
-				select {
-				case <-done:
-				default:
-					close(done)
-				}
-			}
-		},
-		OnError: func(err error) {
-			fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
-		},
-		OnEnd: func() {
-			fmt.Println("Stream ended")
-			select {
-			case <-done:
-			default:
-				close(done)
-			}
-		},
-	}
-
-	sub, err := client.SubscribeTransactions(filter, callbacks)
+	sub, err := client.SubscribeDexEvents([]solparser.TransactionFilter{txFilter}, nil, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Subscribe failed: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("✅ Connected. Waiting for PumpFun events...\n\n")
+	defer sub.Cancel()
 
-	<-done
-	client.Unsubscribe(sub.ID)
+	fmt.Println("✅ Subscribing... (no event filter - will show ALL PumpFun events)")
+	fmt.Println("🎧 Listening for events... (waiting up to 60 seconds)\n")
+
+	eventCount := 0
+	timeout := time.After(60 * time.Second)
+
+	for {
+		select {
+		case ev, ok := <-sub.Events:
+			if !ok {
+				return
+			}
+			if !ev.IsPumpFun() {
+				continue
+			}
+			eventCount++
+			meta := ev.GetMetadata()
+			fmt.Printf("✅ Event #%d: %s (slot=%d)\n", eventCount, ev.Type, meta.Slot)
+			if eventCount >= 10 {
+				fmt.Printf("\n🎉 Received %d events! Test successful!\n", eventCount)
+				return
+			}
+		case err, ok := <-sub.Errors:
+			if ok {
+				fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
+			}
+		case <-timeout:
+			if eventCount == 0 {
+				fmt.Println("⏰ Timeout: No events received in 60 seconds.")
+				fmt.Println("   This might indicate:")
+				fmt.Println("   - Network connectivity issues")
+				fmt.Println("   - gRPC endpoint is down")
+				fmt.Println("   - Missing or invalid API token")
+			} else {
+				fmt.Printf("\n✅ Received %d events in 60 seconds\n", eventCount)
+			}
+			return
+		}
+	}
 }

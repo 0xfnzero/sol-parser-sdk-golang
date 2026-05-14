@@ -2,7 +2,7 @@
 
 // Meteora DAMM V2 gRPC Example
 //
-// Demonstrates subscribing to Meteora DAMM V2 events:
+// Demonstrates subscribing to Meteora DAMM V2 events through SubscribeDexEvents:
 // Swap, AddLiquidity, RemoveLiquidity, CreatePosition, ClosePosition
 //
 // Run: go run examples/meteora_damm_grpc.go  (from github.com/0xfnzero/sol-parser-sdk-golang/)
@@ -16,12 +16,7 @@ import (
 	"syscall"
 
 	solparser "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
-	base58 "github.com/mr-tron/base58"
 )
-
-var meteoraProgramIDs = []string{
-	"Eo7WjKq67rjJQDd1d4dSYkT7LeHVAaFL1K7dajEgrpwz", // Meteora DAMM V2
-}
 
 func main() {
 	endpoint := os.Getenv("GRPC_URL")
@@ -33,7 +28,9 @@ func main() {
 	fmt.Println("🚀 Meteora DAMM V2 gRPC Example")
 	fmt.Println("=================================\n")
 
-	client := solparser.NewYellowstoneGrpc(endpoint)
+	cfg := solparser.DefaultClientConfig()
+	cfg.OrderMode = solparser.OrderModeUnordered
+	client := solparser.NewYellowstoneGrpc(endpoint, cfg)
 	if token != "" {
 		client.SetXToken(token)
 	}
@@ -43,94 +40,78 @@ func main() {
 	}
 	defer client.Disconnect()
 
-	var swapCount, addLiqCount, removeLiqCount, createPosCount, closePosCount int
-
+	protocols := []solparser.Protocol{solparser.ProtocolMeteoraDammV2}
+	txFilter := solparser.TransactionFilterForProtocols(protocols)
 	voteF := false
 	failedF := false
-	filter := solparser.TransactionFilter{
-		AccountInclude:  meteoraProgramIDs,
-		AccountExclude:  []string{},
-		AccountRequired: []string{},
-		Vote:            &voteF,
-		Failed:          &failedF,
-	}
+	txFilter.Vote = &voteF
+	txFilter.Failed = &failedF
+	eventFilter := solparser.EventTypeFilterIncludeOnly([]solparser.EventType{
+		solparser.EventTypeMeteoraDammV2Swap,
+		solparser.EventTypeMeteoraDammV2AddLiquidity,
+		solparser.EventTypeMeteoraDammV2RemoveLiquidity,
+		solparser.EventTypeMeteoraDammV2CreatePosition,
+		solparser.EventTypeMeteoraDammV2ClosePosition,
+	})
 
-	done := make(chan struct{})
-	callbacks := solparser.SubscribeCallbacks{
-		OnUpdate: func(update *solparser.SubscribeUpdate) {
-			if update.Transaction == nil || update.Transaction.Transaction == nil {
-				return
-			}
-			txInfo := update.Transaction.Transaction
-			if txInfo.Meta == nil || len(txInfo.Meta.LogMessages) == 0 {
-				return
-			}
-
-			logs := txInfo.Meta.LogMessages
-			sigStr := base58.Encode(txInfo.Signature)
-			shortSig := sigStr
-			if len(shortSig) > 16 {
-				shortSig = shortSig[:16]
-			}
-			slot := update.Transaction.Slot
-
-			events := solparser.ParseLogsOnly(logs, sigStr, slot, nil)
-			for _, ev := range events {
-				for key, val := range ev {
-					data, _ := val.(map[string]any)
-					switch key {
-					case "MeteoraDammV2Swap":
-						swapCount++
-						fmt.Printf("🔄 SWAP #%d | sig=%s... slot=%d\n", swapCount, shortSig, slot)
-						if v, ok := data["amount_in"]; ok {
-							fmt.Printf("   amount_in=%v amount_out=%v\n", v, data["amount_out"])
-						}
-					case "MeteoraDammV2AddLiquidity":
-						addLiqCount++
-						fmt.Printf("💧 ADD_LIQUIDITY #%d | sig=%s... slot=%d\n", addLiqCount, shortSig, slot)
-					case "MeteoraDammV2RemoveLiquidity":
-						removeLiqCount++
-						fmt.Printf("🔥 REMOVE_LIQUIDITY #%d | sig=%s... slot=%d\n", removeLiqCount, shortSig, slot)
-					case "MeteoraDammV2CreatePosition":
-						createPosCount++
-						fmt.Printf("📌 CREATE_POSITION #%d | sig=%s... slot=%d\n", createPosCount, shortSig, slot)
-					case "MeteoraDammV2ClosePosition":
-						closePosCount++
-						fmt.Printf("❌ CLOSE_POSITION #%d | sig=%s... slot=%d\n", closePosCount, shortSig, slot)
-					}
-					break
-				}
-			}
-		},
-		OnError: func(err error) {
-			fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
-		},
-		OnEnd: func() {
-			fmt.Println("Stream ended")
-			select {
-			case <-done:
-			default:
-				close(done)
-			}
-		},
-	}
-
-	sub, err := client.SubscribeTransactions(filter, callbacks)
+	sub, err := client.SubscribeDexEvents([]solparser.TransactionFilter{txFilter}, nil, eventFilter)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Subscribe failed: %v\n", err)
 		os.Exit(1)
 	}
+	defer sub.Cancel()
+
+	var swapCount, addLiqCount, removeLiqCount, createPosCount, closePosCount int
+
 	fmt.Printf("✅ Subscribed (id=%s)\n", sub.ID)
+	fmt.Printf("📊 Protocols: %v\n", protocols)
 	fmt.Println("🛑 Press Ctrl+C to stop...\n")
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-	select {
-	case <-done:
-	case <-interrupt:
-	}
 
-	client.Unsubscribe(sub.ID)
-	fmt.Printf("\n📊 Stats: Swap=%d AddLiq=%d RemoveLiq=%d CreatePos=%d ClosePos=%d\n",
-		swapCount, addLiqCount, removeLiqCount, createPosCount, closePosCount)
+	for {
+		select {
+		case ev, ok := <-sub.Events:
+			if !ok {
+				return
+			}
+			meta := ev.GetMetadata()
+			switch ev.Type {
+			case solparser.EventTypeMeteoraDammV2Swap:
+				swapCount++
+				fmt.Printf("🔄 SWAP #%d | sig=%s slot=%d\n", swapCount, shortSig(meta.Signature), meta.Slot)
+				if d := ev.AsMeteoraDammV2Swap(); d != nil {
+					fmt.Printf("   amount_in=%d amount_out=%d pool=%s\n", d.AmountIn, d.OutputAmount, d.Pool)
+				}
+			case solparser.EventTypeMeteoraDammV2AddLiquidity:
+				addLiqCount++
+				fmt.Printf("💧 ADD_LIQUIDITY #%d | sig=%s slot=%d\n", addLiqCount, shortSig(meta.Signature), meta.Slot)
+			case solparser.EventTypeMeteoraDammV2RemoveLiquidity:
+				removeLiqCount++
+				fmt.Printf("🔥 REMOVE_LIQUIDITY #%d | sig=%s slot=%d\n", removeLiqCount, shortSig(meta.Signature), meta.Slot)
+			case solparser.EventTypeMeteoraDammV2CreatePosition:
+				createPosCount++
+				fmt.Printf("📌 CREATE_POSITION #%d | sig=%s slot=%d\n", createPosCount, shortSig(meta.Signature), meta.Slot)
+			case solparser.EventTypeMeteoraDammV2ClosePosition:
+				closePosCount++
+				fmt.Printf("❌ CLOSE_POSITION #%d | sig=%s slot=%d\n", closePosCount, shortSig(meta.Signature), meta.Slot)
+			}
+		case err, ok := <-sub.Errors:
+			if ok {
+				fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
+			}
+		case <-interrupt:
+			fmt.Printf("\n📊 Stats: Swap=%d AddLiq=%d RemoveLiq=%d CreatePos=%d ClosePos=%d\n",
+				swapCount, addLiqCount, removeLiqCount, createPosCount, closePosCount)
+			return
+		}
+	}
+}
+
+func shortSig(sig string) string {
+	if len(sig) <= 16 {
+		return sig
+	}
+	return sig[:16] + "..."
 }
