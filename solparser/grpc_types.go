@@ -115,45 +115,50 @@ func AccountFilterMemcmp(offset uint64, bytes []byte) *SubscribeRequestFilterAcc
 type EventType string
 
 const (
-	EventTypeBlockMeta                           EventType = "BlockMeta"
-	EventTypeBonkTrade                           EventType = "BonkTrade"
-	EventTypeBonkPoolCreate                      EventType = "BonkPoolCreate"
-	EventTypeBonkMigrateAmm                      EventType = "BonkMigrateAmm"
-	EventTypePumpFunTrade                        EventType = "PumpFunTrade"
-	EventTypePumpFunBuy                          EventType = "PumpFunBuy"
-	EventTypePumpFunSell                         EventType = "PumpFunSell"
-	EventTypePumpFunBuyExactSolIn                EventType = "PumpFunBuyExactSolIn"
-	EventTypePumpFunCreate                       EventType = "PumpFunCreate"
-	EventTypePumpFunCreateV2                     EventType = "PumpFunCreateV2"
-	EventTypePumpFunComplete                     EventType = "PumpFunComplete"
-	EventTypePumpFunMigrate                      EventType = "PumpFunMigrate"
-	EventTypePumpFeesCreateFeeSharingConfig      EventType = "PumpFeesCreateFeeSharingConfig"
-	EventTypePumpFeesInitializeFeeConfig         EventType = "PumpFeesInitializeFeeConfig"
-	EventTypePumpFeesResetFeeSharingConfig       EventType = "PumpFeesResetFeeSharingConfig"
-	EventTypePumpFeesRevokeFeeSharingAuthority   EventType = "PumpFeesRevokeFeeSharingAuthority"
-	EventTypePumpFeesTransferFeeSharingAuthority EventType = "PumpFeesTransferFeeSharingAuthority"
-	EventTypePumpFeesUpdateAdmin                 EventType = "PumpFeesUpdateAdmin"
-	EventTypePumpFeesUpdateFeeConfig             EventType = "PumpFeesUpdateFeeConfig"
-	EventTypePumpFeesUpdateFeeShares             EventType = "PumpFeesUpdateFeeShares"
-	EventTypePumpFeesUpsertFeeTiers              EventType = "PumpFeesUpsertFeeTiers"
-	EventTypePumpFunMigrateBondingCurveCreator   EventType = "PumpFunMigrateBondingCurveCreator"
-	EventTypePumpSwapBuy                         EventType = "PumpSwapBuy"
-	EventTypePumpSwapSell                        EventType = "PumpSwapSell"
-	EventTypePumpSwapCreatePool                  EventType = "PumpSwapCreatePool"
-	EventTypePumpSwapLiquidityAdded              EventType = "PumpSwapLiquidityAdded"
-	EventTypePumpSwapLiquidityRemoved            EventType = "PumpSwapLiquidityRemoved"
-	EventTypeMeteoraDammV2Swap                   EventType = "MeteoraDammV2Swap"
-	EventTypeMeteoraDammV2AddLiquidity           EventType = "MeteoraDammV2AddLiquidity"
-	EventTypeMeteoraDammV2RemoveLiquidity        EventType = "MeteoraDammV2RemoveLiquidity"
-	EventTypeMeteoraDammV2CreatePosition         EventType = "MeteoraDammV2CreatePosition"
-	EventTypeMeteoraDammV2ClosePosition          EventType = "MeteoraDammV2ClosePosition"
-	EventTypeMeteoraDammV2InitializePool         EventType = "MeteoraDammV2InitializePool"
-	EventTypeTokenAccount                        EventType = "TokenAccount"
-	EventTypeTokenInfo                           EventType = "TokenInfo"
-	EventTypeNonceAccount                        EventType = "NonceAccount"
-	EventTypeAccountPumpFunGlobal                EventType = "AccountPumpFunGlobal"
-	EventTypeAccountPumpSwapGlobalConfig         EventType = "AccountPumpSwapGlobalConfig"
-	EventTypeAccountPumpSwapPool                 EventType = "AccountPumpSwapPool"
+	EventTypeBlockMeta                             EventType = "BlockMeta"
+	EventTypeBonkTrade                             EventType = "BonkTrade"
+	EventTypeBonkPoolCreate                        EventType = "BonkPoolCreate"
+	EventTypeBonkMigrateAmm                        EventType = "BonkMigrateAmm"
+	EventTypePumpFunTrade                          EventType = "PumpFunTrade"
+	EventTypePumpFunBuy                            EventType = "PumpFunBuy"
+	EventTypePumpFunSell                           EventType = "PumpFunSell"
+	EventTypePumpFunBuyExactSolIn                  EventType = "PumpFunBuyExactSolIn"
+	EventTypePumpFunCreate                         EventType = "PumpFunCreate"
+	EventTypePumpFunCreateV2                       EventType = "PumpFunCreateV2"
+	EventTypePumpFunComplete                       EventType = "PumpFunComplete"
+	EventTypePumpFunMigrate                        EventType = "PumpFunMigrate"
+	EventTypePumpFeesCreateFeeSharingConfig        EventType = "PumpFeesCreateFeeSharingConfig"
+	EventTypePumpFeesInitializeFeeConfig           EventType = "PumpFeesInitializeFeeConfig"
+	EventTypePumpFeesResetFeeSharingConfig         EventType = "PumpFeesResetFeeSharingConfig"
+	EventTypePumpFeesRevokeFeeSharingAuthority     EventType = "PumpFeesRevokeFeeSharingAuthority"
+	EventTypePumpFeesTransferFeeSharingAuthority   EventType = "PumpFeesTransferFeeSharingAuthority"
+	EventTypePumpFeesUpdateAdmin                   EventType = "PumpFeesUpdateAdmin"
+	EventTypePumpFeesUpdateFeeConfig               EventType = "PumpFeesUpdateFeeConfig"
+	EventTypePumpFeesUpdateFeeShares               EventType = "PumpFeesUpdateFeeShares"
+	EventTypePumpFeesUpsertFeeTiers                EventType = "PumpFeesUpsertFeeTiers"
+	EventTypePumpFunMigrateBondingCurveCreator     EventType = "PumpFunMigrateBondingCurveCreator"
+	EventTypePumpSwapBuy                           EventType = "PumpSwapBuy"
+	EventTypePumpSwapSell                          EventType = "PumpSwapSell"
+	EventTypePumpSwapCreatePool                    EventType = "PumpSwapCreatePool"
+	EventTypePumpSwapLiquidityAdded                EventType = "PumpSwapLiquidityAdded"
+	EventTypePumpSwapLiquidityRemoved              EventType = "PumpSwapLiquidityRemoved"
+	EventTypeMeteoraDammV2Swap                     EventType = "MeteoraDammV2Swap"
+	EventTypeMeteoraDammV2AddLiquidity             EventType = "MeteoraDammV2AddLiquidity"
+	EventTypeMeteoraDammV2RemoveLiquidity          EventType = "MeteoraDammV2RemoveLiquidity"
+	EventTypeMeteoraDammV2CreatePosition           EventType = "MeteoraDammV2CreatePosition"
+	EventTypeMeteoraDammV2ClosePosition            EventType = "MeteoraDammV2ClosePosition"
+	EventTypeMeteoraDammV2InitializePool           EventType = "MeteoraDammV2InitializePool"
+	EventTypeTokenAccount                          EventType = "TokenAccount"
+	EventTypeTokenInfo                             EventType = "TokenInfo"
+	EventTypeNonceAccount                          EventType = "NonceAccount"
+	EventTypeAccountPumpFunGlobal                  EventType = "AccountPumpFunGlobal"
+	EventTypeAccountPumpFunBondingCurve            EventType = "AccountPumpFunBondingCurve"
+	EventTypeAccountPumpFunFeeConfig               EventType = "AccountPumpFunFeeConfig"
+	EventTypeAccountPumpFunSharingConfig           EventType = "AccountPumpFunSharingConfig"
+	EventTypeAccountPumpFunGlobalVolumeAccumulator EventType = "AccountPumpFunGlobalVolumeAccumulator"
+	EventTypeAccountPumpFunUserVolumeAccumulator   EventType = "AccountPumpFunUserVolumeAccumulator"
+	EventTypeAccountPumpSwapGlobalConfig           EventType = "AccountPumpSwapGlobalConfig"
+	EventTypeAccountPumpSwapPool                   EventType = "AccountPumpSwapPool"
 
 	// Raydium CLMM
 	EventTypeRaydiumClmmSwap                        EventType = "RaydiumClmmSwap"
@@ -309,6 +314,11 @@ func EventTypeFilterIncludesPumpfun(filter EventTypeFilter) bool {
 		EventTypePumpFeesUpsertFeeTiers,
 		EventTypePumpFunMigrateBondingCurveCreator,
 		EventTypeAccountPumpFunGlobal,
+		EventTypeAccountPumpFunBondingCurve,
+		EventTypeAccountPumpFunFeeConfig,
+		EventTypeAccountPumpFunSharingConfig,
+		EventTypeAccountPumpFunGlobalVolumeAccumulator,
+		EventTypeAccountPumpFunUserVolumeAccumulator,
 	}
 	return eventTypeFilterIncludesAny(filter, pumpfunTypes)
 }
@@ -366,6 +376,11 @@ func EventTypeFilterAllowsInstructionParsing(includeOnly []EventType) bool {
 		EventTypePumpFunMigrate,
 		EventTypePumpFunMigrateBondingCurveCreator,
 		EventTypeAccountPumpFunGlobal,
+		EventTypeAccountPumpFunBondingCurve,
+		EventTypeAccountPumpFunFeeConfig,
+		EventTypeAccountPumpFunSharingConfig,
+		EventTypeAccountPumpFunGlobalVolumeAccumulator,
+		EventTypeAccountPumpFunUserVolumeAccumulator,
 		EventTypePumpFeesCreateFeeSharingConfig,
 		EventTypePumpFeesInitializeFeeConfig,
 		EventTypePumpFeesResetFeeSharingConfig,
@@ -835,6 +850,11 @@ func AllEventTypes() []EventType {
 		EventTypeTokenInfo,
 		EventTypeNonceAccount,
 		EventTypeAccountPumpFunGlobal,
+		EventTypeAccountPumpFunBondingCurve,
+		EventTypeAccountPumpFunFeeConfig,
+		EventTypeAccountPumpFunSharingConfig,
+		EventTypeAccountPumpFunGlobalVolumeAccumulator,
+		EventTypeAccountPumpFunUserVolumeAccumulator,
 		EventTypeAccountPumpSwapGlobalConfig,
 		EventTypeAccountPumpSwapPool,
 	}

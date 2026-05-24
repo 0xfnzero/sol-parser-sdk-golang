@@ -265,6 +265,17 @@ func enrichPumpSwapBuyFromAccounts(ev *PumpSwapBuyEvent, accounts []string) {
 		set(&ev.CoinCreatorVaultAta, 17)
 		set(&ev.CoinCreatorVaultAuthority, 18)
 	}
+	if len(accounts) >= 27 {
+		set(&ev.PoolV2, 24)
+		set(&ev.FeeRecipient, 25)
+		set(&ev.FeeRecipientQuoteTokenAccount, 26)
+	} else if len(accounts) >= 26 {
+		set(&ev.PoolV2, 23)
+		set(&ev.FeeRecipient, 24)
+		set(&ev.FeeRecipientQuoteTokenAccount, 25)
+	} else if len(accounts) >= 24 {
+		set(&ev.PoolV2, 23)
+	}
 }
 
 func enrichPumpSwapSellFromAccounts(ev *PumpSwapSellEvent, accounts []string) {
@@ -289,5 +300,16 @@ func enrichPumpSwapSellFromAccounts(ev *PumpSwapSellEvent, accounts []string) {
 	if len(accounts) >= 19 {
 		set(&ev.CoinCreatorVaultAta, 17)
 		set(&ev.CoinCreatorVaultAuthority, 18)
+	}
+	if len(accounts) >= 26 {
+		set(&ev.PoolV2, 23)
+		set(&ev.FeeRecipient, 24)
+		set(&ev.FeeRecipientQuoteTokenAccount, 25)
+	} else if len(accounts) >= 24 {
+		set(&ev.PoolV2, 21)
+		set(&ev.FeeRecipient, 22)
+		set(&ev.FeeRecipientQuoteTokenAccount, 23)
+	} else if len(accounts) >= 22 {
+		set(&ev.PoolV2, 21)
 	}
 }

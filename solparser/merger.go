@@ -183,8 +183,29 @@ func mergePumpfunTrade(base, inner *PumpFunTradeEvent) {
 	base.MayhemMode = inner.MayhemMode
 	base.CashbackFeeBasisPoints = inner.CashbackFeeBasisPoints
 	base.Cashback = inner.Cashback
+	putUint64IfNonzero(&base.BuybackFeeBasisPoints, inner.BuybackFeeBasisPoints)
+	putUint64IfNonzero(&base.BuybackFee, inner.BuybackFee)
+	if len(inner.Shareholders) != 0 {
+		base.Shareholders = inner.Shareholders
+	}
+	putStringIfSet(&base.QuoteMint, inner.QuoteMint)
+	putUint64IfNonzero(&base.QuoteAmount, inner.QuoteAmount)
+	putUint64IfNonzero(&base.VirtualQuoteReserves, inner.VirtualQuoteReserves)
+	putUint64IfNonzero(&base.RealQuoteReserves, inner.RealQuoteReserves)
 	base.IsCashbackCoin = inner.IsCashbackCoin
 	supplementPumpfunTradeAccountFields(base, inner)
+}
+
+func putStringIfSet(dst *string, src string) {
+	if src != "" && src != zeroPubkey {
+		*dst = src
+	}
+}
+
+func putUint64IfNonzero(dst *uint64, src uint64) {
+	if src != 0 {
+		*dst = src
+	}
 }
 
 // supplementPumpfunTradeAccountFields 合并外层/内层时补全 bonding_curve 等（内层常带完整指令账户）。
@@ -195,9 +216,30 @@ func supplementPumpfunTradeAccountFields(base, inner *PumpFunTradeEvent) {
 		}
 	}
 	pick(&base.BondingCurve, inner.BondingCurve)
+	pick(&base.BondingCurveV2, inner.BondingCurveV2)
 	pick(&base.AssociatedBondingCurve, inner.AssociatedBondingCurve)
+	pick(&base.AssociatedUser, inner.AssociatedUser)
+	pick(&base.SystemProgram, inner.SystemProgram)
 	pick(&base.TokenProgram, inner.TokenProgram)
+	pick(&base.QuoteTokenProgram, inner.QuoteTokenProgram)
+	pick(&base.AssociatedTokenProgram, inner.AssociatedTokenProgram)
 	pick(&base.CreatorVault, inner.CreatorVault)
+	pick(&base.Global, inner.Global)
+	pick(&base.QuoteMint, inner.QuoteMint)
+	pick(&base.AssociatedQuoteFeeRecipient, inner.AssociatedQuoteFeeRecipient)
+	pick(&base.BuybackFeeRecipient, inner.BuybackFeeRecipient)
+	pick(&base.AssociatedQuoteBuybackFeeRecipient, inner.AssociatedQuoteBuybackFeeRecipient)
+	pick(&base.AssociatedQuoteBondingCurve, inner.AssociatedQuoteBondingCurve)
+	pick(&base.AssociatedQuoteUser, inner.AssociatedQuoteUser)
+	pick(&base.AssociatedCreatorVault, inner.AssociatedCreatorVault)
+	pick(&base.SharingConfig, inner.SharingConfig)
+	pick(&base.EventAuthority, inner.EventAuthority)
+	pick(&base.Program, inner.Program)
+	pick(&base.GlobalVolumeAccumulator, inner.GlobalVolumeAccumulator)
+	pick(&base.UserVolumeAccumulator, inner.UserVolumeAccumulator)
+	pick(&base.AssociatedUserVolumeAccumulator, inner.AssociatedUserVolumeAccumulator)
+	pick(&base.FeeConfig, inner.FeeConfig)
+	pick(&base.FeeProgram, inner.FeeProgram)
 }
 
 func mergePumpfunCreate(base, inner *PumpFunCreateEvent) {

@@ -96,6 +96,55 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	}
 	if o+8 <= len(data) {
 		cb, _ = readU64LE(data, o)
+		o += 8
+	}
+	var buybackFeeBps, buybackFee, quoteAmount, virtualQuoteReserves, realQuoteReserves uint64
+	if o+8 <= len(data) {
+		buybackFeeBps, _ = readU64LE(data, o)
+		o += 8
+	}
+	if o+8 <= len(data) {
+		buybackFee, _ = readU64LE(data, o)
+		o += 8
+	}
+	shareholders := []PumpFeesShareholder{}
+	if o+4 <= len(data) {
+		n32, _ := readU32LE(data, o)
+		n := int(n32)
+		if n > maxPumpFeesShareholders || o+4+n*34 > len(data) {
+			return DexEvent{}
+		}
+		o += 4
+		shareholders = make([]PumpFeesShareholder, 0, n)
+		for i := 0; i < n; i++ {
+			address, ok := readPubkey(data, o)
+			if !ok {
+				return DexEvent{}
+			}
+			o += 32
+			shareBps, ok := readU16LE(data, o)
+			if !ok {
+				return DexEvent{}
+			}
+			o += 2
+			shareholders = append(shareholders, PumpFeesShareholder{Address: address, ShareBps: shareBps})
+		}
+	}
+	quoteMint := zeroPubkey
+	if o+32 <= len(data) {
+		quoteMint, _ = readPubkey(data, o)
+		o += 32
+	}
+	if o+8 <= len(data) {
+		quoteAmount, _ = readU64LE(data, o)
+		o += 8
+	}
+	if o+8 <= len(data) {
+		virtualQuoteReserves, _ = readU64LE(data, o)
+		o += 8
+	}
+	if o+8 <= len(data) {
+		realQuoteReserves, _ = readU64LE(data, o)
 	}
 
 	ev := &PumpFunTradeEvent{
@@ -126,6 +175,13 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 		MayhemMode:             mm,
 		CashbackFeeBasisPoints: cbBps,
 		Cashback:               cb,
+		BuybackFeeBasisPoints:  buybackFeeBps,
+		BuybackFee:             buybackFee,
+		Shareholders:           shareholders,
+		QuoteMint:              quoteMint,
+		QuoteAmount:            quoteAmount,
+		VirtualQuoteReserves:   virtualQuoteReserves,
+		RealQuoteReserves:      realQuoteReserves,
 		IsCashbackCoin:         cbBps > 0,
 		BondingCurve:           "",
 		AssociatedBondingCurve: "",
@@ -138,7 +194,7 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 		return DexEvent{Type: EventTypePumpFunBuy, Data: ev}
 	case "sell", "sell_v2":
 		return DexEvent{Type: EventTypePumpFunSell, Data: ev}
-	case "buy_exact_sol_in", "buy_exact_quote_in_v2":
+	case "buy_exact_sol_in", "buy_exact_quote_in", "buy_exact_quote_in_v2":
 		return DexEvent{Type: EventTypePumpFunBuyExactSolIn, Data: ev}
 	default:
 		return DexEvent{Type: EventTypePumpFunTrade, Data: ev}
@@ -301,22 +357,89 @@ func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
 			*dst = s
 		}
 	}
-	if ev.IxName == "buy_v2" || ev.IxName == "sell_v2" || ev.IxName == "buy_exact_quote_in_v2" {
+	isV2 := ev.IxName == "buy_v2" ||
+		ev.IxName == "sell_v2" ||
+		ev.IxName == "buy_exact_quote_in_v2" ||
+		(ev.IxName == "buy_exact_quote_in" &&
+			ev.Mint != "" && ev.Mint != zeroPubkey &&
+			getAccountSafe(accounts, 1) == ev.Mint)
+	if isV2 {
+		set(&ev.Global, 0)
+		set(&ev.QuoteMint, 2)
+		set(&ev.FeeRecipient, 6)
 		set(&ev.BondingCurve, 10)
 		set(&ev.AssociatedBondingCurve, 11)
 		set(&ev.User, 13)
 		set(&ev.TokenProgram, 3)
+		set(&ev.QuoteTokenProgram, 4)
+		set(&ev.AssociatedTokenProgram, 5)
 		set(&ev.CreatorVault, 16)
+		set(&ev.AssociatedQuoteFeeRecipient, 7)
+		set(&ev.BuybackFeeRecipient, 8)
+		set(&ev.AssociatedQuoteBuybackFeeRecipient, 9)
+		set(&ev.AssociatedQuoteBondingCurve, 12)
+		set(&ev.AssociatedUser, 14)
+		set(&ev.AssociatedQuoteUser, 15)
+		set(&ev.AssociatedCreatorVault, 17)
+		set(&ev.SharingConfig, 18)
+		if ev.IxName == "sell_v2" {
+			set(&ev.UserVolumeAccumulator, 19)
+			set(&ev.AssociatedUserVolumeAccumulator, 20)
+			set(&ev.FeeConfig, 21)
+			set(&ev.FeeProgram, 22)
+			set(&ev.SystemProgram, 23)
+			set(&ev.EventAuthority, 24)
+			set(&ev.Program, 25)
+		} else {
+			set(&ev.GlobalVolumeAccumulator, 19)
+			set(&ev.UserVolumeAccumulator, 20)
+			set(&ev.AssociatedUserVolumeAccumulator, 21)
+			set(&ev.FeeConfig, 22)
+			set(&ev.FeeProgram, 23)
+			set(&ev.SystemProgram, 24)
+			set(&ev.EventAuthority, 25)
+			set(&ev.Program, 26)
+		}
 		return
 	}
+	set(&ev.Global, 0)
+	set(&ev.FeeRecipient, 1)
 	set(&ev.BondingCurve, 3)
 	set(&ev.AssociatedBondingCurve, 4)
+	set(&ev.AssociatedUser, 5)
+	set(&ev.User, 6)
+	set(&ev.SystemProgram, 7)
 	if ev.IsBuy {
 		set(&ev.TokenProgram, 8)
 		set(&ev.CreatorVault, 9)
+		set(&ev.EventAuthority, 10)
+		set(&ev.Program, 11)
+		set(&ev.GlobalVolumeAccumulator, 12)
+		set(&ev.UserVolumeAccumulator, 13)
+		set(&ev.FeeConfig, 14)
+		set(&ev.FeeProgram, 15)
+		set(&ev.BondingCurveV2, 16)
+		set(&ev.BuybackFeeRecipient, 17)
+		set(&ev.Account, 17)
 	} else {
 		set(&ev.CreatorVault, 8)
 		set(&ev.TokenProgram, 9)
+		set(&ev.EventAuthority, 10)
+		set(&ev.Program, 11)
+		set(&ev.FeeConfig, 12)
+		set(&ev.FeeProgram, 13)
+		if len(accounts) >= 17 {
+			set(&ev.UserVolumeAccumulator, 14)
+			set(&ev.BondingCurveV2, 15)
+			set(&ev.BuybackFeeRecipient, 16)
+			set(&ev.Account, 16)
+		} else if ev.IsCashbackCoin {
+			set(&ev.UserVolumeAccumulator, 14)
+			set(&ev.BondingCurveV2, 15)
+		} else {
+			set(&ev.BondingCurveV2, 14)
+			set(&ev.BuybackFeeRecipient, 15)
+			set(&ev.Account, 15)
+		}
 	}
-	set(&ev.Account, 16)
 }

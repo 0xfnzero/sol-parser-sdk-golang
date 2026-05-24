@@ -41,6 +41,16 @@ func (e DexEvent) GetMetadata() EventMetadata {
 		return d.Metadata
 	case *PumpFunGlobalAccountEvent:
 		return d.Metadata
+	case *PumpFunBondingCurveAccountEvent:
+		return d.Metadata
+	case *PumpFunFeeConfigAccountEvent:
+		return d.Metadata
+	case *PumpFunSharingConfigAccountEvent:
+		return d.Metadata
+	case *PumpFunGlobalVolumeAccumulatorAccountEvent:
+		return d.Metadata
+	case *PumpFunUserVolumeAccumulatorAccountEvent:
+		return d.Metadata
 	case *PumpSwapBuyEvent:
 		return d.Metadata
 	case *PumpSwapSellEvent:
@@ -179,6 +189,16 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 	case *PumpFunMigrateBondingCurveCreatorEvent:
 		d.Metadata.RecentBlockhash = h
 	case *PumpFunGlobalAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunBondingCurveAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunFeeConfigAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunSharingConfigAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunGlobalVolumeAccumulatorAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *PumpFunUserVolumeAccumulatorAccountEvent:
 		d.Metadata.RecentBlockhash = h
 	case *PumpSwapBuyEvent:
 		d.Metadata.RecentBlockhash = h
@@ -333,6 +353,14 @@ func (e DexEvent) AsPumpFunGlobalAccount() *PumpFunGlobalAccountEvent {
 	return nil
 }
 
+// AsPumpFunBondingCurveAccount 返回 PumpFunBondingCurveAccountEvent
+func (e DexEvent) AsPumpFunBondingCurveAccount() *PumpFunBondingCurveAccountEvent {
+	if p, ok := e.Data.(*PumpFunBondingCurveAccountEvent); ok {
+		return p
+	}
+	return nil
+}
+
 // AsPumpFeesUpdateFeeShares 返回 PumpFeesUpdateFeeSharesEvent
 func (e DexEvent) AsPumpFeesUpdateFeeShares() *PumpFeesUpdateFeeSharesEvent {
 	if p, ok := e.Data.(*PumpFeesUpdateFeeSharesEvent); ok {
@@ -419,7 +447,9 @@ func (e DexEvent) IsPumpFun() bool {
 	case EventTypePumpFunTrade, EventTypePumpFunBuy, EventTypePumpFunSell,
 		EventTypePumpFunBuyExactSolIn, EventTypePumpFunCreate, EventTypePumpFunMigrate,
 		EventTypePumpFunCreateV2, EventTypePumpFunMigrateBondingCurveCreator,
-		EventTypeAccountPumpFunGlobal,
+		EventTypeAccountPumpFunGlobal, EventTypeAccountPumpFunBondingCurve,
+		EventTypeAccountPumpFunFeeConfig, EventTypeAccountPumpFunSharingConfig,
+		EventTypeAccountPumpFunGlobalVolumeAccumulator, EventTypeAccountPumpFunUserVolumeAccumulator,
 		EventTypePumpFeesCreateFeeSharingConfig, EventTypePumpFeesInitializeFeeConfig,
 		EventTypePumpFeesResetFeeSharingConfig, EventTypePumpFeesRevokeFeeSharingAuthority,
 		EventTypePumpFeesTransferFeeSharingAuthority, EventTypePumpFeesUpdateAdmin,

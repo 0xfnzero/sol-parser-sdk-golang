@@ -52,7 +52,7 @@ go mod tidy
 **Use in another module**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.4.4
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.4.5
 ```
 
 (Or use `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` for local development.)

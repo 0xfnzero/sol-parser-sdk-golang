@@ -139,6 +139,9 @@ func supplementPumpSwapBuy(dst, src *PumpSwapBuyEvent) {
 	supplementString(&dst.CoinCreatorVaultAuthority, src.CoinCreatorVaultAuthority)
 	supplementString(&dst.BaseTokenProgram, src.BaseTokenProgram)
 	supplementString(&dst.QuoteTokenProgram, src.QuoteTokenProgram)
+	supplementString(&dst.PoolV2, src.PoolV2)
+	supplementString(&dst.FeeRecipient, src.FeeRecipient)
+	supplementString(&dst.FeeRecipientQuoteTokenAccount, src.FeeRecipientQuoteTokenAccount)
 
 	supplementI64(&dst.Timestamp, src.Timestamp)
 	supplementU64(&dst.BaseAmountOut, src.BaseAmountOut)
@@ -190,6 +193,9 @@ func supplementPumpSwapSell(dst, src *PumpSwapSellEvent) {
 	supplementString(&dst.CoinCreatorVaultAuthority, src.CoinCreatorVaultAuthority)
 	supplementString(&dst.BaseTokenProgram, src.BaseTokenProgram)
 	supplementString(&dst.QuoteTokenProgram, src.QuoteTokenProgram)
+	supplementString(&dst.PoolV2, src.PoolV2)
+	supplementString(&dst.FeeRecipient, src.FeeRecipient)
+	supplementString(&dst.FeeRecipientQuoteTokenAccount, src.FeeRecipientQuoteTokenAccount)
 
 	supplementI64(&dst.Timestamp, src.Timestamp)
 	supplementU64(&dst.BaseAmountIn, src.BaseAmountIn)

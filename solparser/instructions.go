@@ -10,6 +10,9 @@ import (
 var (
 	instrPumpOuterCreate            = disc8(24, 30, 200, 40, 5, 28, 7, 119)
 	instrPumpOuterCreateV2          = disc8(214, 144, 76, 236, 95, 139, 49, 180)
+	instrPumpOuterBuy               = disc8(102, 6, 61, 18, 1, 218, 235, 234)
+	instrPumpOuterSell              = disc8(51, 230, 133, 164, 1, 127, 131, 173)
+	instrPumpOuterBuyExactSolIn     = disc8(56, 252, 116, 8, 158, 223, 205, 95)
 	instrPumpOuterBuyV2             = disc8(184, 23, 238, 97, 103, 197, 211, 61)
 	instrPumpOuterSellV2            = disc8(93, 246, 130, 60, 231, 233, 64, 178)
 	instrPumpOuterBuyExactQuoteInV2 = disc8(194, 171, 28, 70, 104, 77, 91, 47)
@@ -259,7 +262,8 @@ func makeInstrMetadata(signature string, slot uint64, txIndex uint32, blockTimeU
 	}
 }
 
-// ParsePumpfunInstruction 与 Rust `pump::parse_instruction` 一致：仅解析外层 Create、CreateV2，以及内层 CPI Migrate；不解析 Buy/Sell 外层指令（与 Rust 相同，成交以日志为准）。
+// ParsePumpfunInstruction 与 Rust `pump::parse_instruction` 一致：解析外层 Create/CreateV2、
+// legacy/v2 trade 指令，以及内层 CPI Migrate。
 func ParsePumpfunInstruction(
 	data []byte,
 	accounts []string,
@@ -279,6 +283,15 @@ func ParsePumpfunInstruction(
 	}
 	if outer == instrPumpOuterCreate {
 		return parsePumpFunCreateInstr(data, accounts, meta)
+	}
+	if outer == instrPumpOuterBuy {
+		return parsePumpFunLegacyBuyInstr("buy", data[8:], accounts, meta)
+	}
+	if outer == instrPumpOuterBuyExactSolIn {
+		return parsePumpFunLegacyBuyInstr("buy_exact_sol_in", data[8:], accounts, meta)
+	}
+	if outer == instrPumpOuterSell {
+		return parsePumpFunLegacySellInstr(data[8:], accounts, meta)
 	}
 	if outer == instrPumpOuterBuyV2 {
 		return parsePumpFunTradeV2Instr("buy_v2", data[8:], accounts, meta)
@@ -305,6 +318,146 @@ func readPumpFunV2Amount(data []byte, offset int) uint64 {
 	return binary.LittleEndian.Uint64(data[offset : offset+8])
 }
 
+func mapBoolIndex(cond bool, a, b int) int {
+	if cond {
+		return a
+	}
+	return b
+}
+
+func mapBoolString(cond bool, a, b string) string {
+	if cond {
+		return a
+	}
+	return b
+}
+
+func parsePumpFunLegacyBuyInstr(ixName string, data []byte, accounts []string, meta EventMetadata) DexEvent {
+	const minAcc = 16
+	if len(accounts) < minAcc {
+		return DexEvent{}
+	}
+	first := readPumpFunV2Amount(data, 0)
+	second := readPumpFunV2Amount(data, 8)
+	exactSolIn := ixName == "buy_exact_sol_in"
+	tokenAmount := first
+	solAmount := second
+	amount := first
+	maxSolCost := second
+	var spendableSolIn uint64
+	var minTokensOut uint64
+	if exactSolIn {
+		tokenAmount = second
+		solAmount = first
+		amount = second
+		maxSolCost = first
+		spendableSolIn = first
+		minTokensOut = second
+	}
+	trackVolume := false
+	if b, ok := readU8(data, 16); ok {
+		trackVolume = b != 0
+	}
+	buybackFeeRecipient := getAccountSafe(accounts, 17)
+	account := ""
+	if buybackFeeRecipient != "" && buybackFeeRecipient != zeroPubkey {
+		account = buybackFeeRecipient
+	}
+	eventType := EventTypePumpFunBuy
+	if exactSolIn {
+		eventType = EventTypePumpFunBuyExactSolIn
+	}
+	return DexEvent{
+		Type: eventType,
+		Data: &PumpFunTradeEvent{
+			Metadata:                meta,
+			Mint:                    getAccountSafe(accounts, 2),
+			IsBuy:                   true,
+			Global:                  getAccountSafe(accounts, 0),
+			FeeRecipient:            getAccountSafe(accounts, 1),
+			BondingCurve:            getAccountSafe(accounts, 3),
+			BondingCurveV2:          getAccountSafe(accounts, 16),
+			AssociatedBondingCurve:  getAccountSafe(accounts, 4),
+			AssociatedUser:          getAccountSafe(accounts, 5),
+			User:                    getAccountSafe(accounts, 6),
+			SystemProgram:           getAccountSafe(accounts, 7),
+			TokenProgram:            getAccountSafe(accounts, 8),
+			CreatorVault:            getAccountSafe(accounts, 9),
+			EventAuthority:          getAccountSafe(accounts, 10),
+			Program:                 getAccountSafe(accounts, 11),
+			GlobalVolumeAccumulator: getAccountSafe(accounts, 12),
+			UserVolumeAccumulator:   getAccountSafe(accounts, 13),
+			FeeConfig:               getAccountSafe(accounts, 14),
+			FeeProgram:              getAccountSafe(accounts, 15),
+			BuybackFeeRecipient:     buybackFeeRecipient,
+			Account:                 account,
+			SolAmount:               solAmount,
+			TokenAmount:             tokenAmount,
+			Amount:                  amount,
+			MaxSolCost:              maxSolCost,
+			SpendableSolIn:          spendableSolIn,
+			MinTokensOut:            minTokensOut,
+			TrackVolume:             trackVolume,
+			IxName:                  ixName,
+		},
+	}
+}
+
+func parsePumpFunLegacySellInstr(data []byte, accounts []string, meta EventMetadata) DexEvent {
+	const minAcc = 14
+	if len(accounts) < minAcc {
+		return DexEvent{}
+	}
+	amount := readPumpFunV2Amount(data, 0)
+	minSolOutput := readPumpFunV2Amount(data, 8)
+	legacyUserVolumeAccumulator := zeroPubkey
+	legacyBondingCurveV2 := getAccountSafe(accounts, 14)
+	legacyBuybackFeeRecipient := zeroPubkey
+	if len(accounts) >= 17 {
+		legacyUserVolumeAccumulator = getAccountSafe(accounts, 14)
+		legacyBondingCurveV2 = getAccountSafe(accounts, 15)
+		legacyBuybackFeeRecipient = getAccountSafe(accounts, 16)
+	} else if len(accounts) >= 16 {
+		legacyBondingCurveV2 = getAccountSafe(accounts, 14)
+		legacyBuybackFeeRecipient = getAccountSafe(accounts, 15)
+	}
+	account := ""
+	if legacyBuybackFeeRecipient != "" && legacyBuybackFeeRecipient != zeroPubkey {
+		account = legacyBuybackFeeRecipient
+	}
+	return DexEvent{
+		Type: EventTypePumpFunSell,
+		Data: &PumpFunTradeEvent{
+			Metadata:                meta,
+			Mint:                    getAccountSafe(accounts, 2),
+			IsBuy:                   false,
+			Global:                  getAccountSafe(accounts, 0),
+			FeeRecipient:            getAccountSafe(accounts, 1),
+			BondingCurve:            getAccountSafe(accounts, 3),
+			BondingCurveV2:          legacyBondingCurveV2,
+			AssociatedBondingCurve:  getAccountSafe(accounts, 4),
+			AssociatedUser:          getAccountSafe(accounts, 5),
+			User:                    getAccountSafe(accounts, 6),
+			SystemProgram:           getAccountSafe(accounts, 7),
+			CreatorVault:            getAccountSafe(accounts, 8),
+			TokenProgram:            getAccountSafe(accounts, 9),
+			EventAuthority:          getAccountSafe(accounts, 10),
+			Program:                 getAccountSafe(accounts, 11),
+			GlobalVolumeAccumulator: zeroPubkey,
+			UserVolumeAccumulator:   legacyUserVolumeAccumulator,
+			FeeConfig:               getAccountSafe(accounts, 12),
+			FeeProgram:              getAccountSafe(accounts, 13),
+			BuybackFeeRecipient:     legacyBuybackFeeRecipient,
+			Account:                 account,
+			SolAmount:               minSolOutput,
+			TokenAmount:             amount,
+			Amount:                  amount,
+			MinSolOutput:            minSolOutput,
+			IxName:                  "sell",
+		},
+	}
+}
+
 func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, meta EventMetadata) DexEvent {
 	minAcc := 27
 	if ixName == "sell_v2" {
@@ -317,25 +470,72 @@ func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, met
 	second := readPumpFunV2Amount(data, 8)
 	tokenAmount := first
 	solAmount := second
+	amount := first
+	maxSolCost := second
+	var quoteAmount uint64
+	var minSolOutput uint64
+	var spendableQuoteIn uint64
+	var minTokensOut uint64
 	if ixName == "buy_exact_quote_in_v2" {
 		solAmount = first
 		tokenAmount = second
+		amount = second
+		maxSolCost = 0
+		quoteAmount = first
+		spendableQuoteIn = first
+		minTokensOut = second
+	}
+	if ixName == "sell_v2" {
+		maxSolCost = 0
+		minSolOutput = second
+	}
+	eventType := EventTypePumpFunBuy
+	if ixName == "sell_v2" {
+		eventType = EventTypePumpFunSell
+	} else if ixName == "buy_exact_quote_in_v2" {
+		eventType = EventTypePumpFunBuyExactSolIn
 	}
 	return DexEvent{
-		Type: EventTypePumpFunTrade,
+		Type: eventType,
 		Data: &PumpFunTradeEvent{
-			Metadata:               meta,
-			Mint:                   getAccountSafe(accounts, 1),
-			BondingCurve:           getAccountSafe(accounts, 10),
-			User:                   getAccountSafe(accounts, 13),
-			SolAmount:              solAmount,
-			TokenAmount:            tokenAmount,
-			FeeRecipient:           getAccountSafe(accounts, 6),
-			IsBuy:                  ixName != "sell_v2",
-			IxName:                 ixName,
-			AssociatedBondingCurve: getAccountSafe(accounts, 11),
-			TokenProgram:           getAccountSafe(accounts, 3),
-			CreatorVault:           getAccountSafe(accounts, 16),
+			Metadata:                           meta,
+			Mint:                               getAccountSafe(accounts, 1),
+			QuoteMint:                          getAccountSafe(accounts, 2),
+			Global:                             getAccountSafe(accounts, 0),
+			BondingCurve:                       getAccountSafe(accounts, 10),
+			User:                               getAccountSafe(accounts, 13),
+			SolAmount:                          solAmount,
+			TokenAmount:                        tokenAmount,
+			Amount:                             amount,
+			MaxSolCost:                         maxSolCost,
+			QuoteAmount:                        quoteAmount,
+			MinSolOutput:                       minSolOutput,
+			SpendableQuoteIn:                   spendableQuoteIn,
+			MinTokensOut:                       minTokensOut,
+			FeeRecipient:                       getAccountSafe(accounts, 6),
+			IsBuy:                              ixName != "sell_v2",
+			IxName:                             ixName,
+			AssociatedBondingCurve:             getAccountSafe(accounts, 11),
+			AssociatedUser:                     getAccountSafe(accounts, 14),
+			SystemProgram:                      getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 23, 24)),
+			TokenProgram:                       getAccountSafe(accounts, 3),
+			QuoteTokenProgram:                  getAccountSafe(accounts, 4),
+			AssociatedTokenProgram:             getAccountSafe(accounts, 5),
+			CreatorVault:                       getAccountSafe(accounts, 16),
+			AssociatedQuoteFeeRecipient:        getAccountSafe(accounts, 7),
+			BuybackFeeRecipient:                getAccountSafe(accounts, 8),
+			AssociatedQuoteBuybackFeeRecipient: getAccountSafe(accounts, 9),
+			AssociatedQuoteBondingCurve:        getAccountSafe(accounts, 12),
+			AssociatedQuoteUser:                getAccountSafe(accounts, 15),
+			AssociatedCreatorVault:             getAccountSafe(accounts, 17),
+			SharingConfig:                      getAccountSafe(accounts, 18),
+			EventAuthority:                     getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 24, 25)),
+			Program:                            getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 25, 26)),
+			GlobalVolumeAccumulator:            mapBoolString(ixName == "sell_v2", "", getAccountSafe(accounts, 19)),
+			UserVolumeAccumulator:              getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 19, 20)),
+			AssociatedUserVolumeAccumulator:    getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 20, 21)),
+			FeeConfig:                          getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 21, 22)),
+			FeeProgram:                         getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 22, 23)),
 		},
 	}
 }
@@ -402,32 +602,34 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 		return DexEvent{}
 	}
 	off := 0
-	readStr := func() string {
-		if off+4 > len(data) {
-			return ""
-		}
-		n := int(binary.LittleEndian.Uint32(data[off : off+4]))
-		off += 4
-		if n < 0 || off+n > len(data) {
-			return ""
-		}
-		s := string(data[off : off+n])
-		off += n
-		return s
-	}
-	name := readStr()
-	symbol := readStr()
-	uri := readStr()
-	if off+128 > len(data) {
+	var ok bool
+	var name, symbol, uri string
+	name, off, ok = readBorshString(data, off)
+	if !ok {
 		return DexEvent{}
 	}
-	mint := ReadPubkey(data, off)
-	off += 32
-	bondingCurve := ReadPubkey(data, off)
-	off += 32
-	user := ReadPubkey(data, off)
-	off += 32
+	symbol, off, ok = readBorshString(data, off)
+	if !ok {
+		return DexEvent{}
+	}
+	uri, off, ok = readBorshString(data, off)
+	if !ok {
+		return DexEvent{}
+	}
+	if off+33 > len(data) {
+		return DexEvent{}
+	}
 	creator := ReadPubkey(data, off)
+	off += 32
+	isMayhemMode, ok := readBool(data, off)
+	if !ok {
+		return DexEvent{}
+	}
+	off++
+	isCashbackEnabled := false
+	if v, ok := readBool(data, off); ok {
+		isCashbackEnabled = v
+	}
 	acc := accounts[:minAcc]
 	return DexEvent{
 		Type: EventTypePumpFunCreateV2,
@@ -436,11 +638,13 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 			Name:                   name,
 			Symbol:                 symbol,
 			Uri:                    uri,
-			Mint:                   mint,
-			BondingCurve:           bondingCurve,
-			User:                   user,
+			Mint:                   acc[0],
+			BondingCurve:           acc[2],
+			User:                   acc[5],
 			Creator:                creator,
 			TokenProgram:           acc[7],
+			IsMayhemMode:           isMayhemMode,
+			IsCashbackEnabled:      isCashbackEnabled,
 			MintAuthority:          acc[1],
 			AssociatedBondingCurve: acc[3],
 			Global:                 acc[4],
@@ -529,6 +733,34 @@ func ParsePumpswapInstruction(
 	}
 }
 
+func fillPumpSwapBuyUpgradeAccounts(ev *PumpSwapBuyEvent, accounts []string) {
+	if len(accounts) >= 27 {
+		ev.PoolV2 = getAccountSafe(accounts, 24)
+		ev.FeeRecipient = getAccountSafe(accounts, 25)
+		ev.FeeRecipientQuoteTokenAccount = getAccountSafe(accounts, 26)
+	} else if len(accounts) >= 26 {
+		ev.PoolV2 = getAccountSafe(accounts, 23)
+		ev.FeeRecipient = getAccountSafe(accounts, 24)
+		ev.FeeRecipientQuoteTokenAccount = getAccountSafe(accounts, 25)
+	} else if len(accounts) >= 24 {
+		ev.PoolV2 = getAccountSafe(accounts, 23)
+	}
+}
+
+func fillPumpSwapSellUpgradeAccounts(ev *PumpSwapSellEvent, accounts []string) {
+	if len(accounts) >= 26 {
+		ev.PoolV2 = getAccountSafe(accounts, 23)
+		ev.FeeRecipient = getAccountSafe(accounts, 24)
+		ev.FeeRecipientQuoteTokenAccount = getAccountSafe(accounts, 25)
+	} else if len(accounts) >= 24 {
+		ev.PoolV2 = getAccountSafe(accounts, 21)
+		ev.FeeRecipient = getAccountSafe(accounts, 22)
+		ev.FeeRecipientQuoteTokenAccount = getAccountSafe(accounts, 23)
+	} else if len(accounts) >= 22 {
+		ev.PoolV2 = getAccountSafe(accounts, 21)
+	}
+}
+
 func parsePumpSwapBuyInstr(data []byte, accounts []string, meta EventMetadata, buyExactQuoteIn bool) DexEvent {
 	if len(accounts) < 13 {
 		return DexEvent{}
@@ -571,6 +803,7 @@ func parsePumpSwapBuyInstr(data []byte, accounts []string, meta EventMetadata, b
 		ev.CoinCreatorVaultAta = getAccountSafe(accounts, 17)
 		ev.CoinCreatorVaultAuthority = getAccountSafe(accounts, 18)
 	}
+	fillPumpSwapBuyUpgradeAccounts(ev, accounts)
 	return DexEvent{Type: EventTypePumpSwapBuy, Data: ev}
 }
 
@@ -605,6 +838,7 @@ func parsePumpSwapSellInstr(data []byte, accounts []string, meta EventMetadata) 
 		ev.CoinCreatorVaultAta = getAccountSafe(accounts, 17)
 		ev.CoinCreatorVaultAuthority = getAccountSafe(accounts, 18)
 	}
+	fillPumpSwapSellUpgradeAccounts(ev, accounts)
 	return DexEvent{Type: EventTypePumpSwapSell, Data: ev}
 }
 

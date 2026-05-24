@@ -18,39 +18,72 @@ type DexEventInterface interface {
 
 // PumpFunTradeEvent PumpFun 交易事件
 type PumpFunTradeEvent struct {
-	Metadata               EventMetadata `json:"metadata"`
-	Mint                   string        `json:"mint"`
-	SolAmount              uint64        `json:"sol_amount"`
-	TokenAmount            uint64        `json:"token_amount"`
-	IsBuy                  bool          `json:"is_buy"`
-	IsCreatedBuy           bool          `json:"is_created_buy"`
-	User                   string        `json:"user"`
-	Timestamp              int64         `json:"timestamp"`
-	VirtualSolReserves     uint64        `json:"virtual_sol_reserves"`
-	VirtualTokenReserves   uint64        `json:"virtual_token_reserves"`
-	RealSolReserves        uint64        `json:"real_sol_reserves"`
-	RealTokenReserves      uint64        `json:"real_token_reserves"`
-	FeeRecipient           string        `json:"fee_recipient"`
-	FeeBasisPoints         uint64        `json:"fee_basis_points"`
-	Fee                    uint64        `json:"fee"`
-	Creator                string        `json:"creator"`
-	CreatorFeeBasisPoints  uint64        `json:"creator_fee_basis_points"`
-	CreatorFee             uint64        `json:"creator_fee"`
-	TrackVolume            bool          `json:"track_volume"`
-	TotalUnclaimedTokens   uint64        `json:"total_unclaimed_tokens"`
-	TotalClaimedTokens     uint64        `json:"total_claimed_tokens"`
-	CurrentSolVolume       uint64        `json:"current_sol_volume"`
-	LastUpdateTimestamp    int64         `json:"last_update_timestamp"`
-	IxName                 string        `json:"ix_name"`
-	MayhemMode             bool          `json:"mayhem_mode"`
-	CashbackFeeBasisPoints uint64        `json:"cashback_fee_basis_points"`
-	Cashback               uint64        `json:"cashback"`
-	IsCashbackCoin         bool          `json:"is_cashback_coin"`
-	BondingCurve           string        `json:"bonding_curve"`
-	AssociatedBondingCurve string        `json:"associated_bonding_curve"`
-	TokenProgram           string        `json:"token_program"`
-	CreatorVault           string        `json:"creator_vault"`
-	Account                string        `json:"account,omitempty"`
+	Metadata                           EventMetadata         `json:"metadata"`
+	Mint                               string                `json:"mint"`
+	SolAmount                          uint64                `json:"sol_amount"`
+	TokenAmount                        uint64                `json:"token_amount"`
+	IsBuy                              bool                  `json:"is_buy"`
+	IsCreatedBuy                       bool                  `json:"is_created_buy"`
+	User                               string                `json:"user"`
+	Timestamp                          int64                 `json:"timestamp"`
+	VirtualSolReserves                 uint64                `json:"virtual_sol_reserves"`
+	VirtualTokenReserves               uint64                `json:"virtual_token_reserves"`
+	RealSolReserves                    uint64                `json:"real_sol_reserves"`
+	RealTokenReserves                  uint64                `json:"real_token_reserves"`
+	FeeRecipient                       string                `json:"fee_recipient"`
+	FeeBasisPoints                     uint64                `json:"fee_basis_points"`
+	Fee                                uint64                `json:"fee"`
+	Creator                            string                `json:"creator"`
+	CreatorFeeBasisPoints              uint64                `json:"creator_fee_basis_points"`
+	CreatorFee                         uint64                `json:"creator_fee"`
+	TrackVolume                        bool                  `json:"track_volume"`
+	TotalUnclaimedTokens               uint64                `json:"total_unclaimed_tokens"`
+	TotalClaimedTokens                 uint64                `json:"total_claimed_tokens"`
+	CurrentSolVolume                   uint64                `json:"current_sol_volume"`
+	LastUpdateTimestamp                int64                 `json:"last_update_timestamp"`
+	IxName                             string                `json:"ix_name"`
+	MayhemMode                         bool                  `json:"mayhem_mode"`
+	CashbackFeeBasisPoints             uint64                `json:"cashback_fee_basis_points"`
+	Cashback                           uint64                `json:"cashback"`
+	BuybackFeeBasisPoints              uint64                `json:"buyback_fee_basis_points"`
+	BuybackFee                         uint64                `json:"buyback_fee"`
+	Shareholders                       []PumpFeesShareholder `json:"shareholders"`
+	QuoteMint                          string                `json:"quote_mint"`
+	QuoteAmount                        uint64                `json:"quote_amount"`
+	VirtualQuoteReserves               uint64                `json:"virtual_quote_reserves"`
+	RealQuoteReserves                  uint64                `json:"real_quote_reserves"`
+	IsCashbackCoin                     bool                  `json:"is_cashback_coin"`
+	Amount                             uint64                `json:"amount"`
+	MaxSolCost                         uint64                `json:"max_sol_cost"`
+	MinSolOutput                       uint64                `json:"min_sol_output"`
+	SpendableSolIn                     uint64                `json:"spendable_sol_in"`
+	SpendableQuoteIn                   uint64                `json:"spendable_quote_in"`
+	MinTokensOut                       uint64                `json:"min_tokens_out"`
+	Global                             string                `json:"global"`
+	BondingCurve                       string                `json:"bonding_curve"`
+	BondingCurveV2                     string                `json:"bonding_curve_v2"`
+	AssociatedBondingCurve             string                `json:"associated_bonding_curve"`
+	AssociatedUser                     string                `json:"associated_user"`
+	SystemProgram                      string                `json:"system_program"`
+	TokenProgram                       string                `json:"token_program"`
+	QuoteTokenProgram                  string                `json:"quote_token_program"`
+	AssociatedTokenProgram             string                `json:"associated_token_program"`
+	CreatorVault                       string                `json:"creator_vault"`
+	AssociatedQuoteFeeRecipient        string                `json:"associated_quote_fee_recipient"`
+	BuybackFeeRecipient                string                `json:"buyback_fee_recipient"`
+	AssociatedQuoteBuybackFeeRecipient string                `json:"associated_quote_buyback_fee_recipient"`
+	AssociatedQuoteBondingCurve        string                `json:"associated_quote_bonding_curve"`
+	AssociatedQuoteUser                string                `json:"associated_quote_user"`
+	AssociatedCreatorVault             string                `json:"associated_creator_vault"`
+	SharingConfig                      string                `json:"sharing_config"`
+	EventAuthority                     string                `json:"event_authority"`
+	Program                            string                `json:"program"`
+	GlobalVolumeAccumulator            string                `json:"global_volume_accumulator"`
+	UserVolumeAccumulator              string                `json:"user_volume_accumulator"`
+	AssociatedUserVolumeAccumulator    string                `json:"associated_user_volume_accumulator"`
+	FeeConfig                          string                `json:"fee_config"`
+	FeeProgram                         string                `json:"fee_program"`
+	Account                            string                `json:"account,omitempty"`
 }
 
 func (e *PumpFunTradeEvent) EventType() EventType       { return EventTypePumpFunTrade }
@@ -142,6 +175,30 @@ func (e *PumpFunGlobalAccountEvent) EventType() EventType {
 }
 func (e *PumpFunGlobalAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
 
+type PumpFunBondingCurveAccountEvent struct {
+	Metadata     EventMetadata       `json:"metadata"`
+	Pubkey       string              `json:"pubkey"`
+	BondingCurve PumpFunBondingCurve `json:"bonding_curve"`
+}
+
+func (e *PumpFunBondingCurveAccountEvent) EventType() EventType {
+	return EventTypeAccountPumpFunBondingCurve
+}
+func (e *PumpFunBondingCurveAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFunBondingCurve struct {
+	VirtualTokenReserves uint64 `json:"virtual_token_reserves"`
+	VirtualQuoteReserves uint64 `json:"virtual_quote_reserves"`
+	RealTokenReserves    uint64 `json:"real_token_reserves"`
+	RealQuoteReserves    uint64 `json:"real_quote_reserves"`
+	TokenTotalSupply     uint64 `json:"token_total_supply"`
+	Complete             bool   `json:"complete"`
+	Creator              string `json:"creator"`
+	IsMayhemMode         bool   `json:"is_mayhem_mode"`
+	IsCashbackCoin       bool   `json:"is_cashback_coin"`
+	QuoteMint            string `json:"quote_mint"`
+}
+
 type PumpFunGlobal struct {
 	Initialized                 bool     `json:"initialized"`
 	Authority                   string   `json:"authority"`
@@ -163,6 +220,100 @@ type PumpFunGlobal struct {
 	ReservedFeeRecipient        string   `json:"reserved_fee_recipient"`
 	MayhemModeEnabled           bool     `json:"mayhem_mode_enabled"`
 	ReservedFeeRecipients       []string `json:"reserved_fee_recipients"`
+	IsCashbackEnabled           bool     `json:"is_cashback_enabled"`
+	BuybackFeeRecipients        []string `json:"buyback_fee_recipients"`
+	BuybackBasisPoints          uint64   `json:"buyback_basis_points"`
+	InitialVirtualQuoteReserves uint64   `json:"initial_virtual_quote_reserves"`
+	WhitelistedQuoteMints       []string `json:"whitelisted_quote_mints"`
+}
+
+type PumpFunFeeConfigAccountEvent struct {
+	Metadata  EventMetadata    `json:"metadata"`
+	Pubkey    string           `json:"pubkey"`
+	FeeConfig PumpFunFeeConfig `json:"fee_config"`
+}
+
+func (e *PumpFunFeeConfigAccountEvent) EventType() EventType {
+	return EventTypeAccountPumpFunFeeConfig
+}
+func (e *PumpFunFeeConfigAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFunFeeConfig struct {
+	Bump           uint8             `json:"bump"`
+	Admin          string            `json:"admin"`
+	FlatFees       PumpFeesFees      `json:"flat_fees"`
+	FeeTiers       []PumpFeesFeeTier `json:"fee_tiers"`
+	StableFeeTiers []PumpFeesFeeTier `json:"stable_fee_tiers"`
+}
+
+type PumpFunSharingConfigAccountEvent struct {
+	Metadata      EventMetadata        `json:"metadata"`
+	Pubkey        string               `json:"pubkey"`
+	SharingConfig PumpFunSharingConfig `json:"sharing_config"`
+}
+
+func (e *PumpFunSharingConfigAccountEvent) EventType() EventType {
+	return EventTypeAccountPumpFunSharingConfig
+}
+func (e *PumpFunSharingConfigAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type PumpFunSharingConfig struct {
+	Bump         uint8                 `json:"bump"`
+	Version      uint8                 `json:"version"`
+	Status       PumpFeesConfigStatus  `json:"status"`
+	Mint         string                `json:"mint"`
+	Admin        string                `json:"admin"`
+	AdminRevoked bool                  `json:"admin_revoked"`
+	Shareholders []PumpFeesShareholder `json:"shareholders"`
+}
+
+type PumpFunGlobalVolumeAccumulatorAccountEvent struct {
+	Metadata                EventMetadata                  `json:"metadata"`
+	Pubkey                  string                         `json:"pubkey"`
+	GlobalVolumeAccumulator PumpFunGlobalVolumeAccumulator `json:"global_volume_accumulator"`
+}
+
+func (e *PumpFunGlobalVolumeAccumulatorAccountEvent) EventType() EventType {
+	return EventTypeAccountPumpFunGlobalVolumeAccumulator
+}
+func (e *PumpFunGlobalVolumeAccumulatorAccountEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+
+type PumpFunGlobalVolumeAccumulator struct {
+	StartTime        int64    `json:"start_time"`
+	EndTime          int64    `json:"end_time"`
+	SecondsInADay    int64    `json:"seconds_in_a_day"`
+	Mint             string   `json:"mint"`
+	TotalTokenSupply []uint64 `json:"total_token_supply"`
+	SolVolumes       []uint64 `json:"sol_volumes"`
+}
+
+type PumpFunUserVolumeAccumulatorAccountEvent struct {
+	Metadata              EventMetadata                `json:"metadata"`
+	Pubkey                string                       `json:"pubkey"`
+	UserVolumeAccumulator PumpFunUserVolumeAccumulator `json:"user_volume_accumulator"`
+}
+
+func (e *PumpFunUserVolumeAccumulatorAccountEvent) EventType() EventType {
+	return EventTypeAccountPumpFunUserVolumeAccumulator
+}
+func (e *PumpFunUserVolumeAccumulatorAccountEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+
+type PumpFunUserVolumeAccumulator struct {
+	User                       string `json:"user"`
+	NeedsClaim                 bool   `json:"needs_claim"`
+	TotalUnclaimedTokens       uint64 `json:"total_unclaimed_tokens"`
+	TotalClaimedTokens         uint64 `json:"total_claimed_tokens"`
+	CurrentSolVolume           uint64 `json:"current_sol_volume"`
+	LastUpdateTimestamp        int64  `json:"last_update_timestamp"`
+	HasTotalClaimedTokens      bool   `json:"has_total_claimed_tokens"`
+	CashbackEarned             uint64 `json:"cashback_earned"`
+	TotalCashbackClaimed       uint64 `json:"total_cashback_claimed"`
+	StableCashbackEarned       uint64 `json:"stable_cashback_earned"`
+	TotalStableCashbackClaimed uint64 `json:"total_stable_cashback_claimed"`
 }
 
 type PumpFeesShareholder struct {
@@ -378,6 +529,9 @@ type PumpSwapBuyEvent struct {
 	CoinCreatorVaultAuthority        string        `json:"coin_creator_vault_authority"`
 	BaseTokenProgram                 string        `json:"base_token_program"`
 	QuoteTokenProgram                string        `json:"quote_token_program"`
+	PoolV2                           string        `json:"pool_v2"`
+	FeeRecipient                     string        `json:"fee_recipient"`
+	FeeRecipientQuoteTokenAccount    string        `json:"fee_recipient_quote_token_account"`
 	IsPumpPool                       bool          `json:"is_pump_pool"`
 }
 
@@ -420,6 +574,9 @@ type PumpSwapSellEvent struct {
 	CoinCreatorVaultAuthority        string        `json:"coin_creator_vault_authority"`
 	BaseTokenProgram                 string        `json:"base_token_program"`
 	QuoteTokenProgram                string        `json:"quote_token_program"`
+	PoolV2                           string        `json:"pool_v2"`
+	FeeRecipient                     string        `json:"fee_recipient"`
+	FeeRecipientQuoteTokenAccount    string        `json:"fee_recipient_quote_token_account"`
 	IsPumpPool                       bool          `json:"is_pump_pool"`
 }
 

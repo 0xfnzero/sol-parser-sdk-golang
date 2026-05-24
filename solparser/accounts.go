@@ -30,7 +30,9 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 	// Early filtering based on event type filter
 	accountTypes := []EventType{
 		EventTypeTokenAccount, EventTypeTokenInfo, EventTypeNonceAccount,
-		EventTypeAccountPumpFunGlobal,
+		EventTypeAccountPumpFunGlobal, EventTypeAccountPumpFunBondingCurve,
+		EventTypeAccountPumpFunFeeConfig, EventTypeAccountPumpFunSharingConfig,
+		EventTypeAccountPumpFunGlobalVolumeAccumulator, EventTypeAccountPumpFunUserVolumeAccumulator,
 		EventTypeAccountPumpSwapGlobalConfig, EventTypeAccountPumpSwapPool,
 	}
 	if filter != nil {
@@ -58,8 +60,13 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 	}
 
 	// PumpFun 账户解析
-	if account.Owner == pumpfunProgramID && filter != nil {
-		if filter.ShouldInclude(EventTypeAccountPumpFunGlobal) {
+	if (account.Owner == pumpfunProgramID || account.Owner == PUMP_FEES_PROGRAM_ID) && filter != nil {
+		if filter.ShouldInclude(EventTypeAccountPumpFunGlobal) ||
+			filter.ShouldInclude(EventTypeAccountPumpFunBondingCurve) ||
+			filter.ShouldInclude(EventTypeAccountPumpFunFeeConfig) ||
+			filter.ShouldInclude(EventTypeAccountPumpFunSharingConfig) ||
+			filter.ShouldInclude(EventTypeAccountPumpFunGlobalVolumeAccumulator) ||
+			filter.ShouldInclude(EventTypeAccountPumpFunUserVolumeAccumulator) {
 			event := parsePumpfunAccount(account, metadata)
 			if event.Type != "" {
 				return event
@@ -205,7 +212,7 @@ func IsNonceAccount(data []byte) bool {
 // ParsePumpfunGlobal 解析 PumpFun Global 账户
 // 对齐 Rust `parse_pumpfun_account` 中的 Global 分支。
 func ParsePumpfunGlobal(account *AccountData, metadata EventMetadata) DexEvent {
-	const globalBody = 1021
+	const globalBody = 1037
 	if len(account.Data) < 8+globalBody {
 		return DexEvent{}
 	}
@@ -241,8 +248,8 @@ func ParsePumpfunGlobal(account *AccountData, metadata EventMetadata) DexEvent {
 	offset += 8
 	creatorFeeBasisPoints := binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
-	feeRecipients := make([]string, 8)
-	for i := 0; i < 8; i++ {
+	feeRecipients := make([]string, 7)
+	for i := 0; i < 7; i++ {
 		feeRecipients[i] = ReadPubkey(data, offset)
 		offset += 32
 	}
@@ -263,6 +270,20 @@ func ParsePumpfunGlobal(account *AccountData, metadata EventMetadata) DexEvent {
 		reservedFeeRecipients[i] = ReadPubkey(data, offset)
 		offset += 32
 	}
+	isCashbackEnabled := data[offset] != 0
+	offset++
+	buybackFeeRecipients := make([]string, 8)
+	for i := 0; i < 8; i++ {
+		buybackFeeRecipients[i] = ReadPubkey(data, offset)
+		offset += 32
+	}
+	buybackBasisPoints := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	initialVirtualQuoteReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	whitelistedQuoteMints := make([]string, 1)
+	whitelistedQuoteMints[0] = ReadPubkey(data, offset)
+	offset += 32
 
 	return DexEvent{
 		Type: EventTypeAccountPumpFunGlobal,
@@ -290,6 +311,310 @@ func ParsePumpfunGlobal(account *AccountData, metadata EventMetadata) DexEvent {
 				ReservedFeeRecipient:        reservedFeeRecipient,
 				MayhemModeEnabled:           mayhemModeEnabled,
 				ReservedFeeRecipients:       reservedFeeRecipients,
+				IsCashbackEnabled:           isCashbackEnabled,
+				BuybackFeeRecipients:        buybackFeeRecipients,
+				BuybackBasisPoints:          buybackBasisPoints,
+				InitialVirtualQuoteReserves: initialVirtualQuoteReserves,
+				WhitelistedQuoteMints:       whitelistedQuoteMints,
+			},
+		},
+	}
+}
+
+// ParsePumpfunBondingCurve 解析 PumpFun BondingCurve 账户。
+func ParsePumpfunBondingCurve(account *AccountData, metadata EventMetadata) DexEvent {
+	const bondingCurveBody = 107
+	if len(account.Data) < 8+bondingCurveBody {
+		return DexEvent{}
+	}
+	bondingCurveDisc := []byte{23, 183, 248, 55, 96, 216, 172, 96}
+	if !HasDiscriminator(account.Data, bondingCurveDisc) {
+		return DexEvent{}
+	}
+
+	data := account.Data[8:]
+	offset := 0
+	virtualTokenReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	virtualQuoteReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	realTokenReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	realQuoteReserves := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	tokenTotalSupply := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	complete := data[offset] != 0
+	offset++
+	creator := ReadPubkey(data, offset)
+	offset += 32
+	isMayhemMode := data[offset] != 0
+	offset++
+	isCashbackCoin := data[offset] != 0
+	offset++
+	quoteMint := ReadPubkey(data, offset)
+
+	return DexEvent{
+		Type: EventTypeAccountPumpFunBondingCurve,
+		Data: &PumpFunBondingCurveAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			BondingCurve: PumpFunBondingCurve{
+				VirtualTokenReserves: virtualTokenReserves,
+				VirtualQuoteReserves: virtualQuoteReserves,
+				RealTokenReserves:    realTokenReserves,
+				RealQuoteReserves:    realQuoteReserves,
+				TokenTotalSupply:     tokenTotalSupply,
+				Complete:             complete,
+				Creator:              creator,
+				IsMayhemMode:         isMayhemMode,
+				IsCashbackCoin:       isCashbackCoin,
+				QuoteMint:            quoteMint,
+			},
+		},
+	}
+}
+
+const maxPumpfunFeeTiers = 64
+const maxPumpfunShareholders = 64
+
+func readPumpfunFees(data []byte, offset *int) (PumpFeesFees, bool) {
+	if *offset+24 > len(data) {
+		return PumpFeesFees{}, false
+	}
+	fees := PumpFeesFees{
+		LpFeeBps:       binary.LittleEndian.Uint64(data[*offset : *offset+8]),
+		ProtocolFeeBps: binary.LittleEndian.Uint64(data[*offset+8 : *offset+16]),
+		CreatorFeeBps:  binary.LittleEndian.Uint64(data[*offset+16 : *offset+24]),
+	}
+	*offset += 24
+	return fees, true
+}
+
+func readPumpfunFeeTiers(data []byte, offset *int) ([]PumpFeesFeeTier, bool) {
+	if *offset+4 > len(data) {
+		return nil, false
+	}
+	n := int(binary.LittleEndian.Uint32(data[*offset : *offset+4]))
+	*offset += 4
+	if n > maxPumpfunFeeTiers || *offset+n*40 > len(data) {
+		return nil, false
+	}
+	out := make([]PumpFeesFeeTier, 0, n)
+	for i := 0; i < n; i++ {
+		var raw [16]byte
+		copy(raw[:], data[*offset:*offset+16])
+		*offset += 16
+		fees, ok := readPumpfunFees(data, offset)
+		if !ok {
+			return nil, false
+		}
+		out = append(out, PumpFeesFeeTier{
+			MarketCapLamportsThreshold: u128LEDecimalString(raw),
+			Fees:                       fees,
+		})
+	}
+	return out, true
+}
+
+func readPumpfunShareholders(data []byte, offset *int) ([]PumpFeesShareholder, bool) {
+	if *offset+4 > len(data) {
+		return nil, false
+	}
+	n := int(binary.LittleEndian.Uint32(data[*offset : *offset+4]))
+	*offset += 4
+	if n > maxPumpfunShareholders || *offset+n*34 > len(data) {
+		return nil, false
+	}
+	out := make([]PumpFeesShareholder, 0, n)
+	for i := 0; i < n; i++ {
+		address := ReadPubkey(data, *offset)
+		*offset += 32
+		shareBps := binary.LittleEndian.Uint16(data[*offset : *offset+2])
+		*offset += 2
+		out = append(out, PumpFeesShareholder{Address: address, ShareBps: shareBps})
+	}
+	return out, true
+}
+
+func ParsePumpfunFeeConfig(account *AccountData, metadata EventMetadata) DexEvent {
+	disc := []byte{143, 52, 146, 187, 219, 123, 76, 155}
+	if len(account.Data) < 8+1+32+24+4+4 || !HasDiscriminator(account.Data, disc) {
+		return DexEvent{}
+	}
+	data := account.Data[8:]
+	offset := 0
+	bump := data[offset]
+	offset++
+	admin := ReadPubkey(data, offset)
+	offset += 32
+	flatFees, ok := readPumpfunFees(data, &offset)
+	if !ok {
+		return DexEvent{}
+	}
+	feeTiers, ok := readPumpfunFeeTiers(data, &offset)
+	if !ok {
+		return DexEvent{}
+	}
+	stableFeeTiers, ok := readPumpfunFeeTiers(data, &offset)
+	if !ok {
+		return DexEvent{}
+	}
+	return DexEvent{
+		Type: EventTypeAccountPumpFunFeeConfig,
+		Data: &PumpFunFeeConfigAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			FeeConfig: PumpFunFeeConfig{
+				Bump:           bump,
+				Admin:          admin,
+				FlatFees:       flatFees,
+				FeeTiers:       feeTiers,
+				StableFeeTiers: stableFeeTiers,
+			},
+		},
+	}
+}
+
+func ParsePumpfunSharingConfig(account *AccountData, metadata EventMetadata) DexEvent {
+	disc := []byte{216, 74, 9, 0, 56, 140, 93, 75}
+	if len(account.Data) < 8+1+1+1+32+32+1+4 || !HasDiscriminator(account.Data, disc) {
+		return DexEvent{}
+	}
+	data := account.Data[8:]
+	offset := 0
+	bump := data[offset]
+	offset++
+	version := data[offset]
+	offset++
+	statusRaw := data[offset]
+	offset++
+	var status PumpFeesConfigStatus
+	switch statusRaw {
+	case 0:
+		status = PumpFeesConfigStatusPaused
+	case 1:
+		status = PumpFeesConfigStatusActive
+	default:
+		return DexEvent{}
+	}
+	mint := ReadPubkey(data, offset)
+	offset += 32
+	admin := ReadPubkey(data, offset)
+	offset += 32
+	adminRevoked := data[offset] != 0
+	offset++
+	shareholders, ok := readPumpfunShareholders(data, &offset)
+	if !ok {
+		return DexEvent{}
+	}
+	return DexEvent{
+		Type: EventTypeAccountPumpFunSharingConfig,
+		Data: &PumpFunSharingConfigAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			SharingConfig: PumpFunSharingConfig{
+				Bump:         bump,
+				Version:      version,
+				Status:       status,
+				Mint:         mint,
+				Admin:        admin,
+				AdminRevoked: adminRevoked,
+				Shareholders: shareholders,
+			},
+		},
+	}
+}
+
+func ParsePumpfunGlobalVolumeAccumulator(account *AccountData, metadata EventMetadata) DexEvent {
+	disc := []byte{202, 42, 246, 43, 142, 190, 30, 255}
+	const body = 536
+	if len(account.Data) < 8+body || !HasDiscriminator(account.Data, disc) {
+		return DexEvent{}
+	}
+	data := account.Data[8:]
+	offset := 0
+	startTime := int64(binary.LittleEndian.Uint64(data[offset : offset+8]))
+	offset += 8
+	endTime := int64(binary.LittleEndian.Uint64(data[offset : offset+8]))
+	offset += 8
+	secondsInADay := int64(binary.LittleEndian.Uint64(data[offset : offset+8]))
+	offset += 8
+	mint := ReadPubkey(data, offset)
+	offset += 32
+	totalTokenSupply := make([]uint64, 30)
+	for i := range totalTokenSupply {
+		totalTokenSupply[i] = binary.LittleEndian.Uint64(data[offset : offset+8])
+		offset += 8
+	}
+	solVolumes := make([]uint64, 30)
+	for i := range solVolumes {
+		solVolumes[i] = binary.LittleEndian.Uint64(data[offset : offset+8])
+		offset += 8
+	}
+	return DexEvent{
+		Type: EventTypeAccountPumpFunGlobalVolumeAccumulator,
+		Data: &PumpFunGlobalVolumeAccumulatorAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			GlobalVolumeAccumulator: PumpFunGlobalVolumeAccumulator{
+				StartTime:        startTime,
+				EndTime:          endTime,
+				SecondsInADay:    secondsInADay,
+				Mint:             mint,
+				TotalTokenSupply: totalTokenSupply,
+				SolVolumes:       solVolumes,
+			},
+		},
+	}
+}
+
+func ParsePumpfunUserVolumeAccumulator(account *AccountData, metadata EventMetadata) DexEvent {
+	disc := []byte{86, 255, 112, 14, 102, 53, 154, 250}
+	const body = 98
+	if len(account.Data) < 8+body || !HasDiscriminator(account.Data, disc) {
+		return DexEvent{}
+	}
+	data := account.Data[8:]
+	offset := 0
+	user := ReadPubkey(data, offset)
+	offset += 32
+	needsClaim := data[offset] != 0
+	offset++
+	totalUnclaimedTokens := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	totalClaimedTokens := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	currentSolVolume := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	lastUpdateTimestamp := int64(binary.LittleEndian.Uint64(data[offset : offset+8]))
+	offset += 8
+	hasTotalClaimedTokens := data[offset] != 0
+	offset++
+	cashbackEarned := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	totalCashbackClaimed := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	stableCashbackEarned := binary.LittleEndian.Uint64(data[offset : offset+8])
+	offset += 8
+	totalStableCashbackClaimed := binary.LittleEndian.Uint64(data[offset : offset+8])
+	return DexEvent{
+		Type: EventTypeAccountPumpFunUserVolumeAccumulator,
+		Data: &PumpFunUserVolumeAccumulatorAccountEvent{
+			Metadata: metadata,
+			Pubkey:   account.Pubkey,
+			UserVolumeAccumulator: PumpFunUserVolumeAccumulator{
+				User:                       user,
+				NeedsClaim:                 needsClaim,
+				TotalUnclaimedTokens:       totalUnclaimedTokens,
+				TotalClaimedTokens:         totalClaimedTokens,
+				CurrentSolVolume:           currentSolVolume,
+				LastUpdateTimestamp:        lastUpdateTimestamp,
+				HasTotalClaimedTokens:      hasTotalClaimedTokens,
+				CashbackEarned:             cashbackEarned,
+				TotalCashbackClaimed:       totalCashbackClaimed,
+				StableCashbackEarned:       stableCashbackEarned,
+				TotalStableCashbackClaimed: totalStableCashbackClaimed,
 			},
 		},
 	}
@@ -481,6 +806,25 @@ func parsePumpswapAccount(account *AccountData, metadata EventMetadata) DexEvent
 
 // parsePumpfunAccount 解析 PumpFun 账户（内部函数）
 func parsePumpfunAccount(account *AccountData, metadata EventMetadata) DexEvent {
+	feeConfigDisc := []byte{143, 52, 146, 187, 219, 123, 76, 155}
+	if HasDiscriminator(account.Data, feeConfigDisc) {
+		return ParsePumpfunFeeConfig(account, metadata)
+	}
+	sharingConfigDisc := []byte{216, 74, 9, 0, 56, 140, 93, 75}
+	if HasDiscriminator(account.Data, sharingConfigDisc) {
+		return ParsePumpfunSharingConfig(account, metadata)
+	}
+	globalVolumeAccumulatorDisc := []byte{202, 42, 246, 43, 142, 190, 30, 255}
+	if HasDiscriminator(account.Data, globalVolumeAccumulatorDisc) {
+		return ParsePumpfunGlobalVolumeAccumulator(account, metadata)
+	}
+	userVolumeAccumulatorDisc := []byte{86, 255, 112, 14, 102, 53, 154, 250}
+	if HasDiscriminator(account.Data, userVolumeAccumulatorDisc) {
+		return ParsePumpfunUserVolumeAccumulator(account, metadata)
+	}
+	if IsPumpfunBondingCurveAccount(account.Data) {
+		return ParsePumpfunBondingCurve(account, metadata)
+	}
 	if IsPumpfunGlobalAccount(account.Data) {
 		return ParsePumpfunGlobal(account, metadata)
 	}
@@ -491,6 +835,12 @@ func parsePumpfunAccount(account *AccountData, metadata EventMetadata) DexEvent 
 func IsPumpfunGlobalAccount(data []byte) bool {
 	globalDisc := []byte{167, 232, 232, 177, 200, 108, 114, 127}
 	return HasDiscriminator(data, globalDisc)
+}
+
+// IsPumpfunBondingCurveAccount 检查是否为 PumpFun BondingCurve 账户
+func IsPumpfunBondingCurveAccount(data []byte) bool {
+	bondingCurveDisc := []byte{23, 183, 248, 55, 96, 216, 172, 96}
+	return HasDiscriminator(data, bondingCurveDisc)
 }
 
 // IsGlobalConfigAccount 检查是否为 Global Config 账户

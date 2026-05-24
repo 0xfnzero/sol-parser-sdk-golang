@@ -37,9 +37,9 @@ type pumpfunLaneBase struct {
 
 func pumpfunIxLane(ixName string) uint8 {
 	switch ixName {
-	case "sell":
+	case "sell", "sell_v2":
 		return 1
-	case "buy_exact_sol_in":
+	case "buy_exact_sol_in", "buy_exact_quote_in", "buy_exact_quote_in_v2":
 		return 2
 	default:
 		return 0
@@ -140,6 +140,12 @@ func fillStringIfDefault(dst *string, src string) {
 	}
 }
 
+func fillUint64IfDefault(dst *uint64, src uint64) {
+	if *dst == 0 && src != 0 {
+		*dst = src
+	}
+}
+
 func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 	if log == nil {
 		return
@@ -149,13 +155,19 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 		l, ok1 := log.Data.(*PumpFunTradeEvent)
 		i, ok2 := ix.Data.(*PumpFunTradeEvent)
 		if ok1 && ok2 && l != nil && i != nil {
-			fillStringIfDefault(&l.BondingCurve, i.BondingCurve)
-			fillStringIfDefault(&l.AssociatedBondingCurve, i.AssociatedBondingCurve)
-			fillStringIfDefault(&l.TokenProgram, i.TokenProgram)
-			fillStringIfDefault(&l.CreatorVault, i.CreatorVault)
 			fillStringIfDefault(&l.FeeRecipient, i.FeeRecipient)
 			fillStringIfDefault(&l.Creator, i.Creator)
 			fillStringIfDefault(&l.Account, i.Account)
+			supplementPumpfunTradeAccountFields(l, i)
+			fillUint64IfDefault(&l.Amount, i.Amount)
+			fillUint64IfDefault(&l.MaxSolCost, i.MaxSolCost)
+			fillUint64IfDefault(&l.MinSolOutput, i.MinSolOutput)
+			fillUint64IfDefault(&l.SpendableSolIn, i.SpendableSolIn)
+			fillUint64IfDefault(&l.SpendableQuoteIn, i.SpendableQuoteIn)
+			fillUint64IfDefault(&l.MinTokensOut, i.MinTokensOut)
+			fillUint64IfDefault(&l.QuoteAmount, i.QuoteAmount)
+			fillUint64IfDefault(&l.VirtualQuoteReserves, i.VirtualQuoteReserves)
+			fillUint64IfDefault(&l.RealQuoteReserves, i.RealQuoteReserves)
 			if l.IxName == "" && i.IxName != "" {
 				l.IxName = i.IxName
 			}
@@ -307,6 +319,9 @@ func mergePumpSwapBuyLogPreferred(log, ix *PumpSwapBuyEvent) {
 	fillStringIfDefault(&log.CoinCreatorVaultAuthority, ix.CoinCreatorVaultAuthority)
 	fillStringIfDefault(&log.BaseTokenProgram, ix.BaseTokenProgram)
 	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
+	fillStringIfDefault(&log.PoolV2, ix.PoolV2)
+	fillStringIfDefault(&log.FeeRecipient, ix.FeeRecipient)
+	fillStringIfDefault(&log.FeeRecipientQuoteTokenAccount, ix.FeeRecipientQuoteTokenAccount)
 	if log.IxName == "" && ix.IxName != "" {
 		log.IxName = ix.IxName
 	}
@@ -326,6 +341,9 @@ func mergePumpSwapSellLogPreferred(log, ix *PumpSwapSellEvent) {
 	fillStringIfDefault(&log.CoinCreatorVaultAuthority, ix.CoinCreatorVaultAuthority)
 	fillStringIfDefault(&log.BaseTokenProgram, ix.BaseTokenProgram)
 	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
+	fillStringIfDefault(&log.PoolV2, ix.PoolV2)
+	fillStringIfDefault(&log.FeeRecipient, ix.FeeRecipient)
+	fillStringIfDefault(&log.FeeRecipientQuoteTokenAccount, ix.FeeRecipientQuoteTokenAccount)
 }
 
 // DedupeLogInstructionEvents folds Yellowstone/RPC log and instruction parse results with
