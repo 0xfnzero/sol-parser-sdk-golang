@@ -133,6 +133,12 @@ func (e DexEvent) GetMetadata() EventMetadata {
 		return d.Metadata
 	case *MeteoraDammV2InitializePoolEvent:
 		return d.Metadata
+	case *MeteoraDbcSwapEvent:
+		return d.Metadata
+	case *MeteoraDbcInitializePoolEvent:
+		return d.Metadata
+	case *MeteoraDbcCurveCompleteEvent:
+		return d.Metadata
 	case *RaydiumLaunchlabTradeEvent:
 		return d.Metadata
 	case *RaydiumLaunchlabPoolCreateEvent:
@@ -148,6 +154,26 @@ func (e DexEvent) GetMetadata() EventMetadata {
 	case *PumpSwapGlobalConfigAccountEvent:
 		return d.Metadata
 	case *PumpSwapPoolAccountEvent:
+		return d.Metadata
+	case *RaydiumClmmAmmConfigAccountEvent:
+		return d.Metadata
+	case *RaydiumClmmPoolStateAccountEvent:
+		return d.Metadata
+	case *RaydiumClmmTickArrayStateAccountEvent:
+		return d.Metadata
+	case *RaydiumCpmmAmmConfigAccountEvent:
+		return d.Metadata
+	case *RaydiumCpmmPoolStateAccountEvent:
+		return d.Metadata
+	case *OrcaWhirlpoolAccountEvent:
+		return d.Metadata
+	case *OrcaPositionAccountEvent:
+		return d.Metadata
+	case *OrcaTickArrayAccountEvent:
+		return d.Metadata
+	case *OrcaFeeTierAccountEvent:
+		return d.Metadata
+	case *OrcaWhirlpoolsConfigAccountEvent:
 		return d.Metadata
 	default:
 		return EventMetadata{}
@@ -282,6 +308,12 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 		d.Metadata.RecentBlockhash = h
 	case *MeteoraDammV2InitializePoolEvent:
 		d.Metadata.RecentBlockhash = h
+	case *MeteoraDbcSwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDbcInitializePoolEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDbcCurveCompleteEvent:
+		d.Metadata.RecentBlockhash = h
 	case *RaydiumLaunchlabTradeEvent:
 		d.Metadata.RecentBlockhash = h
 	case *RaydiumLaunchlabPoolCreateEvent:
@@ -297,6 +329,26 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 	case *PumpSwapGlobalConfigAccountEvent:
 		d.Metadata.RecentBlockhash = h
 	case *PumpSwapPoolAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmAmmConfigAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmPoolStateAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmTickArrayStateAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumCpmmAmmConfigAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumCpmmPoolStateAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaWhirlpoolAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaPositionAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaTickArrayAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaFeeTierAccountEvent:
+		d.Metadata.RecentBlockhash = h
+	case *OrcaWhirlpoolsConfigAccountEvent:
 		d.Metadata.RecentBlockhash = h
 	default:
 	}
@@ -481,6 +533,7 @@ func (e DexEvent) IsTrade() bool {
 		EventTypeRaydiumClmmSwap, EventTypeRaydiumCpmmSwap,
 		EventTypeOrcaWhirlpoolSwap,
 		EventTypeMeteoraDlmmSwap, EventTypeMeteoraPoolsSwap, EventTypeMeteoraDammV2Swap,
+		EventTypeMeteoraDbcSwap,
 		EventTypeRaydiumLaunchlabTrade:
 		return true
 	default:

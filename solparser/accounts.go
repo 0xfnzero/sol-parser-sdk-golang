@@ -28,6 +28,11 @@ var accountEventTypes = []EventType{
 	EventTypeAccountPumpFunFeeConfig, EventTypeAccountPumpFunSharingConfig,
 	EventTypeAccountPumpFunGlobalVolumeAccumulator, EventTypeAccountPumpFunUserVolumeAccumulator,
 	EventTypeAccountPumpSwapGlobalConfig, EventTypeAccountPumpSwapPool,
+	EventTypeAccountRaydiumClmmAmmConfig, EventTypeAccountRaydiumClmmPoolState,
+	EventTypeAccountRaydiumClmmTickArrayState, EventTypeAccountRaydiumCpmmAmmConfig,
+	EventTypeAccountRaydiumCpmmPoolState, EventTypeAccountOrcaWhirlpool,
+	EventTypeAccountOrcaPosition, EventTypeAccountOrcaTickArray,
+	EventTypeAccountOrcaFeeTier, EventTypeAccountOrcaWhirlpoolsConfig,
 }
 
 // ParseAccountUnified 统一的账户解析入口
@@ -74,6 +79,46 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 			filter.ShouldInclude(EventTypeAccountPumpFunGlobalVolumeAccumulator) ||
 			filter.ShouldInclude(EventTypeAccountPumpFunUserVolumeAccumulator) {
 			event := parsePumpfunAccount(account, metadata)
+			if event.Type != "" {
+				return applyActualEventTypeFilter(event, filter)
+			}
+		}
+		return DexEvent{}
+	}
+
+	if account.Owner == RAYDIUM_CLMM_PROGRAM_ID {
+		if filter == nil ||
+			filter.ShouldInclude(EventTypeAccountRaydiumClmmAmmConfig) ||
+			filter.ShouldInclude(EventTypeAccountRaydiumClmmPoolState) ||
+			filter.ShouldInclude(EventTypeAccountRaydiumClmmTickArrayState) {
+			event := ParseRaydiumClmmAccount(account, metadata)
+			if event.Type != "" {
+				return applyActualEventTypeFilter(event, filter)
+			}
+		}
+		return DexEvent{}
+	}
+
+	if account.Owner == RAYDIUM_CPMM_PROGRAM_ID {
+		if filter == nil ||
+			filter.ShouldInclude(EventTypeAccountRaydiumCpmmAmmConfig) ||
+			filter.ShouldInclude(EventTypeAccountRaydiumCpmmPoolState) {
+			event := ParseRaydiumCpmmAccount(account, metadata)
+			if event.Type != "" {
+				return applyActualEventTypeFilter(event, filter)
+			}
+		}
+		return DexEvent{}
+	}
+
+	if account.Owner == ORCA_WHIRLPOOL_PROGRAM_ID {
+		if filter == nil ||
+			filter.ShouldInclude(EventTypeAccountOrcaWhirlpool) ||
+			filter.ShouldInclude(EventTypeAccountOrcaPosition) ||
+			filter.ShouldInclude(EventTypeAccountOrcaTickArray) ||
+			filter.ShouldInclude(EventTypeAccountOrcaFeeTier) ||
+			filter.ShouldInclude(EventTypeAccountOrcaWhirlpoolsConfig) {
+			event := ParseOrcaWhirlpoolAccount(account, metadata)
 			if event.Type != "" {
 				return applyActualEventTypeFilter(event, filter)
 			}

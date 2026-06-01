@@ -35,6 +35,14 @@
 
 ## Release notes
 
+### v0.5.6
+
+- Adds Meteora DBC log parsing with program-context routing and filter parity.
+- Adds Raydium CLMM/CPMM and Orca account parsers.
+- Preserves block transaction indexes in RPC and Geyser-to-RPC conversion.
+- Skips ShredStream instruction parsing early for account-only or empty include-only filters.
+- Tightens RPC log active-program tracking for low-latency parser correctness.
+
 ### v0.5.5
 
 - Aligns ShredStream wire-transaction parsing with Rust/Node.js/Python.
@@ -62,7 +70,7 @@ go mod tidy
 **Use in another module**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.5
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.6
 ```
 
 (Or use `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` for local development.)

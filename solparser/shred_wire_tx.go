@@ -33,6 +33,10 @@ func DexEventsFromShredTransactionWire(
 	grpcRecvUs int64,
 	filter EventTypeFilter,
 ) []DexEvent {
+	if parseInstructionUnifiedPreFilterRust(filter) {
+		return nil
+	}
+
 	tx, err := solana.TransactionFromBytes(raw)
 	if err != nil {
 		return nil

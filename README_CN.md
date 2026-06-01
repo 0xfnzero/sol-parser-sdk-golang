@@ -35,6 +35,14 @@
 
 ## 发布说明
 
+### v0.5.6
+
+- 新增 Meteora DBC 日志解析，并按当前 program context 做路由与过滤。
+- 新增 Raydium CLMM/CPMM、Orca account parser。
+- RPC 与 Geyser-to-RPC 转换保留区块内交易序号。
+- ShredStream 对 account-only 或空 include-only filter 直接跳过指令解析。
+- 收紧 RPC 日志 active-program 跟踪，保证低延迟解析准确性。
+
 ### v0.5.5
 
 - ShredStream 线格式交易解析与 Rust/Node.js/Python 对齐。
@@ -62,7 +70,7 @@ go mod tidy
 **在其他 Go 工程引用**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.5
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.6
 ```
 
 （本地开发可用 `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` 指向克隆目录。）

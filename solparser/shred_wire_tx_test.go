@@ -89,3 +89,28 @@ func TestDexEventsFromShredTransactionWireFallbacksAltLoadedProgramID(t *testing
 		t.Fatalf("unexpected PumpFun ALT program fallback event: %+v", trade)
 	}
 }
+
+func TestDexEventsFromShredTransactionWireSkipsAccountOnlyFilter(t *testing.T) {
+	raw := shredWireTestRawTx(
+		t,
+		[]solana.PublicKey{solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), shredWireTestPubkey(1)},
+		solana.CompiledInstruction{
+			ProgramIDIndex: 0,
+			Accounts:       []uint16{1},
+			Data:           solana.Base58(shredWireClmmSwapInstruction()),
+		},
+	)
+
+	events := DexEventsFromShredTransactionWire(
+		raw,
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+		&IncludeOnlyFilter{IncludeOnly: []EventType{EventTypeAccountRaydiumClmmPoolState}},
+	)
+	if len(events) != 0 {
+		t.Fatalf("expected account-only Shred filter to skip instruction parsing, got %+v", events)
+	}
+}

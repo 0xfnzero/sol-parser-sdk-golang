@@ -69,6 +69,50 @@ func TestParseLogOptimizedAppliesEventTypeFilter(t *testing.T) {
 	}
 }
 
+func dbcSwapLogForTest() string {
+	buf := make([]byte, 8+32+32+2+8*9+16)
+	o := 0
+	binary.LittleEndian.PutUint64(buf[o:o+8], discDbcSwap)
+	o += 8
+	for i := 0; i < 32; i++ {
+		buf[o+i] = 1
+		buf[o+32+i] = 2
+	}
+	o += 64
+	buf[o] = 1
+	o++
+	buf[o] = 1
+	o++
+	for _, v := range []uint64{10, 9, 10, 8} {
+		binary.LittleEndian.PutUint64(buf[o:o+8], v)
+		o += 8
+	}
+	binary.LittleEndian.PutUint64(buf[o:o+8], 0)
+	binary.LittleEndian.PutUint64(buf[o+8:o+16], 1)
+	o += 16
+	for _, v := range []uint64{1, 2, 3, 10, 123} {
+		binary.LittleEndian.PutUint64(buf[o:o+8], v)
+		o += 8
+	}
+	return "Program data: " + base64.StdEncoding.EncodeToString(buf)
+}
+
+func TestParseLogOptimizedUsesProgramContextForMeteoraDbc(t *testing.T) {
+	log := dbcSwapLogForTest()
+	filter := EventTypeFilterIncludeOnly([]EventType{EventTypeMeteoraDbcSwap})
+	if ev := ParseLogOptimized(log, "sig", 1, 0, nil, 1, filter, false, ""); ev.Type != "" {
+		t.Fatalf("unscoped DBC shared discriminator should be dropped, got %q", ev.Type)
+	}
+	ev := ParseLogOptimizedWithProgramID(log, "sig", 1, 0, nil, 1, filter, false, "", METEORA_DBC_PROGRAM_ID)
+	if ev.Type != EventTypeMeteoraDbcSwap {
+		t.Fatalf("expected scoped DBC swap, got %q", ev.Type)
+	}
+	swap := ev.Data.(*MeteoraDbcSwapEvent)
+	if swap.OutputAmount != 8 || swap.CurrentTimestamp != 123 {
+		t.Fatalf("unexpected DBC swap payload: %+v", swap)
+	}
+}
+
 func TestProtocolHelperExcludeMatchesRustSemantics(t *testing.T) {
 	filter := EventTypeFilterExclude([]EventType{EventTypePumpFeesUpdateAdmin})
 	if !EventTypeFilterIncludesPumpFees(filter) {

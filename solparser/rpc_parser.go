@@ -42,10 +42,11 @@ type RpcClient interface {
 
 // RpcTransactionResponse RPC 交易响应
 type RpcTransactionResponse struct {
-	Slot        uint64
-	BlockTime   *int64
-	Meta        *RpcTransactionMeta
-	Transaction *RpcTransaction
+	Slot             uint64
+	BlockTime        *int64
+	Meta             *RpcTransactionMeta
+	Transaction      *RpcTransaction
+	TransactionIndex uint64
 }
 
 // RpcTransactionMeta 交易元数据
@@ -178,6 +179,7 @@ func parseRpcTransactionImpl(
 
 	// 与 Rust `instruction_parser` / Solana 消息一致：静态 account_keys + ALT 加载的 writable + readonly
 	fullKeys := mergeRpcFullAccountKeys(msg.AccountKeys, meta)
+	blockTxIndex := uint32(tx.TransactionIndex)
 
 	// 与 Rust `parse_instructions_enhanced`：用整段日志检测 create，供 inner PumpFun Trade 的 is_created_buy
 	isCreatedBuyFromLogs := DetectPumpfunCreateFromLogs(meta.LogMessages)
@@ -189,7 +191,7 @@ func parseRpcTransactionImpl(
 			fullKeys,
 			signature,
 			slot,
-			uint32(i),
+			blockTxIndex,
 			blockTimeUs,
 			grpcRecvUs,
 			filter,
@@ -208,7 +210,7 @@ func parseRpcTransactionImpl(
 				fullKeys,
 				signature,
 				slot,
-				group.Index,
+				blockTxIndex,
 				blockTimeUs,
 				grpcRecvUs,
 				filter,
@@ -232,18 +234,35 @@ func parseRpcTransactionImpl(
 	// 解析日志（PumpFun/PumpSwap 等成交多数来自 Program data 日志，非指令表）
 	isCreatedBuy := false
 	logEvents := make([]DexEvent, 0)
+	activeProgramStack := make([]string, 0, 8)
 
 	for _, log := range meta.LogMessages {
-		ev := ParseLogOptimized(
+		if programID, depth, ok := ParseInvokeInfo(log); ok {
+			keep := depth - 1
+			if keep < 0 {
+				keep = 0
+			}
+			if keep < len(activeProgramStack) {
+				activeProgramStack = activeProgramStack[:keep]
+			}
+			activeProgramStack = append(activeProgramStack, programID)
+		}
+
+		currentProgram := ""
+		if len(activeProgramStack) > 0 {
+			currentProgram = activeProgramStack[len(activeProgramStack)-1]
+		}
+		ev := ParseLogOptimizedWithProgramID(
 			log,
 			signature,
 			slot,
-			0,
+			tx.TransactionIndex,
 			blockTimeUs,
 			grpcRecvUs,
 			filter,
 			isCreatedBuy,
 			recentBlockhash,
+			currentProgram,
 		)
 		if ev.Type != "" {
 			// 检查是否是 PumpFun Create 事件
@@ -251,6 +270,14 @@ func parseRpcTransactionImpl(
 				isCreatedBuy = true
 			}
 			logEvents = append(logEvents, ev)
+		}
+		if completed, ok := ParseProgramCompleteInfo(log); ok {
+			for i := len(activeProgramStack) - 1; i >= 0; i-- {
+				if activeProgramStack[i] == completed {
+					activeProgramStack = activeProgramStack[:i]
+					break
+				}
+			}
 		}
 	}
 

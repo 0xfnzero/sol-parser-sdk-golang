@@ -215,6 +215,9 @@ var (
 	discDammInit   = disc8(228, 50, 246, 85, 203, 66, 134, 37)
 	discDammCreate = disc8(156, 15, 119, 198, 29, 181, 221, 55)
 	discDammClose  = disc8(20, 145, 144, 68, 143, 142, 214, 178)
+	discDbcSwap    = discDammSwap
+	discDbcInit    = discDammInit
+	discDbcCurve   = disc8(229, 231, 86, 84, 156, 134, 75, 24)
 
 	// 别名（用于 meteora_extra.go）
 	discDammCreatePosition = discDammCreate

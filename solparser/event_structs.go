@@ -1354,6 +1354,57 @@ func (e *MeteoraDammV2InitializePoolEvent) EventType() EventType {
 }
 func (e *MeteoraDammV2InitializePoolEvent) GetMetadata() EventMetadata { return e.Metadata }
 
+// MeteoraDbcSwapEvent Meteora DBC 交易事件
+type MeteoraDbcSwapEvent struct {
+	Metadata          EventMetadata `json:"metadata"`
+	Pool              string        `json:"pool"`
+	Config            string        `json:"config"`
+	TradeDirection    uint8         `json:"trade_direction"`
+	HasReferral       bool          `json:"has_referral"`
+	AmountIn          uint64        `json:"amount_in"`
+	MinimumAmountOut  uint64        `json:"minimum_amount_out"`
+	ActualInputAmount uint64        `json:"actual_input_amount"`
+	OutputAmount      uint64        `json:"output_amount"`
+	NextSqrtPrice     string        `json:"next_sqrt_price"`
+	TradingFee        uint64        `json:"trading_fee"`
+	ProtocolFee       uint64        `json:"protocol_fee"`
+	ReferralFee       uint64        `json:"referral_fee"`
+	CurrentTimestamp  uint64        `json:"current_timestamp"`
+}
+
+func (e *MeteoraDbcSwapEvent) EventType() EventType       { return EventTypeMeteoraDbcSwap }
+func (e *MeteoraDbcSwapEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// MeteoraDbcInitializePoolEvent Meteora DBC 初始化池子事件
+type MeteoraDbcInitializePoolEvent struct {
+	Metadata        EventMetadata `json:"metadata"`
+	Pool            string        `json:"pool"`
+	Config          string        `json:"config"`
+	Creator         string        `json:"creator"`
+	BaseMint        string        `json:"base_mint"`
+	PoolType        uint8         `json:"pool_type"`
+	ActivationPoint uint64        `json:"activation_point"`
+}
+
+func (e *MeteoraDbcInitializePoolEvent) EventType() EventType {
+	return EventTypeMeteoraDbcInitializePool
+}
+func (e *MeteoraDbcInitializePoolEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// MeteoraDbcCurveCompleteEvent Meteora DBC 曲线完成事件
+type MeteoraDbcCurveCompleteEvent struct {
+	Metadata     EventMetadata `json:"metadata"`
+	Pool         string        `json:"pool"`
+	Config       string        `json:"config"`
+	BaseReserve  uint64        `json:"base_reserve"`
+	QuoteReserve uint64        `json:"quote_reserve"`
+}
+
+func (e *MeteoraDbcCurveCompleteEvent) EventType() EventType {
+	return EventTypeMeteoraDbcCurveComplete
+}
+func (e *MeteoraDbcCurveCompleteEvent) GetMetadata() EventMetadata { return e.Metadata }
+
 // ============================================================
 // RaydiumLaunchlab 事件结构体
 // ============================================================
@@ -1411,6 +1462,329 @@ func (e *RaydiumLaunchlabMigrateAmmEvent) GetMetadata() EventMetadata { return e
 // ============================================================
 // Account 事件结构体
 // ============================================================
+
+type RaydiumClmmAmmConfigAccountEvent struct {
+	Metadata  EventMetadata        `json:"metadata"`
+	Pubkey    string               `json:"pubkey"`
+	AmmConfig RaydiumClmmAmmConfig `json:"amm_config"`
+}
+
+func (e *RaydiumClmmAmmConfigAccountEvent) EventType() EventType {
+	return EventTypeAccountRaydiumClmmAmmConfig
+}
+func (e *RaydiumClmmAmmConfigAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmAmmConfig struct {
+	Bump            uint8    `json:"bump"`
+	Index           uint16   `json:"index"`
+	Owner           string   `json:"owner"`
+	ProtocolFeeRate uint32   `json:"protocol_fee_rate"`
+	TradeFeeRate    uint32   `json:"trade_fee_rate"`
+	TickSpacing     uint16   `json:"tick_spacing"`
+	FundFeeRate     uint32   `json:"fund_fee_rate"`
+	PaddingU32      uint32   `json:"padding_u32"`
+	FundOwner       string   `json:"fund_owner"`
+	Padding         []uint64 `json:"padding"`
+}
+
+type RaydiumClmmPoolStateAccountEvent struct {
+	Metadata  EventMetadata        `json:"metadata"`
+	Pubkey    string               `json:"pubkey"`
+	PoolState RaydiumClmmPoolState `json:"pool_state"`
+}
+
+func (e *RaydiumClmmPoolStateAccountEvent) EventType() EventType {
+	return EventTypeAccountRaydiumClmmPoolState
+}
+func (e *RaydiumClmmPoolStateAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmPoolState struct {
+	Bump                []uint8                   `json:"bump"`
+	AmmConfig           string                    `json:"amm_config"`
+	Owner               string                    `json:"owner"`
+	TokenMint0          string                    `json:"token_mint_0"`
+	TokenMint1          string                    `json:"token_mint_1"`
+	TokenVault0         string                    `json:"token_vault_0"`
+	TokenVault1         string                    `json:"token_vault_1"`
+	ObservationKey      string                    `json:"observation_key"`
+	MintDecimals0       uint8                     `json:"mint_decimals_0"`
+	MintDecimals1       uint8                     `json:"mint_decimals_1"`
+	TickSpacing         uint16                    `json:"tick_spacing"`
+	Liquidity           string                    `json:"liquidity"`
+	SqrtPriceX64        string                    `json:"sqrt_price_x64"`
+	TickCurrent         int32                     `json:"tick_current"`
+	Padding3            uint16                    `json:"padding3"`
+	Padding4            uint16                    `json:"padding4"`
+	FeeGrowthGlobal0X64 string                    `json:"fee_growth_global_0_x64"`
+	FeeGrowthGlobal1X64 string                    `json:"fee_growth_global_1_x64"`
+	ProtocolFeesToken0  uint64                    `json:"protocol_fees_token_0"`
+	ProtocolFeesToken1  uint64                    `json:"protocol_fees_token_1"`
+	Padding5            []string                  `json:"padding5"`
+	Status              uint8                     `json:"status"`
+	FeeOn               uint8                     `json:"fee_on"`
+	Padding             []uint8                   `json:"padding"`
+	RewardInfos         []RaydiumClmmRewardInfo   `json:"reward_infos"`
+	TickArrayBitmap     []uint64                  `json:"tick_array_bitmap"`
+	Padding6            []uint64                  `json:"padding6"`
+	FundFeesToken0      uint64                    `json:"fund_fees_token_0"`
+	FundFeesToken1      uint64                    `json:"fund_fees_token_1"`
+	OpenTime            uint64                    `json:"open_time"`
+	RecentEpoch         uint64                    `json:"recent_epoch"`
+	DynamicFeeInfo      RaydiumClmmDynamicFeeInfo `json:"dynamic_fee_info"`
+	Padding1            []uint64                  `json:"padding1"`
+	Padding2            []uint64                  `json:"padding2"`
+}
+
+type RaydiumClmmRewardInfo struct {
+	RewardState           uint8  `json:"reward_state"`
+	OpenTime              uint64 `json:"open_time"`
+	EndTime               uint64 `json:"end_time"`
+	LastUpdateTime        uint64 `json:"last_update_time"`
+	EmissionsPerSecondX64 string `json:"emissions_per_second_x64"`
+	RewardTotalEmitted    uint64 `json:"reward_total_emitted"`
+	RewardClaimed         uint64 `json:"reward_claimed"`
+	TokenMint             string `json:"token_mint"`
+	TokenVault            string `json:"token_vault"`
+	Authority             string `json:"authority"`
+	RewardGrowthGlobalX64 string `json:"reward_growth_global_x64"`
+}
+
+type RaydiumClmmDynamicFeeInfo struct {
+	FilterPeriod              uint16  `json:"filter_period"`
+	DecayPeriod               uint16  `json:"decay_period"`
+	ReductionFactor           uint16  `json:"reduction_factor"`
+	DynamicFeeControl         uint32  `json:"dynamic_fee_control"`
+	MaxVolatilityAccumulator  uint32  `json:"max_volatility_accumulator"`
+	TickSpacingIndexReference int32   `json:"tick_spacing_index_reference"`
+	VolatilityReference       uint32  `json:"volatility_reference"`
+	VolatilityAccumulator     uint32  `json:"volatility_accumulator"`
+	LastUpdateTimestamp       uint64  `json:"last_update_timestamp"`
+	Padding                   []uint8 `json:"padding"`
+}
+
+type RaydiumClmmTickArrayStateAccountEvent struct {
+	Metadata       EventMetadata             `json:"metadata"`
+	Pubkey         string                    `json:"pubkey"`
+	TickArrayState RaydiumClmmTickArrayState `json:"tick_array_state"`
+}
+
+func (e *RaydiumClmmTickArrayStateAccountEvent) EventType() EventType {
+	return EventTypeAccountRaydiumClmmTickArrayState
+}
+func (e *RaydiumClmmTickArrayStateAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmTickArrayState struct {
+	PoolID               string            `json:"pool_id"`
+	StartTickIndex       int32             `json:"start_tick_index"`
+	Ticks                []RaydiumClmmTick `json:"ticks"`
+	InitializedTickCount uint8             `json:"initialized_tick_count"`
+	RecentEpoch          uint64            `json:"recent_epoch"`
+	Padding              []uint8           `json:"padding"`
+}
+
+type RaydiumClmmTick struct {
+	Tick                      int32    `json:"tick"`
+	LiquidityNet              string   `json:"liquidity_net"`
+	LiquidityGross            string   `json:"liquidity_gross"`
+	FeeGrowthOutside0X64      string   `json:"fee_growth_outside_0_x64"`
+	FeeGrowthOutside1X64      string   `json:"fee_growth_outside_1_x64"`
+	RewardGrowthsOutsideX64   []string `json:"reward_growths_outside_x64"`
+	OrderPhase                uint64   `json:"order_phase"`
+	OrdersAmount              uint64   `json:"orders_amount"`
+	PartFilledOrdersRemaining uint64   `json:"part_filled_orders_remaining"`
+	UnfilledRatioX64          string   `json:"unfilled_ratio_x64"`
+	Padding                   []uint32 `json:"padding"`
+}
+
+type RaydiumCpmmAmmConfigAccountEvent struct {
+	Metadata  EventMetadata        `json:"metadata"`
+	Pubkey    string               `json:"pubkey"`
+	AmmConfig RaydiumCpmmAmmConfig `json:"amm_config"`
+}
+
+func (e *RaydiumCpmmAmmConfigAccountEvent) EventType() EventType {
+	return EventTypeAccountRaydiumCpmmAmmConfig
+}
+func (e *RaydiumCpmmAmmConfigAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumCpmmAmmConfig struct {
+	Bump              uint8    `json:"bump"`
+	DisableCreatePool bool     `json:"disable_create_pool"`
+	Index             uint16   `json:"index"`
+	TradeFeeRate      uint64   `json:"trade_fee_rate"`
+	ProtocolFeeRate   uint64   `json:"protocol_fee_rate"`
+	FundFeeRate       uint64   `json:"fund_fee_rate"`
+	CreatePoolFee     uint64   `json:"create_pool_fee"`
+	ProtocolOwner     string   `json:"protocol_owner"`
+	FundOwner         string   `json:"fund_owner"`
+	CreatorFeeRate    uint64   `json:"creator_fee_rate"`
+	Padding           []uint64 `json:"padding"`
+}
+
+type RaydiumCpmmPoolStateAccountEvent struct {
+	Metadata  EventMetadata        `json:"metadata"`
+	Pubkey    string               `json:"pubkey"`
+	PoolState RaydiumCpmmPoolState `json:"pool_state"`
+}
+
+func (e *RaydiumCpmmPoolStateAccountEvent) EventType() EventType {
+	return EventTypeAccountRaydiumCpmmPoolState
+}
+func (e *RaydiumCpmmPoolStateAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumCpmmPoolState struct {
+	AmmConfig          string   `json:"amm_config"`
+	PoolCreator        string   `json:"pool_creator"`
+	Token0Vault        string   `json:"token_0_vault"`
+	Token1Vault        string   `json:"token_1_vault"`
+	LpMint             string   `json:"lp_mint"`
+	Token0Mint         string   `json:"token_0_mint"`
+	Token1Mint         string   `json:"token_1_mint"`
+	Token0Program      string   `json:"token_0_program"`
+	Token1Program      string   `json:"token_1_program"`
+	ObservationKey     string   `json:"observation_key"`
+	AuthBump           uint8    `json:"auth_bump"`
+	Status             uint8    `json:"status"`
+	LpMintDecimals     uint8    `json:"lp_mint_decimals"`
+	Mint0Decimals      uint8    `json:"mint_0_decimals"`
+	Mint1Decimals      uint8    `json:"mint_1_decimals"`
+	LpSupply           uint64   `json:"lp_supply"`
+	ProtocolFeesToken0 uint64   `json:"protocol_fees_token_0"`
+	ProtocolFeesToken1 uint64   `json:"protocol_fees_token_1"`
+	FundFeesToken0     uint64   `json:"fund_fees_token_0"`
+	FundFeesToken1     uint64   `json:"fund_fees_token_1"`
+	OpenTime           uint64   `json:"open_time"`
+	RecentEpoch        uint64   `json:"recent_epoch"`
+	CreatorFeeOn       uint8    `json:"creator_fee_on"`
+	EnableCreatorFee   bool     `json:"enable_creator_fee"`
+	Padding1           []uint8  `json:"padding1"`
+	CreatorFeesToken0  uint64   `json:"creator_fees_token_0"`
+	CreatorFeesToken1  uint64   `json:"creator_fees_token_1"`
+	Padding            []uint64 `json:"padding"`
+}
+
+type OrcaWhirlpoolAccountEvent struct {
+	Metadata  EventMetadata        `json:"metadata"`
+	Pubkey    string               `json:"pubkey"`
+	Whirlpool OrcaWhirlpoolAccount `json:"whirlpool"`
+}
+
+func (e *OrcaWhirlpoolAccountEvent) EventType() EventType       { return EventTypeAccountOrcaWhirlpool }
+func (e *OrcaWhirlpoolAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type OrcaWhirlpoolAccount struct {
+	WhirlpoolsConfig           string                    `json:"whirlpools_config"`
+	WhirlpoolBump              uint8                     `json:"whirlpool_bump"`
+	TickSpacing                uint16                    `json:"tick_spacing"`
+	TickSpacingSeed            []uint8                   `json:"tick_spacing_seed"`
+	FeeRate                    uint16                    `json:"fee_rate"`
+	ProtocolFeeRate            uint16                    `json:"protocol_fee_rate"`
+	Liquidity                  string                    `json:"liquidity"`
+	SqrtPrice                  string                    `json:"sqrt_price"`
+	TickCurrentIndex           int32                     `json:"tick_current_index"`
+	ProtocolFeeOwedA           uint64                    `json:"protocol_fee_owed_a"`
+	ProtocolFeeOwedB           uint64                    `json:"protocol_fee_owed_b"`
+	TokenMintA                 string                    `json:"token_mint_a"`
+	TokenVaultA                string                    `json:"token_vault_a"`
+	FeeGrowthGlobalA           string                    `json:"fee_growth_global_a"`
+	TokenMintB                 string                    `json:"token_mint_b"`
+	TokenVaultB                string                    `json:"token_vault_b"`
+	FeeGrowthGlobalB           string                    `json:"fee_growth_global_b"`
+	RewardLastUpdatedTimestamp uint64                    `json:"reward_last_updated_timestamp"`
+	RewardInfos                []OrcaWhirlpoolRewardInfo `json:"reward_infos"`
+}
+
+type OrcaWhirlpoolRewardInfo struct {
+	Mint                  string `json:"mint"`
+	Vault                 string `json:"vault"`
+	Authority             string `json:"authority"`
+	EmissionsPerSecondX64 string `json:"emissions_per_second_x64"`
+	GrowthGlobalX64       string `json:"growth_global_x64"`
+}
+
+type OrcaPositionAccountEvent struct {
+	Metadata EventMetadata       `json:"metadata"`
+	Pubkey   string              `json:"pubkey"`
+	Position OrcaPositionAccount `json:"position"`
+}
+
+func (e *OrcaPositionAccountEvent) EventType() EventType       { return EventTypeAccountOrcaPosition }
+func (e *OrcaPositionAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type OrcaPositionAccount struct {
+	Whirlpool            string                   `json:"whirlpool"`
+	PositionMint         string                   `json:"position_mint"`
+	Liquidity            string                   `json:"liquidity"`
+	TickLowerIndex       int32                    `json:"tick_lower_index"`
+	TickUpperIndex       int32                    `json:"tick_upper_index"`
+	FeeGrowthCheckpointA string                   `json:"fee_growth_checkpoint_a"`
+	FeeOwedA             uint64                   `json:"fee_owed_a"`
+	FeeGrowthCheckpointB string                   `json:"fee_growth_checkpoint_b"`
+	FeeOwedB             uint64                   `json:"fee_owed_b"`
+	RewardInfos          []OrcaPositionRewardInfo `json:"reward_infos"`
+}
+
+type OrcaPositionRewardInfo struct {
+	GrowthInsideCheckpoint string `json:"growth_inside_checkpoint"`
+	AmountOwed             uint64 `json:"amount_owed"`
+}
+
+type OrcaTickArrayAccountEvent struct {
+	Metadata  EventMetadata        `json:"metadata"`
+	Pubkey    string               `json:"pubkey"`
+	TickArray OrcaTickArrayAccount `json:"tick_array"`
+}
+
+func (e *OrcaTickArrayAccountEvent) EventType() EventType       { return EventTypeAccountOrcaTickArray }
+func (e *OrcaTickArrayAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type OrcaTickArrayAccount struct {
+	StartTickIndex int32      `json:"start_tick_index"`
+	Ticks          []OrcaTick `json:"ticks"`
+	Whirlpool      string     `json:"whirlpool"`
+}
+
+type OrcaTick struct {
+	Initialized          bool     `json:"initialized"`
+	LiquidityNet         string   `json:"liquidity_net"`
+	LiquidityGross       string   `json:"liquidity_gross"`
+	FeeGrowthOutsideA    string   `json:"fee_growth_outside_a"`
+	FeeGrowthOutsideB    string   `json:"fee_growth_outside_b"`
+	RewardGrowthsOutside []string `json:"reward_growths_outside"`
+}
+
+type OrcaFeeTierAccountEvent struct {
+	Metadata EventMetadata      `json:"metadata"`
+	Pubkey   string             `json:"pubkey"`
+	FeeTier  OrcaFeeTierAccount `json:"fee_tier"`
+}
+
+func (e *OrcaFeeTierAccountEvent) EventType() EventType       { return EventTypeAccountOrcaFeeTier }
+func (e *OrcaFeeTierAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type OrcaFeeTierAccount struct {
+	WhirlpoolsConfig string `json:"whirlpools_config"`
+	TickSpacing      uint16 `json:"tick_spacing"`
+	DefaultFeeRate   uint16 `json:"default_fee_rate"`
+}
+
+type OrcaWhirlpoolsConfigAccountEvent struct {
+	Metadata EventMetadata               `json:"metadata"`
+	Pubkey   string                      `json:"pubkey"`
+	Config   OrcaWhirlpoolsConfigAccount `json:"config"`
+}
+
+func (e *OrcaWhirlpoolsConfigAccountEvent) EventType() EventType {
+	return EventTypeAccountOrcaWhirlpoolsConfig
+}
+func (e *OrcaWhirlpoolsConfigAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type OrcaWhirlpoolsConfigAccount struct {
+	FeeAuthority                  string `json:"fee_authority"`
+	CollectProtocolFeesAuthority  string `json:"collect_protocol_fees_authority"`
+	RewardEmissionsSuperAuthority string `json:"reward_emissions_super_authority"`
+	DefaultProtocolFeeRate        uint16 `json:"default_protocol_fee_rate"`
+}
 
 // TokenInfoEvent Token Mint 信息事件
 type TokenInfoEvent struct {

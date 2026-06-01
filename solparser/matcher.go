@@ -141,6 +141,68 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 	}
 }
 
+func programScopedLogDiscriminatorEventType(programID string, disc uint64) (EventType, bool) {
+	switch programID {
+	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
+		switch disc {
+		case discRaydiumLaunchlabTrade:
+			return EventTypeRaydiumLaunchlabTrade, true
+		case discRaydiumLaunchlabPoolCreate:
+			return EventTypeRaydiumLaunchlabPoolCreate, true
+		default:
+			return "", false
+		}
+	case METEORA_DAMM_V2_PROGRAM_ID:
+		switch disc {
+		case discDammSwap, discDammSwap2:
+			return EventTypeMeteoraDammV2Swap, true
+		case discDammAdd:
+			return EventTypeMeteoraDammV2AddLiquidity, true
+		case discDammRem:
+			return EventTypeMeteoraDammV2RemoveLiquidity, true
+		case discDammInit:
+			return EventTypeMeteoraDammV2InitializePool, true
+		case discDammCreate:
+			return EventTypeMeteoraDammV2CreatePosition, true
+		case discDammClose:
+			return EventTypeMeteoraDammV2ClosePosition, true
+		default:
+			return "", false
+		}
+	case METEORA_DBC_PROGRAM_ID:
+		switch disc {
+		case discDbcSwap:
+			return EventTypeMeteoraDbcSwap, true
+		case discDbcInit:
+			return EventTypeMeteoraDbcInitializePool, true
+		case discDbcCurve:
+			return EventTypeMeteoraDbcCurveComplete, true
+		default:
+			return "", false
+		}
+	default:
+		return logDiscriminatorEventType(disc)
+	}
+}
+
+func filterIncludesProgram(filter EventTypeFilter, programID string) bool {
+	if filter == nil {
+		return true
+	}
+	switch programID {
+	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
+		return EventTypeFilterIncludesRaydiumLaunchlab(filter)
+	case METEORA_DAMM_V2_PROGRAM_ID:
+		return EventTypeFilterIncludesMeteoraDammV2(filter)
+	case METEORA_DBC_PROGRAM_ID:
+		return EventTypeFilterIncludesMeteoraDbc(filter)
+	case METEORA_DLMM_PROGRAM_ID:
+		return EventTypeFilterIncludesMeteoraDlmm(filter)
+	default:
+		return logFilterAllowsUnknown(filter)
+	}
+}
+
 func logFilterAllowsUnknown(filter EventTypeFilter) bool {
 	if filter == nil {
 		return true
@@ -162,6 +224,10 @@ func applyActualEventTypeFilter(ev DexEvent, filter EventTypeFilter) DexEvent {
 // ParseLogOptimized 超低延迟日志解析（与 Rust `parse_log_optimized` 等价）
 // 使用预定义的 discriminator 常量，避免运行时计算
 func ParseLogOptimized(log, signature string, slot, txIndex uint64, blockTimeUs *int64, grpcRecvUs int64, filter any, isCreatedBuy bool, recentB58 string) DexEvent {
+	return ParseLogOptimizedWithProgramID(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, isCreatedBuy, recentB58, "")
+}
+
+func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64, blockTimeUs *int64, grpcRecvUs int64, filter any, isCreatedBuy bool, recentB58 string, programID string) DexEvent {
 	buf := decodeProgramDataLine(log)
 	if len(buf) < 8 {
 		return DexEvent{}
@@ -171,13 +237,29 @@ func ParseLogOptimized(log, signature string, slot, txIndex uint64, blockTimeUs 
 	meta := makeMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs, recentB58)
 	eventFilter, _ := filter.(EventTypeFilter)
 	if eventFilter != nil {
-		if eventType, ok := logDiscriminatorEventType(disc); ok {
+		eventType, ok := logDiscriminatorEventType(disc)
+		if programID != "" {
+			eventType, ok = programScopedLogDiscriminatorEventType(programID, disc)
+		}
+		if ok {
 			if !eventFilter.ShouldInclude(eventType) {
 				return DexEvent{}
 			}
+		} else if programID != "" && !filterIncludesProgram(eventFilter, programID) {
+			return DexEvent{}
 		} else if !logFilterAllowsUnknown(eventFilter) {
 			return DexEvent{}
 		}
+	}
+
+	if programID == RAYDIUM_LAUNCHLAB_PROGRAM_ID {
+		return applyActualEventTypeFilter(ParseRaydiumLaunchlabFromDiscriminator(disc, data, meta), eventFilter)
+	}
+	if programID == METEORA_DBC_PROGRAM_ID {
+		return applyActualEventTypeFilter(parseMeteoraDbcFromDiscriminator(disc, data, meta), eventFilter)
+	}
+	if programID == METEORA_DLMM_PROGRAM_ID {
+		return applyActualEventTypeFilter(parseDlmmFromProgramData(buf, meta), eventFilter)
 	}
 
 	// 热路径：PumpFun Trade（最频繁的事件）
@@ -307,4 +389,51 @@ func ParseLogOptimized(log, signature string, slot, txIndex uint64, blockTimeUs 
 		// Meteora DLMM 事件
 		return applyActualEventTypeFilter(parseDlmmFromProgramData(buf, meta), eventFilter)
 	}
+}
+
+func ParseInvokeInfo(log string) (string, int, bool) {
+	const prefix = "Program "
+	start := strings.Index(log, prefix)
+	if start < 0 {
+		return "", 0, false
+	}
+	const marker = " invoke ["
+	mid := strings.Index(log[start+len(prefix):], marker)
+	if mid < 0 {
+		return "", 0, false
+	}
+	mid += start + len(prefix)
+	programID := log[start+len(prefix) : mid]
+	depthStart := mid + len(marker)
+	depthEndRel := strings.Index(log[depthStart:], "]")
+	if depthEndRel < 0 {
+		return "", 0, false
+	}
+	depth := 0
+	for _, ch := range log[depthStart : depthStart+depthEndRel] {
+		if ch < '0' || ch > '9' {
+			return "", 0, false
+		}
+		depth = depth*10 + int(ch-'0')
+	}
+	if programID == "" || depth <= 0 {
+		return "", 0, false
+	}
+	return programID, depth, true
+}
+
+func ParseProgramCompleteInfo(log string) (string, bool) {
+	const prefix = "Program "
+	start := strings.Index(log, prefix)
+	if start < 0 {
+		return "", false
+	}
+	restStart := start + len(prefix)
+	if idx := strings.Index(log[restStart:], " success"); idx >= 0 {
+		return log[restStart : restStart+idx], true
+	}
+	if idx := strings.Index(log[restStart:], " failed:"); idx >= 0 {
+		return log[restStart : restStart+idx], true
+	}
+	return "", false
 }

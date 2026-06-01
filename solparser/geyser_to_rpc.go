@@ -25,10 +25,11 @@ func SubscribeUpdateInfoToRpc(slot uint64, info *SubscribeUpdateTransactionInfo)
 	meta := pbMetaToRpc(info.Meta)
 
 	return &RpcTransactionResponse{
-		Slot:        slot,
-		BlockTime:   nil,
-		Meta:        meta,
-		Transaction: rpcTx,
+		Slot:             slot,
+		BlockTime:        nil,
+		Meta:             meta,
+		Transaction:      rpcTx,
+		TransactionIndex: info.Index,
 	}, nil
 }
 
