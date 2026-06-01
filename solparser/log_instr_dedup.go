@@ -15,9 +15,9 @@ const (
 	dedupPumpFunCreate
 	dedupPumpFunCreateV2
 	dedupPumpFunMigrate
-	dedupBonkTrade
-	dedupBonkPoolCreate
-	dedupBonkMigrateAmm
+	dedupRaydiumLaunchlabTrade
+	dedupRaydiumLaunchlabPoolCreate
+	dedupRaydiumLaunchlabMigrateAmm
 	dedupPumpSwapBuy
 	dedupPumpSwapSell
 	dedupPumpSwapCreatePool
@@ -86,17 +86,17 @@ func dedupeKey(ev DexEvent, pumpfunLaneCounts map[pumpfunLaneBase]uint16) (logIn
 		if m, ok := ev.Data.(*PumpFunMigrateEvent); ok && m != nil {
 			return logInstrDedupKey{kind: dedupPumpFunMigrate, a: m.Mint, b: m.Pool, c: m.User}, true
 		}
-	case EventTypeBonkTrade:
-		if t, ok := ev.Data.(*BonkTradeEvent); ok && t != nil {
-			return logInstrDedupKey{kind: dedupBonkTrade, a: t.PoolState, b: t.User, flag: t.IsBuy}, true
+	case EventTypeRaydiumLaunchlabTrade:
+		if t, ok := ev.Data.(*RaydiumLaunchlabTradeEvent); ok && t != nil {
+			return logInstrDedupKey{kind: dedupRaydiumLaunchlabTrade, a: t.PoolState, b: t.User, flag: t.IsBuy}, true
 		}
-	case EventTypeBonkPoolCreate:
-		if p, ok := ev.Data.(*BonkPoolCreateEvent); ok && p != nil {
-			return logInstrDedupKey{kind: dedupBonkPoolCreate, a: p.PoolState}, true
+	case EventTypeRaydiumLaunchlabPoolCreate:
+		if p, ok := ev.Data.(*RaydiumLaunchlabPoolCreateEvent); ok && p != nil {
+			return logInstrDedupKey{kind: dedupRaydiumLaunchlabPoolCreate, a: p.PoolState}, true
 		}
-	case EventTypeBonkMigrateAmm:
-		if m, ok := ev.Data.(*BonkMigrateAmmEvent); ok && m != nil {
-			return logInstrDedupKey{kind: dedupBonkMigrateAmm, a: m.OldPool, b: m.NewPool, c: m.User}, true
+	case EventTypeRaydiumLaunchlabMigrateAmm:
+		if m, ok := ev.Data.(*RaydiumLaunchlabMigrateAmmEvent); ok && m != nil {
+			return logInstrDedupKey{kind: dedupRaydiumLaunchlabMigrateAmm, a: m.OldPool, b: m.NewPool, c: m.User}, true
 		}
 	case EventTypePumpSwapBuy:
 		if b, ok := ev.Data.(*PumpSwapBuyEvent); ok && b != nil {
@@ -184,6 +184,8 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillStringIfDefault(&l.User, i.User)
 			fillStringIfDefault(&l.Creator, i.Creator)
 			fillStringIfDefault(&l.TokenProgram, i.TokenProgram)
+			fillStringIfDefault(&l.QuoteMint, i.QuoteMint)
+			fillUint64IfDefault(&l.VirtualQuoteReserves, i.VirtualQuoteReserves)
 		}
 	case EventTypePumpFunCreateV2:
 		l, ok1 := log.Data.(*PumpFunCreateV2TokenEvent)
@@ -196,6 +198,8 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillStringIfDefault(&l.User, i.User)
 			fillStringIfDefault(&l.Creator, i.Creator)
 			fillStringIfDefault(&l.TokenProgram, i.TokenProgram)
+			fillStringIfDefault(&l.QuoteMint, i.QuoteMint)
+			fillUint64IfDefault(&l.VirtualQuoteReserves, i.VirtualQuoteReserves)
 			fillStringIfDefault(&l.MintAuthority, i.MintAuthority)
 			fillStringIfDefault(&l.AssociatedBondingCurve, i.AssociatedBondingCurve)
 			fillStringIfDefault(&l.Global, i.Global)
@@ -285,18 +289,18 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillStringIfDefault(&l.UserSourceTokenAccount, i.UserSourceTokenAccount)
 			fillStringIfDefault(&l.UserDestinationTokenAccount, i.UserDestinationTokenAccount)
 		}
-	case EventTypeBonkPoolCreate:
-		l, ok1 := log.Data.(*BonkPoolCreateEvent)
-		i, ok2 := ix.Data.(*BonkPoolCreateEvent)
+	case EventTypeRaydiumLaunchlabPoolCreate:
+		l, ok1 := log.Data.(*RaydiumLaunchlabPoolCreateEvent)
+		i, ok2 := ix.Data.(*RaydiumLaunchlabPoolCreateEvent)
 		if ok1 && ok2 && l != nil && i != nil {
 			fillStringIfDefault(&l.Creator, i.Creator)
 			fillStringIfDefault(&l.BaseMintParam.Name, i.BaseMintParam.Name)
 			fillStringIfDefault(&l.BaseMintParam.Symbol, i.BaseMintParam.Symbol)
 			fillStringIfDefault(&l.BaseMintParam.Uri, i.BaseMintParam.Uri)
 		}
-	case EventTypeBonkMigrateAmm:
-		l, ok1 := log.Data.(*BonkMigrateAmmEvent)
-		i, ok2 := ix.Data.(*BonkMigrateAmmEvent)
+	case EventTypeRaydiumLaunchlabMigrateAmm:
+		l, ok1 := log.Data.(*RaydiumLaunchlabMigrateAmmEvent)
+		i, ok2 := ix.Data.(*RaydiumLaunchlabMigrateAmmEvent)
 		if ok1 && ok2 && l != nil && i != nil {
 			fillStringIfDefault(&l.OldPool, i.OldPool)
 			fillStringIfDefault(&l.NewPool, i.NewPool)

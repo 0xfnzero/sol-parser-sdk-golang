@@ -31,3 +31,54 @@ func TestPumpfunInnerTradeDiscMatchesLogDiscPlusSuffix(t *testing.T) {
 		t.Fatalf("pumpfun inner trade disc mismatch")
 	}
 }
+
+func TestParseInnerInstructionAppliesActualEventTypeFilter(t *testing.T) {
+	const pumpswapBuyPayloadLen = 16*8 + 7*32 + 1 + 5*8 + 4
+	ix := append(append([]byte{}, pumpswapInnerBuy...), make([]byte, pumpswapBuyPayloadLen)...)
+
+	ev := ParseInnerInstructionUnified(ix, nil, "sig", 1, 0, nil, 10, nil, PUMPSWAP_PROGRAM_ID, false)
+	if ev.Type != EventTypePumpSwapBuy {
+		t.Fatalf("expected unfiltered PumpSwapBuy, got %q", ev.Type)
+	}
+
+	ev = ParseInnerInstructionUnified(
+		ix,
+		nil,
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+		EventTypeFilterIncludeOnly([]EventType{EventTypePumpSwapCreatePool}),
+		PUMPSWAP_PROGRAM_ID,
+		false,
+	)
+	if ev.Type != "" {
+		t.Fatalf("include-only PumpSwapCreatePool should drop buy CPI, got %q", ev.Type)
+	}
+
+	ev = ParseInnerInstructionUnified(
+		ix,
+		nil,
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+		EventTypeFilterIncludeOnly([]EventType{EventTypePumpSwapTrade}),
+		PUMPSWAP_PROGRAM_ID,
+		false,
+	)
+	if ev.Type != EventTypePumpSwapBuy {
+		t.Fatalf("PumpSwapTrade include-only should keep buy CPI, got %q", ev.Type)
+	}
+}
+
+func TestParsePumpSwapBuyRejectsTruncatedMinBasePayload(t *testing.T) {
+	if ev := parsePSBuyFromData(make([]byte, 396), EventMetadata{}); ev.Type != "" {
+		t.Fatalf("truncated buy payload should not parse, got %q", ev.Type)
+	}
+	if ev := parsePSBuyFromData(make([]byte, 397), EventMetadata{}); ev.Type != EventTypePumpSwapBuy {
+		t.Fatalf("full minimum buy payload should parse, got %q", ev.Type)
+	}
+}

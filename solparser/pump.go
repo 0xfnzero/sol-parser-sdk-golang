@@ -2,6 +2,19 @@ package solparser
 
 // PumpFun discriminators 已在 binary.go 中定义
 
+func normalizePumpfunIxName(ixName string) string {
+	switch ixName {
+	case "buy_v2":
+		return "buy"
+	case "sell_v2":
+		return "sell"
+	case "buy_exact_quote_in_v2":
+		return "buy_exact_quote_in"
+	default:
+		return ixName
+	}
+}
+
 func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexEvent {
 	if len(data) < 32+8+8+1+32+8*5+32+8+8+32+8+8 {
 		return DexEvent{}
@@ -84,6 +97,7 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 			o = next
 		}
 	}
+	ixName = normalizePumpfunIxName(ixName)
 	mm := false
 	if o < len(data) {
 		mm, _ = readBool(data, o)
@@ -190,12 +204,14 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	}
 
 	switch ixName {
-	case "buy", "buy_v2":
+	case "buy":
 		return DexEvent{Type: EventTypePumpFunBuy, Data: ev}
-	case "sell", "sell_v2":
+	case "sell":
 		return DexEvent{Type: EventTypePumpFunSell, Data: ev}
-	case "buy_exact_sol_in", "buy_exact_quote_in", "buy_exact_quote_in_v2":
+	case "buy_exact_sol_in":
 		return DexEvent{Type: EventTypePumpFunBuyExactSolIn, Data: ev}
+	case "buy_exact_quote_in":
+		return DexEvent{Type: EventTypePumpFunBuy, Data: ev}
 	default:
 		return DexEvent{Type: EventTypePumpFunTrade, Data: ev}
 	}
@@ -250,6 +266,16 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 	if o < len(data) {
 		ice, _ = readBool(data, o)
 	}
+	o++
+	quoteMint := zeroPubkey
+	if o+32 <= len(data) {
+		quoteMint, _ = readPubkey(data, o)
+	}
+	o += 32
+	var virtualQuoteReserves uint64
+	if o+8 <= len(data) {
+		virtualQuoteReserves, _ = readU64LE(data, o)
+	}
 
 	return DexEvent{
 		Type: EventTypePumpFunCreate,
@@ -270,6 +296,8 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 			TokenProgram:         tp,
 			IsMayhemMode:         mm,
 			IsCashbackEnabled:    ice,
+			QuoteMint:            quoteMint,
+			VirtualQuoteReserves: virtualQuoteReserves,
 		},
 	}
 }
@@ -360,9 +388,7 @@ func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
 	isV2 := ev.IxName == "buy_v2" ||
 		ev.IxName == "sell_v2" ||
 		ev.IxName == "buy_exact_quote_in_v2" ||
-		(ev.IxName == "buy_exact_quote_in" &&
-			ev.Mint != "" && ev.Mint != zeroPubkey &&
-			getAccountSafe(accounts, 1) == ev.Mint)
+		(ev.Mint != "" && ev.Mint != zeroPubkey && getAccountSafe(accounts, 1) == ev.Mint)
 	if isV2 {
 		set(&ev.Global, 0)
 		set(&ev.QuoteMint, 2)
@@ -382,7 +408,7 @@ func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
 		set(&ev.AssociatedQuoteUser, 15)
 		set(&ev.AssociatedCreatorVault, 17)
 		set(&ev.SharingConfig, 18)
-		if ev.IxName == "sell_v2" {
+		if ev.IxName == "sell_v2" || (ev.IxName == "sell" && !ev.IsBuy) {
 			set(&ev.UserVolumeAccumulator, 19)
 			set(&ev.AssociatedUserVolumeAccumulator, 20)
 			set(&ev.FeeConfig, 21)

@@ -118,12 +118,8 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDammV2CreatePosition, true
 	case discDammClose:
 		return EventTypeMeteoraDammV2ClosePosition, true
-	case discBonkTrade:
-		return EventTypeBonkTrade, true
-	case discBonkPoolCreate:
-		return EventTypeBonkPoolCreate, true
-	case discBonkMigrateAmm:
-		return EventTypeBonkMigrateAmm, true
+	case discRaydiumLaunchlabPoolCreate:
+		return EventTypeRaydiumLaunchlabPoolCreate, true
 	case dlmmSwap:
 		return EventTypeMeteoraDlmmSwap, true
 	case dlmmAddLiq:
@@ -304,9 +300,9 @@ func ParseLogOptimized(log, signature string, slot, txIndex uint64, blockTimeUs 
 		return applyActualEventTypeFilter(ParseMeteoraDammLog(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs), eventFilter)
 
 	default:
-		// Bonk 事件
-		if disc == discBonkTrade || disc == discBonkPoolCreate || disc == discBonkMigrateAmm {
-			return applyActualEventTypeFilter(ParseBonkFromDiscriminator(disc, data, meta), eventFilter)
+		// RaydiumLaunchlab 事件；Trade discriminator 与 PumpFunTrade 相同，需依赖上游 program context。
+		if disc == discRaydiumLaunchlabPoolCreate {
+			return applyActualEventTypeFilter(ParseRaydiumLaunchlabFromDiscriminator(disc, data, meta), eventFilter)
 		}
 		// Meteora DLMM 事件
 		return applyActualEventTypeFilter(parseDlmmFromProgramData(buf, meta), eventFilter)

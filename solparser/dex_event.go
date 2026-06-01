@@ -133,11 +133,11 @@ func (e DexEvent) GetMetadata() EventMetadata {
 		return d.Metadata
 	case *MeteoraDammV2InitializePoolEvent:
 		return d.Metadata
-	case *BonkTradeEvent:
+	case *RaydiumLaunchlabTradeEvent:
 		return d.Metadata
-	case *BonkPoolCreateEvent:
+	case *RaydiumLaunchlabPoolCreateEvent:
 		return d.Metadata
-	case *BonkMigrateAmmEvent:
+	case *RaydiumLaunchlabMigrateAmmEvent:
 		return d.Metadata
 	case *TokenInfoEvent:
 		return d.Metadata
@@ -282,11 +282,11 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 		d.Metadata.RecentBlockhash = h
 	case *MeteoraDammV2InitializePoolEvent:
 		d.Metadata.RecentBlockhash = h
-	case *BonkTradeEvent:
+	case *RaydiumLaunchlabTradeEvent:
 		d.Metadata.RecentBlockhash = h
-	case *BonkPoolCreateEvent:
+	case *RaydiumLaunchlabPoolCreateEvent:
 		d.Metadata.RecentBlockhash = h
-	case *BonkMigrateAmmEvent:
+	case *RaydiumLaunchlabMigrateAmmEvent:
 		d.Metadata.RecentBlockhash = h
 	case *TokenInfoEvent:
 		d.Metadata.RecentBlockhash = h
@@ -433,9 +433,9 @@ func (e DexEvent) AsMeteoraDammV2Swap() *MeteoraDammV2SwapEvent {
 	return nil
 }
 
-// AsBonkTrade 返回 BonkTradeEvent
-func (e DexEvent) AsBonkTrade() *BonkTradeEvent {
-	if p, ok := e.Data.(*BonkTradeEvent); ok {
+// AsRaydiumLaunchlabTrade 返回 RaydiumLaunchlabTradeEvent
+func (e DexEvent) AsRaydiumLaunchlabTrade() *RaydiumLaunchlabTradeEvent {
+	if p, ok := e.Data.(*RaydiumLaunchlabTradeEvent); ok {
 		return p
 	}
 	return nil
@@ -445,7 +445,8 @@ func (e DexEvent) AsBonkTrade() *BonkTradeEvent {
 func (e DexEvent) IsPumpFun() bool {
 	switch e.Type {
 	case EventTypePumpFunTrade, EventTypePumpFunBuy, EventTypePumpFunSell,
-		EventTypePumpFunBuyExactSolIn, EventTypePumpFunCreate, EventTypePumpFunMigrate,
+		EventTypePumpFunBuyExactSolIn,
+		EventTypePumpFunCreate, EventTypePumpFunMigrate,
 		EventTypePumpFunCreateV2, EventTypePumpFunMigrateBondingCurveCreator,
 		EventTypeAccountPumpFunGlobal, EventTypeAccountPumpFunBondingCurve,
 		EventTypeAccountPumpFunFeeConfig, EventTypeAccountPumpFunSharingConfig,
@@ -480,7 +481,7 @@ func (e DexEvent) IsTrade() bool {
 		EventTypeRaydiumClmmSwap, EventTypeRaydiumCpmmSwap,
 		EventTypeOrcaWhirlpoolSwap,
 		EventTypeMeteoraDlmmSwap, EventTypeMeteoraPoolsSwap, EventTypeMeteoraDammV2Swap,
-		EventTypeBonkTrade:
+		EventTypeRaydiumLaunchlabTrade:
 		return true
 	default:
 		return false

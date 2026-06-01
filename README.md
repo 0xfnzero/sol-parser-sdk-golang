@@ -33,6 +33,16 @@
 | Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) |
 | Go | [github.com/0xfnzero/sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) |
 
+## Release notes
+
+### v0.5.5
+
+- Aligns ShredStream wire-transaction parsing with Rust/Node.js/Python.
+- Uses default pubkey placeholders for V0 ALT-loaded instruction accounts instead of dropping the instruction.
+- Adds discriminator fallback when the ShredStream outer program id is ALT-loaded.
+- Improves Pump.fun v2 short-account parsing, same-transaction post-merge enrichment, and multi-protocol routing parity.
+- Adds regression coverage for ShredStream ALT account and ALT program-id fallback.
+
 ---
 
 ## How to use
@@ -52,7 +62,7 @@ go mod tidy
 **Use in another module**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.4.5
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.5
 ```
 
 (Or use `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` for local development.)
@@ -109,7 +119,7 @@ export SHRED_URL="http://127.0.0.1:10800"
 go run examples/shredstream_entries.go
 ```
 
-The example decodes `Entry.entries`, optionally parses outer instructions to **`DexEvent` JSON** via **`DexEventsFromShredTransactionWire`** (static account keys only; V0 + ALT may need TS **`shredstream_pumpfun_json`** + RPC for full keys).
+The example decodes `Entry.entries`, optionally parses outer instructions to **`DexEvent` JSON** via **`DexEventsFromShredTransactionWire`**. This hot path uses static account keys only; V0 ALT-loaded instruction accounts are represented with default pubkey placeholders, and ALT-loaded outer program ids are parsed best-effort by discriminator. Inner CPI/log-only events still require Yellowstone/RPC paths.
 
 ---
 
@@ -141,7 +151,7 @@ Run from the **repository root** after `go mod tidy`. One row per source file (l
 
 ## Protocols
 
-PumpFun, PumpSwap, Raydium AMM V4 / CLMM / CPMM, Orca Whirlpool, Meteora DAMM V2 / DLMM, Bonk Launchpad (see `solparser/`).
+PumpFun, PumpSwap, Raydium AMM V4 / CLMM / CPMM, Orca Whirlpool, Meteora DAMM V2 / DLMM, Raydium LaunchLab (see `solparser/`).
 
 ---
 
@@ -150,7 +160,7 @@ PumpFun, PumpSwap, Raydium AMM V4 / CLMM / CPMM, Orca Whirlpool, Meteora DAMM V2
 - **`ParseSubscribeTransaction`** — Geyser single-tx → `[]DexEvent` (instructions + logs + merge + Pump account fill).
 - **`ParseRpcTransaction`** / **`ParseTransactionFromRpc`** — HTTP RPC JSON → events.
 - **`ParseInstructionUnified`** / **`ParseInnerInstructionUnified`** — outer 8-byte / inner 16-byte discriminators.
-- **`DexEventsFromShredTransactionWire`** — wire tx bytes → outer `ParseInstructionUnified` (Shred static keys).
+- **`DexEventsFromShredTransactionWire`** — wire tx bytes → outer `ParseInstructionUnified` (Shred static keys + ALT best-effort fallback).
 - **`DecodeGRPCEntry`** / **`DecodeEntriesBincode`** — ShredStream `Entry.entries` bytes → `DecodedTransaction` slices.
 - **`DexEvent`** — `json.Marshal` for `{ "PumpSwapBuy": { … } }` style output.
 

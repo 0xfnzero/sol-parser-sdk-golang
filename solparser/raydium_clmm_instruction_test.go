@@ -118,3 +118,114 @@ func TestParseRaydiumClmmOpenAndClosePosition(t *testing.T) {
 		t.Fatalf("unexpected close accounts: %+v", closeEvent)
 	}
 }
+
+func TestMeteoraDbcLogEventsDoNotEnableInstructionPrefilter(t *testing.T) {
+	if EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeMeteoraDbcSwap}) {
+		t.Fatalf("DBC log-only events should not enable instruction parsing")
+	}
+}
+
+func TestParseMeteoraPoolsAndDlmmOuterInstructionsAreRouted(t *testing.T) {
+	if !EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeMeteoraPoolsSwap}) {
+		t.Fatalf("include_only prefilter should allow Meteora Pools instructions")
+	}
+	pools := ParseInstructionUnified(
+		clmmU64Instruction(instrMeteoraPoolsSwap, 111, 222),
+		raydiumClmmTestAccounts(2),
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+		&IncludeOnlyFilter{IncludeOnly: []EventType{EventTypeMeteoraPoolsSwap}},
+		METEORA_POOLS_PROGRAM_ID,
+	)
+	if pools.Type != EventTypeMeteoraPoolsSwap {
+		t.Fatalf("expected MeteoraPoolsSwap, got %q", pools.Type)
+	}
+	poolsSwap, ok := pools.Data.(*MeteoraPoolsSwapEvent)
+	if !ok {
+		t.Fatalf("expected MeteoraPoolsSwapEvent, got %T", pools.Data)
+	}
+	if poolsSwap.InAmount != 111 || poolsSwap.OutAmount != 222 {
+		t.Fatalf("unexpected Meteora Pools swap values: %+v", poolsSwap)
+	}
+
+	if !EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeMeteoraDlmmSwap}) {
+		t.Fatalf("include_only prefilter should allow Meteora DLMM instructions")
+	}
+	dlmmIx := make([]byte, 17)
+	dlmmIx[0] = 11
+	binary.LittleEndian.PutUint64(dlmmIx[1:9], 333)
+	binary.LittleEndian.PutUint64(dlmmIx[9:17], 444)
+	dlmm := ParseInstructionUnified(
+		dlmmIx,
+		raydiumClmmTestAccounts(3),
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+		&IncludeOnlyFilter{IncludeOnly: []EventType{EventTypeMeteoraDlmmSwap}},
+		METEORA_DLMM_PROGRAM_ID,
+	)
+	if dlmm.Type != EventTypeMeteoraDlmmSwap {
+		t.Fatalf("expected MeteoraDlmmSwap, got %q", dlmm.Type)
+	}
+	dlmmSwap, ok := dlmm.Data.(*MeteoraDlmmSwapEvent)
+	if !ok {
+		t.Fatalf("expected MeteoraDlmmSwapEvent, got %T", dlmm.Data)
+	}
+	if dlmmSwap.Pool != "account_0" || dlmmSwap.From != "account_1" || dlmmSwap.AmountIn != 333 {
+		t.Fatalf("unexpected Meteora DLMM swap values: %+v", dlmmSwap)
+	}
+}
+
+func TestParseRaydiumLaunchlabBuyExactInUsesRustLayout(t *testing.T) {
+	ix := clmmU64Instruction(instrRaydiumLaunchlabBuyExactIn, 111, 222)
+	ev := ParseRaydiumLaunchlabInstruction(ix, raydiumClmmTestAccounts(6), "sig", 1, 0, nil, 10)
+	if ev.Type != EventTypeRaydiumLaunchlabTrade {
+		t.Fatalf("expected RaydiumLaunchlabTrade, got %q", ev.Type)
+	}
+	trade, ok := ev.Data.(*RaydiumLaunchlabTradeEvent)
+	if !ok {
+		t.Fatalf("expected RaydiumLaunchlabTradeEvent, got %T", ev.Data)
+	}
+	if trade.PoolState != "account_4" || trade.User != "account_0" {
+		t.Fatalf("unexpected accounts: %+v", trade)
+	}
+	if trade.AmountIn != 111 || trade.AmountOut != 222 || !trade.IsBuy || !trade.ExactIn {
+		t.Fatalf("unexpected trade values: %+v", trade)
+	}
+
+	routed := ParseInstructionUnified(
+		ix,
+		raydiumClmmTestAccounts(6),
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+		nil,
+		RAYDIUM_LAUNCHLAB_PROGRAM_ID,
+	)
+	if routed.Type != EventTypeRaydiumLaunchlabTrade {
+		t.Fatalf("unified parser should route Raydium LaunchLab, got %q", routed.Type)
+	}
+}
+
+func TestNonPumpAccountEventNamesDoNotEnableInstructionPrefilter(t *testing.T) {
+	events := map[EventType]bool{}
+	for _, eventType := range AllEventTypes() {
+		events[eventType] = true
+	}
+	if !events[EventTypeAccountRaydiumCpmmPoolState] || !events[EventTypeAccountOrcaWhirlpool] {
+		t.Fatalf("expected new non-Pump account event names in AllEventTypes")
+	}
+	if EventTypeFilterAllowsInstructionParsing([]EventType{
+		EventTypeAccountRaydiumCpmmPoolState,
+		EventTypeAccountOrcaWhirlpool,
+	}) {
+		t.Fatalf("account-only event filters should not enable instruction parsing")
+	}
+}

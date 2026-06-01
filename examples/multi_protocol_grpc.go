@@ -48,7 +48,7 @@ func main() {
 	protocols := []solparser.Protocol{
 		solparser.ProtocolPumpFun,
 		solparser.ProtocolPumpSwap,
-		solparser.ProtocolBonk,
+		solparser.ProtocolRaydiumLaunchlab,
 		solparser.ProtocolRaydiumCpmm,
 		solparser.ProtocolRaydiumClmm,
 		solparser.ProtocolRaydiumAmmV4,

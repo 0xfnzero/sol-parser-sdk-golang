@@ -107,6 +107,8 @@ type PumpFunCreateEvent struct {
 	TokenProgram         string        `json:"token_program"`
 	IsMayhemMode         bool          `json:"is_mayhem_mode"`
 	IsCashbackEnabled    bool          `json:"is_cashback_enabled"`
+	QuoteMint            string        `json:"quote_mint"`
+	VirtualQuoteReserves uint64        `json:"virtual_quote_reserves"`
 }
 
 func (e *PumpFunCreateEvent) EventType() EventType       { return EventTypePumpFunCreate }
@@ -130,6 +132,8 @@ type PumpFunCreateV2TokenEvent struct {
 	TokenProgram           string        `json:"token_program"`
 	IsMayhemMode           bool          `json:"is_mayhem_mode"`
 	IsCashbackEnabled      bool          `json:"is_cashback_enabled"`
+	QuoteMint              string        `json:"quote_mint"`
+	VirtualQuoteReserves   uint64        `json:"virtual_quote_reserves"`
 	MintAuthority          string        `json:"mint_authority"`
 	AssociatedBondingCurve string        `json:"associated_bonding_curve"`
 	Global                 string        `json:"global"`
@@ -1351,11 +1355,11 @@ func (e *MeteoraDammV2InitializePoolEvent) EventType() EventType {
 func (e *MeteoraDammV2InitializePoolEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // ============================================================
-// Bonk 事件结构体
+// RaydiumLaunchlab 事件结构体
 // ============================================================
 
-// BonkTradeEvent Bonk 交易事件
-type BonkTradeEvent struct {
+// RaydiumLaunchlabTradeEvent RaydiumLaunchlab 交易事件
+type RaydiumLaunchlabTradeEvent struct {
 	Metadata       EventMetadata `json:"metadata"`
 	PoolState      string        `json:"pool_state"`
 	User           string        `json:"user"`
@@ -1366,30 +1370,32 @@ type BonkTradeEvent struct {
 	ExactIn        bool          `json:"exact_in"`
 }
 
-func (e *BonkTradeEvent) EventType() EventType       { return EventTypeBonkTrade }
-func (e *BonkTradeEvent) GetMetadata() EventMetadata { return e.Metadata }
+func (e *RaydiumLaunchlabTradeEvent) EventType() EventType       { return EventTypeRaydiumLaunchlabTrade }
+func (e *RaydiumLaunchlabTradeEvent) GetMetadata() EventMetadata { return e.Metadata }
 
-// BonkPoolCreateEvent Bonk 创建池子事件
-type BonkPoolCreateEvent struct {
-	Metadata      EventMetadata `json:"metadata"`
-	BaseMintParam BonkMintParam `json:"base_mint_param"`
-	PoolState     string        `json:"pool_state"`
-	Creator       string        `json:"creator"`
+// RaydiumLaunchlabPoolCreateEvent RaydiumLaunchlab 创建池子事件
+type RaydiumLaunchlabPoolCreateEvent struct {
+	Metadata      EventMetadata             `json:"metadata"`
+	BaseMintParam RaydiumLaunchlabMintParam `json:"base_mint_param"`
+	PoolState     string                    `json:"pool_state"`
+	Creator       string                    `json:"creator"`
 }
 
-// BonkMintParam Bonk mint 参数
-type BonkMintParam struct {
+// RaydiumLaunchlabMintParam RaydiumLaunchlab mint 参数
+type RaydiumLaunchlabMintParam struct {
 	Symbol   string `json:"symbol"`
 	Name     string `json:"name"`
 	Uri      string `json:"uri"`
 	Decimals uint8  `json:"decimals"`
 }
 
-func (e *BonkPoolCreateEvent) EventType() EventType       { return EventTypeBonkPoolCreate }
-func (e *BonkPoolCreateEvent) GetMetadata() EventMetadata { return e.Metadata }
+func (e *RaydiumLaunchlabPoolCreateEvent) EventType() EventType {
+	return EventTypeRaydiumLaunchlabPoolCreate
+}
+func (e *RaydiumLaunchlabPoolCreateEvent) GetMetadata() EventMetadata { return e.Metadata }
 
-// BonkMigrateAmmEvent Bonk 迁移 AMM 事件
-type BonkMigrateAmmEvent struct {
+// RaydiumLaunchlabMigrateAmmEvent RaydiumLaunchlab 迁移 AMM 事件
+type RaydiumLaunchlabMigrateAmmEvent struct {
 	Metadata        EventMetadata `json:"metadata"`
 	OldPool         string        `json:"old_pool"`
 	NewPool         string        `json:"new_pool"`
@@ -1397,8 +1403,10 @@ type BonkMigrateAmmEvent struct {
 	LiquidityAmount uint64        `json:"liquidity_amount"`
 }
 
-func (e *BonkMigrateAmmEvent) EventType() EventType       { return EventTypeBonkMigrateAmm }
-func (e *BonkMigrateAmmEvent) GetMetadata() EventMetadata { return e.Metadata }
+func (e *RaydiumLaunchlabMigrateAmmEvent) EventType() EventType {
+	return EventTypeRaydiumLaunchlabMigrateAmm
+}
+func (e *RaydiumLaunchlabMigrateAmmEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // ============================================================
 // Account 事件结构体

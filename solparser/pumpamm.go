@@ -1,7 +1,7 @@
 package solparser
 
 func parsePSBuyFromData(data []byte, meta EventMetadata) DexEvent {
-	const min = 14*8 + 7*32 + 1 + 5*8 + 4
+	const min = 16*8 + 7*32 + 1 + 5*8 + 4
 	if len(data) < min {
 		return DexEvent{}
 	}

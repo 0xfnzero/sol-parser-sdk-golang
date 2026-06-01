@@ -33,6 +33,16 @@
 | Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) |
 | Go | [github.com/0xfnzero/sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) |
 
+## 发布说明
+
+### v0.5.5
+
+- ShredStream 线格式交易解析与 Rust/Node.js/Python 对齐。
+- V0 ALT-loaded 指令账户不再整条跳过，而是用默认 pubkey 占位继续 best-effort 解析。
+- 当 ShredStream 外层 program id 来自 ALT 时，按 discriminator 做候选 program id fallback。
+- 改进 Pump.fun v2 短账户解析、同交易 post-merge 补全和多协议路由一致性。
+- 新增 ShredStream ALT 账户与 ALT program id fallback 回归测试。
+
 ---
 
 ## 怎么用
@@ -52,7 +62,7 @@ go mod tidy
 **在其他 Go 工程引用**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.4.5
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.5
 ```
 
 （本地开发可用 `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` 指向克隆目录。）
@@ -109,7 +119,7 @@ export SHRED_URL="http://127.0.0.1:10800"
 go run examples/shredstream_entries.go
 ```
 
-示例对 `Entry.entries` 解码，并可选择将线格式交易走 **`DexEventsFromShredTransactionWire`** 输出 **`DexEvent` JSON**（仅静态账户；V0+ALT 完整账户需 Node 版 **`shredstream_pumpfun_json`** + RPC）。
+示例对 `Entry.entries` 解码，并可选择将线格式交易走 **`DexEventsFromShredTransactionWire`** 输出 **`DexEvent` JSON**。该热路径只使用静态账户表；V0 ALT-loaded 指令账户会用默认 pubkey 占位，外层 program id 若来自 ALT 会按 discriminator best-effort 解析。Inner CPI / 仅日志事件仍需 Yellowstone/RPC 路径。
 
 ---
 
@@ -141,7 +151,7 @@ go run examples/shredstream_entries.go
 
 ## 协议
 
-PumpFun、PumpSwap、Raydium AMM V4 / CLMM / CPMM、Orca Whirlpool、Meteora DAMM V2 / DLMM、Bonk Launchpad（见 `solparser/`）。
+PumpFun、PumpSwap、Raydium AMM V4 / CLMM / CPMM、Orca Whirlpool、Meteora DAMM V2 / DLMM、Raydium LaunchLab（见 `solparser/`）。
 
 ---
 
@@ -150,7 +160,7 @@ PumpFun、PumpSwap、Raydium AMM V4 / CLMM / CPMM、Orca Whirlpool、Meteora DAM
 - **`ParseSubscribeTransaction`** — Geyser 单笔交易 → `[]DexEvent`（指令 + 日志 + 合并 + Pump 补全）。
 - **`ParseRpcTransaction`** / **`ParseTransactionFromRpc`** — HTTP RPC JSON → 事件。
 - **`ParseInstructionUnified`** / **`ParseInnerInstructionUnified`** — 外层 8 字节 / 内层 16 字节 discriminator。
-- **`DexEventsFromShredTransactionWire`** — 线格式交易字节 → 外层 `ParseInstructionUnified`（Shred 静态账户）。
+- **`DexEventsFromShredTransactionWire`** — 线格式交易字节 → 外层 `ParseInstructionUnified`（Shred 静态账户 + ALT best-effort fallback）。
 - **`DecodeGRPCEntry`** / **`DecodeEntriesBincode`** — ShredStream `Entry.entries` → `DecodedTransaction`。
 - **`DexEvent`** — `json.Marshal` 输出 `{ "PumpSwapBuy": { … } }` 形式。
 

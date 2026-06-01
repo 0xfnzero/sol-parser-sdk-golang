@@ -223,10 +223,9 @@ var (
 	discDammRemoveLiq      = discDammRem
 	discDammInitPool       = discDammInit
 
-	// Bonk (Raydium Launchpad)
-	discBonkTrade      = disc8(2, 3, 4, 5, 6, 7, 8, 9)
-	discBonkPoolCreate = disc8(1, 2, 3, 4, 5, 6, 7, 8)
-	discBonkMigrateAmm = disc8(3, 4, 5, 6, 7, 8, 9, 10)
+	// RaydiumLaunchlab (Raydium LaunchLab)
+	discRaydiumLaunchlabTrade      = disc8(189, 219, 127, 211, 78, 230, 97, 238)
+	discRaydiumLaunchlabPoolCreate = disc8(151, 215, 226, 9, 118, 161, 115, 174)
 
 	// Meteora DLMM
 	dlmmSwap      = disc8(142, 35, 199, 193, 77, 169, 172, 85)

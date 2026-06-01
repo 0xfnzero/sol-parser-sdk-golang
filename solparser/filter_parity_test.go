@@ -71,8 +71,74 @@ func TestParseLogOptimizedAppliesEventTypeFilter(t *testing.T) {
 
 func TestProtocolHelperExcludeMatchesRustSemantics(t *testing.T) {
 	filter := EventTypeFilterExclude([]EventType{EventTypePumpFeesUpdateAdmin})
-	if EventTypeFilterIncludesPumpFees(filter) {
-		t.Fatalf("PumpFees route should be disabled when any PumpFees type is excluded")
+	if !EventTypeFilterIncludesPumpFees(filter) {
+		t.Fatalf("PumpFees route should stay enabled for exclude filters")
+	}
+	if !EventTypeFilterIncludesRaydiumCpmm(EventTypeFilterExclude([]EventType{EventTypeRaydiumCpmmSwap})) {
+		t.Fatalf("partial CPMM excludes should keep CPMM route enabled")
+	}
+	if EventTypeFilterIncludesRaydiumCpmm(EventTypeFilterExclude([]EventType{
+		EventTypeRaydiumCpmmSwap,
+		EventTypeRaydiumCpmmDeposit,
+		EventTypeRaydiumCpmmWithdraw,
+		EventTypeRaydiumCpmmInitialize,
+	})) {
+		t.Fatalf("excluding every CPMM event should skip CPMM route")
+	}
+	if EventTypeFilterIncludesRaydiumLaunchlab(EventTypeFilterExclude([]EventType{
+		EventTypeRaydiumLaunchlabTrade,
+		EventTypeRaydiumLaunchlabPoolCreate,
+		EventTypeRaydiumLaunchlabMigrateAmm,
+	})) {
+		t.Fatalf("excluding every LaunchLab event should skip LaunchLab route")
+	}
+	if EventTypeFilterIncludesPumpfun(EventTypeFilterIncludeOnly([]EventType{EventTypeAccountPumpFunGlobal})) {
+		t.Fatalf("PumpFun account-only filters should not enable instruction routes")
+	}
+	if EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeAccountPumpFunGlobal}) {
+		t.Fatalf("PumpFun account-only filters should not pass instruction prefilter")
+	}
+	if EventTypeFilterIncludesRaydiumClmm(EventTypeFilterIncludeOnly([]EventType{EventTypeAccountRaydiumClmmPoolState})) {
+		t.Fatalf("Raydium CLMM account-only filters should not enable instruction routes")
+	}
+	if EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeAccountRaydiumClmmPoolState}) {
+		t.Fatalf("Raydium CLMM account-only filters should not pass instruction prefilter")
+	}
+	if EventTypeFilterIncludesPumpfun(EventTypeFilterIncludeOnly([]EventType{EventTypePumpFeesUpdateAdmin})) {
+		t.Fatalf("PumpFees filters should not enable PumpFun route")
+	}
+	if !EventTypeFilterAllowsInstructionParsing([]EventType{EventTypePumpFeesUpdateAdmin}) {
+		t.Fatalf("PumpFees filters should pass instruction prefilter")
+	}
+	if !EventTypeFilterIncludesPumpswap(EventTypeFilterIncludeOnly([]EventType{EventTypePumpSwapTrade})) {
+		t.Fatalf("PumpSwapTrade should enable PumpSwap route")
+	}
+	if !EventTypeFilterAllowsInstructionParsing([]EventType{EventTypePumpSwapTrade}) {
+		t.Fatalf("PumpSwapTrade should pass instruction prefilter")
+	}
+	if !EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeMeteoraDammV2InitializePool}) {
+		t.Fatalf("Meteora DAMM initialize pool should pass instruction prefilter")
+	}
+	if !EventTypeFilterIncludesMeteoraPools(EventTypeFilterIncludeOnly([]EventType{EventTypeMeteoraPoolsSwap})) {
+		t.Fatalf("Meteora Pools swap should enable Meteora Pools route helper")
+	}
+	if EventTypeFilterIncludesMeteoraPools(EventTypeFilterIncludeOnly([]EventType{EventTypePumpFunTrade})) {
+		t.Fatalf("PumpFun filters should not enable Meteora Pools route helper")
+	}
+	if !EventTypeFilterIncludesMeteoraDlmm(EventTypeFilterIncludeOnly([]EventType{EventTypeMeteoraDlmmSwap})) {
+		t.Fatalf("Meteora DLMM swap should enable Meteora DLMM route helper")
+	}
+	if EventTypeFilterIncludesMeteoraDlmm(EventTypeFilterIncludeOnly([]EventType{EventTypePumpFunTrade})) {
+		t.Fatalf("PumpFun filters should not enable Meteora DLMM route helper")
+	}
+	if !EventTypeFilterIncludesRaydiumAmmV4(EventTypeFilterIncludeOnly([]EventType{EventTypeRaydiumAmmV4Deposit})) {
+		t.Fatalf("Raydium AMM V4 deposit should enable AMM V4 route")
+	}
+	if !EventTypeFilterIncludeOnly([]EventType{EventTypePumpSwapTrade}).ShouldInclude(EventTypePumpSwapBuy) {
+		t.Fatalf("PumpSwapTrade should include concrete buy events")
+	}
+	if EventTypeFilterExclude([]EventType{EventTypePumpSwapTrade}).ShouldInclude(EventTypePumpSwapSell) {
+		t.Fatalf("excluding PumpSwapTrade should drop concrete sell events")
 	}
 }
 

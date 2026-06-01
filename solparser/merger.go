@@ -93,6 +93,16 @@ func mergeDexEvents(base *DexEvent, inner DexEvent) {
 			return
 		}
 		mergePumpfunCreate(b, i)
+	case EventTypePumpFunCreateV2:
+		if inner.Type != EventTypePumpFunCreateV2 {
+			return
+		}
+		b, ok1 := base.Data.(*PumpFunCreateV2TokenEvent)
+		i, ok2 := inner.Data.(*PumpFunCreateV2TokenEvent)
+		if !ok1 || !ok2 {
+			return
+		}
+		mergePumpfunCreateV2(b, i)
 	case EventTypePumpFunMigrate:
 		if inner.Type != EventTypePumpFunMigrate {
 			return
@@ -257,6 +267,42 @@ func mergePumpfunCreate(base, inner *PumpFunCreateEvent) {
 	base.TokenTotalSupply = inner.TokenTotalSupply
 	base.TokenProgram = inner.TokenProgram
 	base.IsMayhemMode = inner.IsMayhemMode
+	base.IsCashbackEnabled = inner.IsCashbackEnabled
+	base.QuoteMint = inner.QuoteMint
+	base.VirtualQuoteReserves = inner.VirtualQuoteReserves
+}
+
+func mergePumpfunCreateV2(base, inner *PumpFunCreateV2TokenEvent) {
+	base.Name = inner.Name
+	base.Symbol = inner.Symbol
+	base.Uri = inner.Uri
+	base.Mint = inner.Mint
+	base.BondingCurve = inner.BondingCurve
+	base.User = inner.User
+	base.Creator = inner.Creator
+	base.Timestamp = inner.Timestamp
+	base.VirtualTokenReserves = inner.VirtualTokenReserves
+	base.VirtualSolReserves = inner.VirtualSolReserves
+	base.RealTokenReserves = inner.RealTokenReserves
+	base.TokenTotalSupply = inner.TokenTotalSupply
+	base.TokenProgram = inner.TokenProgram
+	base.IsMayhemMode = inner.IsMayhemMode
+	base.IsCashbackEnabled = inner.IsCashbackEnabled
+	base.QuoteMint = inner.QuoteMint
+	base.VirtualQuoteReserves = inner.VirtualQuoteReserves
+	base.MintAuthority = inner.MintAuthority
+	base.AssociatedBondingCurve = inner.AssociatedBondingCurve
+	base.Global = inner.Global
+	base.SystemProgram = inner.SystemProgram
+	base.AssociatedTokenProgram = inner.AssociatedTokenProgram
+	base.MayhemProgramID = inner.MayhemProgramID
+	base.GlobalParams = inner.GlobalParams
+	base.SolVault = inner.SolVault
+	base.MayhemState = inner.MayhemState
+	base.MayhemTokenVault = inner.MayhemTokenVault
+	base.EventAuthority = inner.EventAuthority
+	base.Program = inner.Program
+	base.ObservedFeeRecipient = inner.ObservedFeeRecipient
 }
 
 func mergePumpfunMigrate(base, inner *PumpFunMigrateEvent) {

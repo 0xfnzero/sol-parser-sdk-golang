@@ -185,6 +185,73 @@ func TestParsePumpfunBondingCurveReadsQuoteFields(t *testing.T) {
 	if ev := ParsePumpfunBondingCurve(truncated, EventMetadata{}); ev.Type != "" {
 		t.Fatalf("truncated bonding curve should not parse: %+v", ev)
 	}
+
+	if ev := ParseAccountUnified(
+		account,
+		EventMetadata{Signature: "sig"},
+		EventTypeFilterIncludeOnly([]EventType{EventTypeAccountPumpFunGlobal}),
+	); ev.Type != "" {
+		t.Fatalf("mismatched include-only account filter should drop event, got %q", ev.Type)
+	}
+}
+
+func TestParseAccountUnifiedFiltersTokenInfoSeparately(t *testing.T) {
+	data := make([]byte, 82)
+	binary.LittleEndian.PutUint64(data[36:44], 1_000_000)
+	data[44] = 6
+	account := &AccountData{
+		Pubkey: "mint",
+		Owner:  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+		Data:   data,
+	}
+
+	ev := ParseAccountUnified(
+		account,
+		EventMetadata{Signature: "sig"},
+		EventTypeFilterIncludeOnly([]EventType{EventTypeTokenInfo}),
+	)
+	if ev.Type != EventTypeTokenInfo {
+		t.Fatalf("expected TokenInfo, got %q", ev.Type)
+	}
+
+	ev = ParseAccountUnified(
+		account,
+		EventMetadata{Signature: "sig"},
+		EventTypeFilterIncludeOnly([]EventType{EventTypeTokenAccount}),
+	)
+	if ev.Type != "" {
+		t.Fatalf("TokenAccount include-only should not emit mint info, got %q", ev.Type)
+	}
+}
+
+func TestParseAccountUnifiedKnownDexOwnerDoesNotFallThroughToTokenParser(t *testing.T) {
+	data := make([]byte, 82)
+	binary.LittleEndian.PutUint64(data[36:44], 1_000_000)
+	data[44] = 6
+	account := &AccountData{
+		Pubkey: "not_a_pumpfun_account",
+		Owner:  PUMPFUN_PROGRAM_ID,
+		Data:   data,
+	}
+
+	if ev := ParseAccountUnified(account, EventMetadata{Signature: "sig"}, nil); ev.Type != "" {
+		t.Fatalf("known DEX owner should not fall through to token parsing, got %q", ev.Type)
+	}
+}
+
+func TestParseTokenAccountRejectsNonTokenProgramOwner(t *testing.T) {
+	data := make([]byte, 82)
+	binary.LittleEndian.PutUint64(data[36:44], 1_000_000)
+	data[44] = 6
+	account := &AccountData{
+		Pubkey: "not_a_token_mint",
+		Owner:  RAYDIUM_CLMM_PROGRAM_ID,
+		Data:   data,
+	}
+
+	if ev := ParseTokenAccount(account, EventMetadata{Signature: "sig"}); ev.Type != "" {
+		t.Fatalf("non-token owner should not parse as token account, got %q", ev.Type)
+	}
 }
 
 func TestParsePumpfunBuyV2UsesRustAccountIndexes(t *testing.T) {
@@ -204,7 +271,7 @@ func TestParsePumpfunBuyV2UsesRustAccountIndexes(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected PumpFunTradeEvent, got %T", ev.Data)
 	}
-	if tr.IxName != "buy_v2" {
+	if tr.IxName != "buy" {
 		t.Fatalf("ix_name: %q", tr.IxName)
 	}
 	if tr.Mint != "account_B" || tr.FeeRecipient != "account_G" ||
@@ -214,6 +281,42 @@ func TestParsePumpfunBuyV2UsesRustAccountIndexes(t *testing.T) {
 	}
 	if tr.TokenAmount != 123 || tr.SolAmount != 456 {
 		t.Fatalf("amounts: token=%d sol=%d", tr.TokenAmount, tr.SolAmount)
+	}
+}
+
+func TestParsePumpfunV2BestEffortShortAccountsForShred(t *testing.T) {
+	ev := ParsePumpfunInstruction(
+		pumpfunV2Instruction(instrPumpOuterBuyV2, 123, 456),
+		[]string{"global", "mint"},
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+	)
+	tr, ok := ev.Data.(*PumpFunTradeEvent)
+	if ev.Type != EventTypePumpFunBuy || !ok {
+		t.Fatalf("expected PumpFunBuy from short Shred accounts, got %q %T", ev.Type, ev.Data)
+	}
+	if tr.Mint != "mint" || tr.TokenAmount != 123 || tr.SolAmount != 456 {
+		t.Fatalf("unexpected short-account buy_v2 fields: %+v", tr)
+	}
+
+	sell := ParsePumpfunInstruction(
+		pumpfunV2Instruction(instrPumpOuterSellV2, 333, 444),
+		[]string{"global", "mint"},
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+	)
+	tr, ok = sell.Data.(*PumpFunTradeEvent)
+	if sell.Type != EventTypePumpFunSell || !ok {
+		t.Fatalf("expected PumpFunSell from short Shred accounts, got %q %T", sell.Type, sell.Data)
+	}
+	if tr.Mint != "mint" || tr.Amount != 333 || tr.MinSolOutput != 444 {
+		t.Fatalf("unexpected short-account sell_v2 fields: %+v", tr)
 	}
 }
 
@@ -312,10 +415,10 @@ func TestParsePumpfunBuyExactQuoteInV2UsesQuoteAmountFields(t *testing.T) {
 		10,
 	)
 	tr, ok := ev.Data.(*PumpFunTradeEvent)
-	if ev.Type != EventTypePumpFunBuyExactSolIn || !ok {
-		t.Fatalf("expected PumpFunBuyExactSolIn event, got %q %T", ev.Type, ev.Data)
+	if ev.Type != EventTypePumpFunBuy || !ok {
+		t.Fatalf("expected PumpFunBuy event, got %q %T", ev.Type, ev.Data)
 	}
-	if tr.IxName != "buy_exact_quote_in_v2" || tr.Amount != 888 ||
+	if tr.IxName != "buy_exact_quote_in" || tr.Amount != 888 ||
 		tr.MaxSolCost != 0 || tr.QuoteAmount != 777 ||
 		tr.SpendableQuoteIn != 777 || tr.MinTokensOut != 888 ||
 		tr.QuoteMint != "account_C" {
@@ -337,7 +440,7 @@ func TestParsePumpfunSellV2ReturnsSellEventType(t *testing.T) {
 	if ev.Type != EventTypePumpFunSell || !ok {
 		t.Fatalf("expected PumpFunSell event, got %q %T", ev.Type, ev.Data)
 	}
-	if tr.IxName != "sell_v2" || tr.Amount != 333 || tr.MinSolOutput != 444 || tr.MaxSolCost != 0 {
+	if tr.IxName != "sell" || tr.Amount != 333 || tr.MinSolOutput != 444 || tr.MaxSolCost != 0 {
 		t.Fatalf("unexpected sell_v2 fields: %+v", tr)
 	}
 }
@@ -436,6 +539,90 @@ func TestPumpfunPostMergeEnrichesCreateV2AndTradeFlags(t *testing.T) {
 	}
 }
 
+func TestPumpfunPostMergeEnrichesCreateV2FromCreateEvent(t *testing.T) {
+	events := []DexEvent{
+		{
+			Type: EventTypePumpFunCreateV2,
+			Data: &PumpFunCreateV2TokenEvent{
+				Name: "ix-name",
+				Mint: "mint",
+			},
+		},
+		{
+			Type: EventTypePumpFunCreate,
+			Data: &PumpFunCreateEvent{
+				Name:                 "event-name",
+				Symbol:               "EVT",
+				Uri:                  "uri",
+				Mint:                 "mint",
+				BondingCurve:         "curve",
+				User:                 "user",
+				Creator:              "creator",
+				Timestamp:            123,
+				VirtualTokenReserves: 1,
+				VirtualSolReserves:   30_000_000_000,
+				RealTokenReserves:    2,
+				TokenTotalSupply:     3,
+				TokenProgram:         "token-program",
+				IsMayhemMode:         true,
+				IsCashbackEnabled:    true,
+				QuoteMint:            "USDC",
+				VirtualQuoteReserves: 4_292_000_000,
+			},
+		},
+	}
+
+	enrichPumpfunSameTxPostMerge(events)
+
+	create := events[0].Data.(*PumpFunCreateV2TokenEvent)
+	if create.Name != "ix-name" {
+		t.Fatalf("instruction create name was clobbered: %+v", create)
+	}
+	if create.QuoteMint != "USDC" || create.VirtualQuoteReserves != 4_292_000_000 ||
+		create.VirtualSolReserves != 30_000_000_000 {
+		t.Fatalf("create_v2 quote fields not enriched: %+v", create)
+	}
+	if !create.IsCashbackEnabled || !create.IsMayhemMode {
+		t.Fatalf("create_v2 flags not enriched: %+v", create)
+	}
+}
+
+func TestParsePumpfunCreateFromDataKeepsQuoteTailFields(t *testing.T) {
+	quoteMintBytes := pumpfunTestPubkey(90)
+	data := []byte{}
+	data = appendPumpfunString(data, "Name")
+	data = appendPumpfunString(data, "SYM")
+	data = appendPumpfunString(data, "https://example.invalid/meta.json")
+	data = append(data, pumpfunTestPubkey(1)...)
+	data = append(data, pumpfunTestPubkey(2)...)
+	data = append(data, pumpfunTestPubkey(3)...)
+	data = append(data, pumpfunTestPubkey(4)...)
+	data = appendPumpfunI64(data, 123)
+	data = appendPumpfunU64(data, 1_073_000_000_000_000)
+	data = appendPumpfunU64(data, 30_000_000_000)
+	data = appendPumpfunU64(data, 793_100_000_000_000)
+	data = appendPumpfunU64(data, 1_000_000_000_000_000)
+	data = append(data, pumpfunTestPubkey(5)...)
+	data = append(data, 0)
+	data = append(data, 1)
+	data = append(data, quoteMintBytes...)
+	data = appendPumpfunU64(data, 4_292_000_000)
+
+	ev := parseCreateFromData(data, EventMetadata{Signature: "sig", Slot: 1})
+	if ev.Type != EventTypePumpFunCreate {
+		t.Fatalf("expected PumpFunCreate, got %q", ev.Type)
+	}
+	create, ok := ev.Data.(*PumpFunCreateEvent)
+	if !ok {
+		t.Fatalf("expected PumpFunCreateEvent, got %T", ev.Data)
+	}
+	if create.QuoteMint != ReadPubkey(quoteMintBytes, 0) ||
+		create.VirtualQuoteReserves != 4_292_000_000 ||
+		!create.IsCashbackEnabled {
+		t.Fatalf("create quote tail fields not preserved: %+v", create)
+	}
+}
+
 func TestParsePumpfunTradeFromDataKeepsQuoteTailFields(t *testing.T) {
 	quoteMintBytes := pumpfunTestPubkey(90)
 	shareholderBytes := pumpfunTestPubkey(120)
@@ -476,7 +663,7 @@ func TestParsePumpfunTradeFromDataKeepsQuoteTailFields(t *testing.T) {
 	data = appendPumpfunU64(data, 900)
 
 	ev := parseTradeFromData(data, EventMetadata{Signature: "sig", Slot: 1}, false)
-	if ev.Type != EventTypePumpFunBuyExactSolIn {
+	if ev.Type != EventTypePumpFunBuy {
 		t.Fatalf("expected exact quote trade, got %q", ev.Type)
 	}
 	tr, ok := ev.Data.(*PumpFunTradeEvent)

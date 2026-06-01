@@ -19,6 +19,16 @@ type AccountData struct {
 // 程序 ID 常量（accounts 包内部使用）
 const pumpswapProgramID = PUMPSWAP_PROGRAM_ID
 const pumpfunProgramID = PUMPFUN_PROGRAM_ID
+const splTokenProgramID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+const splToken2022ProgramID = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+
+var accountEventTypes = []EventType{
+	EventTypeTokenAccount, EventTypeTokenInfo, EventTypeNonceAccount,
+	EventTypeAccountPumpFunGlobal, EventTypeAccountPumpFunBondingCurve,
+	EventTypeAccountPumpFunFeeConfig, EventTypeAccountPumpFunSharingConfig,
+	EventTypeAccountPumpFunGlobalVolumeAccumulator, EventTypeAccountPumpFunUserVolumeAccumulator,
+	EventTypeAccountPumpSwapGlobalConfig, EventTypeAccountPumpSwapPool,
+}
 
 // ParseAccountUnified 统一的账户解析入口
 // 对齐 Rust `parse_account_unified`
@@ -28,16 +38,9 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 	}
 
 	// Early filtering based on event type filter
-	accountTypes := []EventType{
-		EventTypeTokenAccount, EventTypeTokenInfo, EventTypeNonceAccount,
-		EventTypeAccountPumpFunGlobal, EventTypeAccountPumpFunBondingCurve,
-		EventTypeAccountPumpFunFeeConfig, EventTypeAccountPumpFunSharingConfig,
-		EventTypeAccountPumpFunGlobalVolumeAccumulator, EventTypeAccountPumpFunUserVolumeAccumulator,
-		EventTypeAccountPumpSwapGlobalConfig, EventTypeAccountPumpSwapPool,
-	}
 	if filter != nil {
 		shouldParse := false
-		for _, t := range accountTypes {
+		for _, t := range accountEventTypes {
 			if filter.ShouldInclude(t) {
 				shouldParse = true
 				break
@@ -49,19 +52,22 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 	}
 
 	// PumpSwap 账户解析
-	if account.Owner == pumpswapProgramID && filter != nil {
-		if filter.ShouldInclude(EventTypeAccountPumpSwapGlobalConfig) ||
+	if account.Owner == pumpswapProgramID {
+		if filter == nil ||
+			filter.ShouldInclude(EventTypeAccountPumpSwapGlobalConfig) ||
 			filter.ShouldInclude(EventTypeAccountPumpSwapPool) {
 			event := parsePumpswapAccount(account, metadata)
 			if event.Type != "" {
-				return event
+				return applyActualEventTypeFilter(event, filter)
 			}
 		}
+		return DexEvent{}
 	}
 
 	// PumpFun 账户解析
-	if (account.Owner == pumpfunProgramID || account.Owner == PUMP_FEES_PROGRAM_ID) && filter != nil {
-		if filter.ShouldInclude(EventTypeAccountPumpFunGlobal) ||
+	if account.Owner == pumpfunProgramID || account.Owner == PUMP_FEES_PROGRAM_ID {
+		if filter == nil ||
+			filter.ShouldInclude(EventTypeAccountPumpFunGlobal) ||
 			filter.ShouldInclude(EventTypeAccountPumpFunBondingCurve) ||
 			filter.ShouldInclude(EventTypeAccountPumpFunFeeConfig) ||
 			filter.ShouldInclude(EventTypeAccountPumpFunSharingConfig) ||
@@ -69,9 +75,10 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 			filter.ShouldInclude(EventTypeAccountPumpFunUserVolumeAccumulator) {
 			event := parsePumpfunAccount(account, metadata)
 			if event.Type != "" {
-				return event
+				return applyActualEventTypeFilter(event, filter)
 			}
 		}
+		return DexEvent{}
 	}
 
 	// Nonce 账户解析
@@ -86,12 +93,16 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 	if filter != nil && !filter.ShouldInclude(EventTypeTokenAccount) && !filter.ShouldInclude(EventTypeTokenInfo) {
 		return DexEvent{}
 	}
-	return ParseTokenAccount(account, metadata)
+	return applyActualEventTypeFilter(ParseTokenAccount(account, metadata), filter)
 }
 
 // ParseTokenAccount 解析 Token 账户
 // 对齐 Rust `parse_token_account`
 func ParseTokenAccount(account *AccountData, metadata EventMetadata) DexEvent {
+	if !isTokenProgramOwner(account.Owner) {
+		return DexEvent{}
+	}
+
 	// 快速路径：尝试解析 Mint 账户
 	if len(account.Data) <= 100 {
 		event := parseMintFast(account, metadata)
@@ -107,6 +118,10 @@ func ParseTokenAccount(account *AccountData, metadata EventMetadata) DexEvent {
 	}
 
 	return DexEvent{}
+}
+
+func isTokenProgramOwner(owner string) bool {
+	return owner == splTokenProgramID || owner == splToken2022ProgramID
 }
 
 // parseMintFast 快速解析 Mint 账户（零拷贝）

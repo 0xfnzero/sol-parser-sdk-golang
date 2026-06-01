@@ -29,6 +29,18 @@ var (
 )
 
 var (
+	instrRaydiumLaunchlabBuyExactIn          = disc8(250, 234, 13, 123, 213, 156, 19, 236)
+	instrRaydiumLaunchlabBuyExactOut         = disc8(24, 211, 116, 40, 105, 3, 153, 56)
+	instrRaydiumLaunchlabInitialize          = disc8(175, 175, 109, 31, 13, 152, 155, 237)
+	instrRaydiumLaunchlabInitializeV2        = disc8(67, 153, 175, 39, 218, 16, 38, 32)
+	instrRaydiumLaunchlabInitializeToken2022 = disc8(37, 190, 126, 222, 44, 154, 171, 17)
+	instrRaydiumLaunchlabMigrateToAmm        = disc8(207, 82, 192, 145, 254, 207, 145, 223)
+	instrRaydiumLaunchlabMigrateToCpswap     = disc8(136, 92, 200, 103, 28, 218, 144, 140)
+	instrRaydiumLaunchlabSellExactIn         = disc8(149, 39, 222, 155, 211, 124, 152, 26)
+	instrRaydiumLaunchlabSellExactOut        = disc8(95, 200, 71, 34, 8, 9, 11, 166)
+)
+
+var (
 	instrClmmSwap                       = disc8(248, 198, 158, 145, 225, 117, 135, 200)
 	instrClmmSwapV2                     = disc8(43, 4, 237, 11, 26, 201, 30, 98)
 	instrClmmIncLiqV2                   = disc8(133, 29, 89, 223, 69, 238, 176, 10)
@@ -65,7 +77,7 @@ func parseInstructionUnifiedPreFilterRust(filter EventTypeFilter) bool {
 }
 
 // ParseInstructionUnified 统一的指令解析入口
-// 覆盖本包已有的外层指令解析器：PumpFun、PumpSwap、Pump Fees、Meteora DAMM V2、Raydium、Orca、Bonk。
+// 覆盖本包已有的外层指令解析器：PumpFun、PumpSwap、Pump Fees、Meteora DAMM V2、Raydium、Orca、RaydiumLaunchlab。
 func ParseInstructionUnified(
 	instructionData []byte,
 	accounts []string,
@@ -89,55 +101,67 @@ func ParseInstructionUnified(
 		if filter != nil && !EventTypeFilterIncludesPumpfun(filter) {
 			return DexEvent{}
 		}
-		return ParsePumpfunInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParsePumpfunInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
 	case PUMPSWAP_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesPumpswap(filter) {
 			return DexEvent{}
 		}
-		return ParsePumpswapInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParsePumpswapInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
 	case METEORA_DAMM_V2_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesMeteoraDammV2(filter) {
 			return DexEvent{}
 		}
-		return ParseMeteoraDammInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParseMeteoraDammInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
+
+	case METEORA_POOLS_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesMeteoraPools(filter) {
+			return DexEvent{}
+		}
+		return applyActualEventTypeFilter(ParseMeteoraPoolsInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
+
+	case METEORA_DLMM_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesMeteoraDlmm(filter) {
+			return DexEvent{}
+		}
+		return applyActualEventTypeFilter(ParseMeteoraDlmmInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
 	case PUMP_FEES_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesPumpFees(filter) {
 			return DexEvent{}
 		}
-		return ParsePumpFeesInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParsePumpFeesInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
 	case RAYDIUM_CLMM_PROGRAM_ID, GrpcRaydiumClmmProgramID:
 		if filter != nil && !EventTypeFilterIncludesRaydiumClmm(filter) {
 			return DexEvent{}
 		}
-		return ParseRaydiumClmmInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParseRaydiumClmmInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
 	case RAYDIUM_CPMM_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesRaydiumCpmm(filter) {
 			return DexEvent{}
 		}
-		return ParseRaydiumCpmmInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParseRaydiumCpmmInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
 	case RAYDIUM_AMM_V4_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesRaydiumAmmV4(filter) {
 			return DexEvent{}
 		}
-		return ParseRaydiumAmmV4Instruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParseRaydiumAmmV4Instruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
 	case ORCA_WHIRLPOOL_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesOrcaWhirlpool(filter) {
 			return DexEvent{}
 		}
-		return ParseOrcaWhirlpoolInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParseOrcaWhirlpoolInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 
-	case BONK_PROGRAM_ID, GrpcBonkProgramID:
-		if filter != nil && !EventTypeFilterIncludesBonk(filter) {
+	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumLaunchlab(filter) {
 			return DexEvent{}
 		}
-		return ParseBonkInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		return applyActualEventTypeFilter(ParseRaydiumLaunchlabInstruction(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs), filter)
 	}
 
 	return DexEvent{}
@@ -204,11 +228,11 @@ func ParseInnerInstructionUnified(
 					enrichPumpFunTradeFromAccounts(p, accounts)
 				}
 			}
-			return ev
+			return applyActualEventTypeFilter(ev, filter)
 		case bytes.Equal(disc, pumpfunInnerCreateToken):
-			return parseCreateFromData(inner, meta)
+			return applyActualEventTypeFilter(parseCreateFromData(inner, meta), filter)
 		case bytes.Equal(disc, pumpfunInnerMigrateComplete):
-			return parseMigrateFromData(inner, meta)
+			return applyActualEventTypeFilter(parseMigrateFromData(inner, meta), filter)
 		default:
 			return DexEvent{}
 		}
@@ -224,7 +248,7 @@ func ParseInnerInstructionUnified(
 					enrichPumpSwapBuyFromAccounts(p, accounts)
 				}
 			}
-			return ev
+			return applyActualEventTypeFilter(ev, filter)
 		case bytes.Equal(disc, pumpswapInnerSell):
 			ev := parsePSSellFromData(inner, meta)
 			if ev.Type != "" {
@@ -232,13 +256,13 @@ func ParseInnerInstructionUnified(
 					enrichPumpSwapSellFromAccounts(p, accounts)
 				}
 			}
-			return ev
+			return applyActualEventTypeFilter(ev, filter)
 		case bytes.Equal(disc, pumpswapInnerCreatePool):
-			return parsePSCreatePoolFromData(inner, meta)
+			return applyActualEventTypeFilter(parsePSCreatePoolFromData(inner, meta), filter)
 		case bytes.Equal(disc, pumpswapInnerAddLiquidity):
-			return parsePSAddLiqFromData(inner, meta)
+			return applyActualEventTypeFilter(parsePSAddLiqFromData(inner, meta), filter)
 		case bytes.Equal(disc, pumpswapInnerRemoveLiquidity):
-			return parsePSRemoveLiqFromData(inner, meta)
+			return applyActualEventTypeFilter(parsePSRemoveLiqFromData(inner, meta), filter)
 		default:
 			return DexEvent{}
 		}
@@ -459,11 +483,7 @@ func parsePumpFunLegacySellInstr(data []byte, accounts []string, meta EventMetad
 }
 
 func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, meta EventMetadata) DexEvent {
-	minAcc := 27
-	if ixName == "sell_v2" {
-		minAcc = 26
-	}
-	if len(accounts) < minAcc {
+	if len(accounts) < 2 || accounts[1] == "" {
 		return DexEvent{}
 	}
 	first := readPumpFunV2Amount(data, 0)
@@ -489,11 +509,10 @@ func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, met
 		maxSolCost = 0
 		minSolOutput = second
 	}
+	normalizedIxName := normalizePumpfunIxName(ixName)
 	eventType := EventTypePumpFunBuy
 	if ixName == "sell_v2" {
 		eventType = EventTypePumpFunSell
-	} else if ixName == "buy_exact_quote_in_v2" {
-		eventType = EventTypePumpFunBuyExactSolIn
 	}
 	return DexEvent{
 		Type: eventType,
@@ -514,7 +533,7 @@ func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, met
 			MinTokensOut:                       minTokensOut,
 			FeeRecipient:                       getAccountSafe(accounts, 6),
 			IsBuy:                              ixName != "sell_v2",
-			IxName:                             ixName,
+			IxName:                             normalizedIxName,
 			AssociatedBondingCurve:             getAccountSafe(accounts, 11),
 			AssociatedUser:                     getAccountSafe(accounts, 14),
 			SystemProgram:                      getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 23, 24)),
@@ -592,6 +611,7 @@ func parsePumpFunCreateInstr(data []byte, accounts []string, meta EventMetadata)
 			Mint:         getAccountSafe(accounts, 0),
 			BondingCurve: getAccountSafe(accounts, 2),
 			User:         getAccountSafe(accounts, 7),
+			QuoteMint:    zeroPubkey,
 		},
 	}
 }
@@ -645,6 +665,7 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 			TokenProgram:           acc[7],
 			IsMayhemMode:           isMayhemMode,
 			IsCashbackEnabled:      isCashbackEnabled,
+			QuoteMint:              zeroPubkey,
 			MintAuthority:          acc[1],
 			AssociatedBondingCurve: acc[3],
 			Global:                 acc[4],
@@ -1173,8 +1194,8 @@ func ParseOrcaWhirlpoolInstruction(
 	return DexEvent{}
 }
 
-// ParseBonkInstruction 解析 Bonk (Raydium Launchpad) 指令
-func ParseBonkInstruction(
+// ParseRaydiumLaunchlabInstruction 解析 RaydiumLaunchlab (Raydium LaunchLab) 指令
+func ParseRaydiumLaunchlabInstruction(
 	data []byte,
 	accounts []string,
 	signature string,
@@ -1189,35 +1210,79 @@ func ParseBonkInstruction(
 
 	discriminator := binary.LittleEndian.Uint64(data[:8])
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	payload := data[8:]
 
 	switch discriminator {
-	case discBonkTrade:
+	case discRaydiumLaunchlabTrade:
+		return parseRaydiumLaunchlabTradeFromData(payload, meta)
+	case discRaydiumLaunchlabPoolCreate:
+		return parseRaydiumLaunchlabPoolCreateFromData(payload, meta)
+	case instrRaydiumLaunchlabBuyExactIn, instrRaydiumLaunchlabBuyExactOut,
+		instrRaydiumLaunchlabSellExactIn, instrRaydiumLaunchlabSellExactOut:
+		first, _ := readU64LE(payload, 0)
+		second, _ := readU64LE(payload, 8)
+		exactIn := discriminator == instrRaydiumLaunchlabBuyExactIn ||
+			discriminator == instrRaydiumLaunchlabSellExactIn
+		isBuy := discriminator == instrRaydiumLaunchlabBuyExactIn ||
+			discriminator == instrRaydiumLaunchlabBuyExactOut
+		amountIn, amountOut := first, second
+		if !exactIn {
+			amountIn, amountOut = second, first
+		}
+		dir := "Sell"
+		if isBuy {
+			dir = "Buy"
+		}
 		return DexEvent{
-			Type: EventTypeBonkTrade,
-			Data: &BonkTradeEvent{
+			Type: EventTypeRaydiumLaunchlabTrade,
+			Data: &RaydiumLaunchlabTradeEvent{
 				Metadata:       meta,
-				PoolState:      getAccountSafe(accounts, 1),
+				PoolState:      getAccountSafe(accounts, 4),
 				User:           getAccountSafe(accounts, 0),
-				IsBuy:          true,
-				TradeDirection: "Buy",
-				ExactIn:        true,
+				AmountIn:       amountIn,
+				AmountOut:      amountOut,
+				IsBuy:          isBuy,
+				TradeDirection: dir,
+				ExactIn:        exactIn,
 			},
 		}
-	case discBonkPoolCreate:
+	case instrRaydiumLaunchlabInitialize, instrRaydiumLaunchlabInitializeV2,
+		instrRaydiumLaunchlabInitializeToken2022:
+		if len(payload) < 1 {
+			return DexEvent{}
+		}
+		decimals := payload[0]
+		o := 1
+		name, next, ok := readBorshString(payload, o)
+		if !ok {
+			return DexEvent{}
+		}
+		o = next
+		symbol, next, ok := readBorshString(payload, o)
+		if !ok {
+			return DexEvent{}
+		}
+		o = next
+		uri, _, ok := readBorshString(payload, o)
+		if !ok {
+			return DexEvent{}
+		}
 		return DexEvent{
-			Type: EventTypeBonkPoolCreate,
-			Data: &BonkPoolCreateEvent{
+			Type: EventTypeRaydiumLaunchlabPoolCreate,
+			Data: &RaydiumLaunchlabPoolCreateEvent{
 				Metadata: meta,
-				BaseMintParam: BonkMintParam{
-					Symbol:   "BONK",
-					Name:     "Bonk Pool",
-					Uri:      "https://bonk.com",
-					Decimals: 5,
+				BaseMintParam: RaydiumLaunchlabMintParam{
+					Symbol:   symbol,
+					Name:     name,
+					Uri:      uri,
+					Decimals: decimals,
 				},
-				PoolState: getAccountSafe(accounts, 1),
-				Creator:   getAccountSafe(accounts, 8),
+				PoolState: getAccountSafe(accounts, 5),
+				Creator:   getAccountSafe(accounts, 1),
 			},
 		}
+	case instrRaydiumLaunchlabMigrateToAmm, instrRaydiumLaunchlabMigrateToCpswap:
+		return DexEvent{}
 	}
 
 	return DexEvent{}
