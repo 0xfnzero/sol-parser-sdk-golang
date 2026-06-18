@@ -18,4 +18,19 @@ func TestMergeRpcInstructionEvents_OuterBeforeInner(t *testing.T) {
 	}
 }
 
+func TestMergeRpcInstructionEvents_ChainsMultipleInnerEvents(t *testing.T) {
+	merged := mergeRpcInstructionEvents([]rpcIndexedEvent{
+		{OuterIdx: 0, InnerIdx: nil, Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "outer"}}},
+		{OuterIdx: 0, InnerIdx: intPtr(0), Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "inner-value"}}},
+		{OuterIdx: 0, InnerIdx: intPtr(1), Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, BondingCurve: "inner-account"}}},
+	})
+	if len(merged) != 1 {
+		t.Fatalf("expected 1 merged event, got %d", len(merged))
+	}
+	tr := merged[0].Data.(*PumpFunTradeEvent)
+	if tr.Mint != "inner-value" || tr.BondingCurve != "inner-account" {
+		t.Fatalf("expected chained inner merge, got mint=%q bonding_curve=%q", tr.Mint, tr.BondingCurve)
+	}
+}
+
 func intPtr(i int) *int { return &i }

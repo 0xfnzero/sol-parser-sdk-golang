@@ -91,24 +91,40 @@ func (e *PumpFunTradeEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // PumpFunCreateEvent PumpFun 创建代币事件
 type PumpFunCreateEvent struct {
-	Metadata             EventMetadata `json:"metadata"`
-	Name                 string        `json:"name"`
-	Symbol               string        `json:"symbol"`
-	Uri                  string        `json:"uri"`
-	Mint                 string        `json:"mint"`
-	BondingCurve         string        `json:"bonding_curve"`
-	User                 string        `json:"user"`
-	Creator              string        `json:"creator"`
-	Timestamp            int64         `json:"timestamp"`
-	VirtualTokenReserves uint64        `json:"virtual_token_reserves"`
-	VirtualSolReserves   uint64        `json:"virtual_sol_reserves"`
-	RealTokenReserves    uint64        `json:"real_token_reserves"`
-	TokenTotalSupply     uint64        `json:"token_total_supply"`
-	TokenProgram         string        `json:"token_program"`
-	IsMayhemMode         bool          `json:"is_mayhem_mode"`
-	IsCashbackEnabled    bool          `json:"is_cashback_enabled"`
-	QuoteMint            string        `json:"quote_mint"`
-	VirtualQuoteReserves uint64        `json:"virtual_quote_reserves"`
+	Metadata               EventMetadata `json:"metadata"`
+	Name                   string        `json:"name"`
+	Symbol                 string        `json:"symbol"`
+	Uri                    string        `json:"uri"`
+	Mint                   string        `json:"mint"`
+	BondingCurve           string        `json:"bonding_curve"`
+	User                   string        `json:"user"`
+	Creator                string        `json:"creator"`
+	Timestamp              int64         `json:"timestamp"`
+	VirtualTokenReserves   uint64        `json:"virtual_token_reserves"`
+	VirtualSolReserves     uint64        `json:"virtual_sol_reserves"`
+	RealTokenReserves      uint64        `json:"real_token_reserves"`
+	TokenTotalSupply       uint64        `json:"token_total_supply"`
+	TokenProgram           string        `json:"token_program"`
+	IsMayhemMode           bool          `json:"is_mayhem_mode"`
+	IsCashbackEnabled      bool          `json:"is_cashback_enabled"`
+	QuoteMint              string        `json:"quote_mint"`
+	QuoteVault             string        `json:"quote_vault"`
+	QuoteTokenProgram      string        `json:"quote_token_program"`
+	VirtualQuoteReserves   uint64        `json:"virtual_quote_reserves"`
+	IxName                 string        `json:"ix_name"`
+	MintAuthority          string        `json:"mint_authority"`
+	AssociatedBondingCurve string        `json:"associated_bonding_curve"`
+	Global                 string        `json:"global"`
+	SystemProgram          string        `json:"system_program"`
+	AssociatedTokenProgram string        `json:"associated_token_program"`
+	MayhemProgramID        string        `json:"mayhem_program_id"`
+	GlobalParams           string        `json:"global_params"`
+	SolVault               string        `json:"sol_vault"`
+	MayhemState            string        `json:"mayhem_state"`
+	MayhemTokenVault       string        `json:"mayhem_token_vault"`
+	EventAuthority         string        `json:"event_authority"`
+	Program                string        `json:"program"`
+	ObservedFeeRecipient   string        `json:"observed_fee_recipient"`
 }
 
 func (e *PumpFunCreateEvent) EventType() EventType       { return EventTypePumpFunCreate }
@@ -133,7 +149,10 @@ type PumpFunCreateV2TokenEvent struct {
 	IsMayhemMode           bool          `json:"is_mayhem_mode"`
 	IsCashbackEnabled      bool          `json:"is_cashback_enabled"`
 	QuoteMint              string        `json:"quote_mint"`
+	QuoteVault             string        `json:"quote_vault"`
+	QuoteTokenProgram      string        `json:"quote_token_program"`
 	VirtualQuoteReserves   uint64        `json:"virtual_quote_reserves"`
+	IxName                 string        `json:"ix_name"`
 	MintAuthority          string        `json:"mint_authority"`
 	AssociatedBondingCurve string        `json:"associated_bonding_curve"`
 	Global                 string        `json:"global"`
@@ -692,13 +711,17 @@ func (e *RaydiumClmmSwapEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // RaydiumClmmIncreaseLiquidityEvent Raydium CLMM 增加流动性事件
 type RaydiumClmmIncreaseLiquidityEvent struct {
-	Metadata        EventMetadata `json:"metadata"`
-	Pool            string        `json:"pool"`
-	PositionNftMint string        `json:"position_nft_mint"`
-	User            string        `json:"user"`
-	Liquidity       string        `json:"liquidity"`
-	Amount0Max      uint64        `json:"amount0_max"`
-	Amount1Max      uint64        `json:"amount1_max"`
+	Metadata           EventMetadata `json:"metadata"`
+	Pool               string        `json:"pool"`
+	PositionNftMint    string        `json:"position_nft_mint"`
+	User               string        `json:"user"`
+	Liquidity          string        `json:"liquidity"`
+	Amount0            uint64        `json:"amount_0"`
+	Amount1            uint64        `json:"amount_1"`
+	Amount0TransferFee uint64        `json:"amount_0_transfer_fee"`
+	Amount1TransferFee uint64        `json:"amount_1_transfer_fee"`
+	Amount0Max         uint64        `json:"amount0_max"`
+	Amount1Max         uint64        `json:"amount1_max"`
 }
 
 func (e *RaydiumClmmIncreaseLiquidityEvent) EventType() EventType {
@@ -713,6 +736,13 @@ type RaydiumClmmDecreaseLiquidityEvent struct {
 	PositionNftMint string        `json:"position_nft_mint"`
 	User            string        `json:"user"`
 	Liquidity       string        `json:"liquidity"`
+	DecreaseAmount0 uint64        `json:"decrease_amount_0"`
+	DecreaseAmount1 uint64        `json:"decrease_amount_1"`
+	FeeAmount0      uint64        `json:"fee_amount_0"`
+	FeeAmount1      uint64        `json:"fee_amount_1"`
+	RewardAmounts   [3]uint64     `json:"reward_amounts"`
+	TransferFee0    uint64        `json:"transfer_fee_0"`
+	TransferFee1    uint64        `json:"transfer_fee_1"`
 	Amount0Min      uint64        `json:"amount0_min"`
 	Amount1Min      uint64        `json:"amount1_min"`
 }
@@ -779,6 +809,9 @@ type RaydiumClmmCreatePoolEvent struct {
 	TickSpacing  int           `json:"tick_spacing"`
 	FeeRate      int           `json:"fee_rate"`
 	SqrtPriceX64 string        `json:"sqrt_price_x64"`
+	Tick         int32         `json:"tick"`
+	TokenVault0  string        `json:"token_vault_0"`
+	TokenVault1  string        `json:"token_vault_1"`
 	OpenTime     uint64        `json:"open_time"`
 }
 
@@ -787,15 +820,159 @@ func (e *RaydiumClmmCreatePoolEvent) GetMetadata() EventMetadata { return e.Meta
 
 // RaydiumClmmCollectFeeEvent Raydium CLMM 收取费用事件
 type RaydiumClmmCollectFeeEvent struct {
-	Metadata        EventMetadata `json:"metadata"`
-	PoolState       string        `json:"pool_state"`
-	PositionNftMint string        `json:"position_nft_mint"`
-	Amount0         uint64        `json:"amount_0"`
-	Amount1         uint64        `json:"amount_1"`
+	Metadata               EventMetadata `json:"metadata"`
+	PoolState              string        `json:"pool_state"`
+	PositionNftMint        string        `json:"position_nft_mint"`
+	RecipientTokenAccount0 string        `json:"recipient_token_account_0"`
+	RecipientTokenAccount1 string        `json:"recipient_token_account_1"`
+	Amount0                uint64        `json:"amount_0"`
+	Amount1                uint64        `json:"amount_1"`
 }
 
 func (e *RaydiumClmmCollectFeeEvent) EventType() EventType       { return EventTypeRaydiumClmmCollectFee }
 func (e *RaydiumClmmCollectFeeEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmLiquidityChangeEvent struct {
+	Metadata        EventMetadata `json:"metadata"`
+	PoolState       string        `json:"pool_state"`
+	Tick            int32         `json:"tick"`
+	TickLower       int32         `json:"tick_lower"`
+	TickUpper       int32         `json:"tick_upper"`
+	LiquidityBefore string        `json:"liquidity_before"`
+	LiquidityAfter  string        `json:"liquidity_after"`
+}
+
+func (e *RaydiumClmmLiquidityChangeEvent) EventType() EventType {
+	return EventTypeRaydiumClmmLiquidityChange
+}
+func (e *RaydiumClmmLiquidityChangeEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmConfigChangeEvent struct {
+	Metadata        EventMetadata `json:"metadata"`
+	Index           uint16        `json:"index"`
+	Owner           string        `json:"owner"`
+	ProtocolFeeRate uint32        `json:"protocol_fee_rate"`
+	TradeFeeRate    uint32        `json:"trade_fee_rate"`
+	TickSpacing     uint16        `json:"tick_spacing"`
+	FundFeeRate     uint32        `json:"fund_fee_rate"`
+	FundOwner       string        `json:"fund_owner"`
+}
+
+func (e *RaydiumClmmConfigChangeEvent) EventType() EventType {
+	return EventTypeRaydiumClmmConfigChange
+}
+func (e *RaydiumClmmConfigChangeEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmCreatePersonalPositionEvent struct {
+	Metadata                  EventMetadata `json:"metadata"`
+	PoolState                 string        `json:"pool_state"`
+	Minter                    string        `json:"minter"`
+	NftOwner                  string        `json:"nft_owner"`
+	TickLowerIndex            int32         `json:"tick_lower_index"`
+	TickUpperIndex            int32         `json:"tick_upper_index"`
+	Liquidity                 string        `json:"liquidity"`
+	DepositAmount0            uint64        `json:"deposit_amount_0"`
+	DepositAmount1            uint64        `json:"deposit_amount_1"`
+	DepositAmount0TransferFee uint64        `json:"deposit_amount_0_transfer_fee"`
+	DepositAmount1TransferFee uint64        `json:"deposit_amount_1_transfer_fee"`
+}
+
+func (e *RaydiumClmmCreatePersonalPositionEvent) EventType() EventType {
+	return EventTypeRaydiumClmmCreatePersonalPosition
+}
+func (e *RaydiumClmmCreatePersonalPositionEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmLiquidityCalculateEvent struct {
+	Metadata         EventMetadata `json:"metadata"`
+	PoolLiquidity    string        `json:"pool_liquidity"`
+	PoolSqrtPriceX64 string        `json:"pool_sqrt_price_x64"`
+	PoolTick         int32         `json:"pool_tick"`
+	CalcAmount0      uint64        `json:"calc_amount_0"`
+	CalcAmount1      uint64        `json:"calc_amount_1"`
+	TradeFeeOwed0    uint64        `json:"trade_fee_owed_0"`
+	TradeFeeOwed1    uint64        `json:"trade_fee_owed_1"`
+	TransferFee0     uint64        `json:"transfer_fee_0"`
+	TransferFee1     uint64        `json:"transfer_fee_1"`
+}
+
+func (e *RaydiumClmmLiquidityCalculateEvent) EventType() EventType {
+	return EventTypeRaydiumClmmLiquidityCalculate
+}
+func (e *RaydiumClmmLiquidityCalculateEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmOpenLimitOrderEvent struct {
+	Metadata    EventMetadata `json:"metadata"`
+	PoolID      string        `json:"pool_id"`
+	LimitOrder  string        `json:"limit_order"`
+	ZeroForOne  bool          `json:"zero_for_one"`
+	TickIndex   int32         `json:"tick_index"`
+	TotalAmount uint64        `json:"total_amount"`
+	TransferFee uint64        `json:"transfer_fee"`
+}
+
+func (e *RaydiumClmmOpenLimitOrderEvent) EventType() EventType {
+	return EventTypeRaydiumClmmOpenLimitOrder
+}
+func (e *RaydiumClmmOpenLimitOrderEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmIncreaseLimitOrderEvent struct {
+	Metadata        EventMetadata `json:"metadata"`
+	PoolID          string        `json:"pool_id"`
+	LimitOrder      string        `json:"limit_order"`
+	ZeroForOne      bool          `json:"zero_for_one"`
+	TickIndex       int32         `json:"tick_index"`
+	TotalAmount     uint64        `json:"total_amount"`
+	IncreasedAmount uint64        `json:"increased_amount"`
+	TransferFee     uint64        `json:"transfer_fee"`
+}
+
+func (e *RaydiumClmmIncreaseLimitOrderEvent) EventType() EventType {
+	return EventTypeRaydiumClmmIncreaseLimitOrder
+}
+func (e *RaydiumClmmIncreaseLimitOrderEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmDecreaseLimitOrderEvent struct {
+	Metadata            EventMetadata `json:"metadata"`
+	PoolID              string        `json:"pool_id"`
+	LimitOrder          string        `json:"limit_order"`
+	ZeroForOne          bool          `json:"zero_for_one"`
+	TickIndex           int32         `json:"tick_index"`
+	TotalAmount         uint64        `json:"total_amount"`
+	FilledAmount        uint64        `json:"filled_amount"`
+	SettledOutputAmount uint64        `json:"settled_output_amount"`
+	DecreasedAmount     uint64        `json:"decreased_amount"`
+}
+
+func (e *RaydiumClmmDecreaseLimitOrderEvent) EventType() EventType {
+	return EventTypeRaydiumClmmDecreaseLimitOrder
+}
+func (e *RaydiumClmmDecreaseLimitOrderEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmSettleLimitOrderEvent struct {
+	Metadata         EventMetadata `json:"metadata"`
+	PoolID           string        `json:"pool_id"`
+	LimitOrder       string        `json:"limit_order"`
+	ZeroForOne       bool          `json:"zero_for_one"`
+	TickIndex        int32         `json:"tick_index"`
+	TotalAmount      uint64        `json:"total_amount"`
+	FilledAmount     uint64        `json:"filled_amount"`
+	SettledAmountOut uint64        `json:"settled_amount_out"`
+}
+
+func (e *RaydiumClmmSettleLimitOrderEvent) EventType() EventType {
+	return EventTypeRaydiumClmmSettleLimitOrder
+}
+func (e *RaydiumClmmSettleLimitOrderEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+type RaydiumClmmUpdateRewardInfosEvent struct {
+	Metadata              EventMetadata `json:"metadata"`
+	RewardGrowthGlobalX64 []string      `json:"reward_growth_global_x64"`
+}
+
+func (e *RaydiumClmmUpdateRewardInfosEvent) EventType() EventType {
+	return EventTypeRaydiumClmmUpdateRewardInfos
+}
+func (e *RaydiumClmmUpdateRewardInfosEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // ============================================================
 // Raydium AMM v4 事件结构体
@@ -1327,6 +1504,8 @@ func (e *MeteoraDammV2RemoveLiquidityEvent) GetMetadata() EventMetadata { return
 type MeteoraDammV2InitializePoolEvent struct {
 	Metadata        EventMetadata `json:"metadata"`
 	Pool            string        `json:"pool"`
+	Position        string        `json:"position"`
+	PositionNftMint string        `json:"position_nft_mint"`
 	TokenAMint      string        `json:"token_a_mint"`
 	TokenBMint      string        `json:"token_b_mint"`
 	Creator         string        `json:"creator"`

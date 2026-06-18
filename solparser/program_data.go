@@ -13,13 +13,9 @@ func decodeProgramDataLine(log string) []byte {
 		return nil
 	}
 	trimmed := strings.TrimSpace(log[i+len(programDataPrefix):])
-	if len(trimmed) > 2700 {
+	out, err := base64.StdEncoding.DecodeString(trimmed)
+	if err != nil || len(out) < 8 {
 		return nil
 	}
-	out := make([]byte, 2048)
-	n, err := base64.StdEncoding.Decode(out, []byte(trimmed))
-	if err != nil || n < 8 || n > 2048 {
-		return nil
-	}
-	return out[:n]
+	return out
 }

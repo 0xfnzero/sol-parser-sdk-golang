@@ -3,7 +3,6 @@ package solparser
 import (
 	"bytes"
 	"encoding/binary"
-	"strconv"
 )
 
 // 外层**指令** discriminator（Rust `instr/pump.rs` / `pump_amm.rs`）。Program log 里的 Buy/Sell 等 Event disc 仍见 `binary.go` / `matcher.go`，二者不可混用。
@@ -46,9 +45,15 @@ var (
 	instrClmmIncLiqV2                   = disc8(133, 29, 89, 223, 69, 238, 176, 10)
 	instrClmmDecLiqV2                   = disc8(58, 127, 188, 62, 79, 82, 196, 96)
 	instrClmmCreatePool                 = disc8(233, 146, 209, 142, 207, 104, 64, 188)
+	instrClmmCreateCustomizablePool     = disc8(43, 68, 212, 167, 89, 47, 164, 1)
+	instrClmmOpenPosition               = disc8(135, 128, 47, 77, 15, 152, 240, 49)
 	instrClmmOpenPositionV2             = disc8(77, 184, 74, 214, 112, 86, 241, 199)
 	instrClmmOpenPositionWithToken22Nft = disc8(77, 255, 174, 82, 125, 29, 201, 46)
 	instrClmmClosePosition              = disc8(123, 134, 81, 0, 49, 68, 98, 98)
+)
+
+var (
+	instrCpmmInitialize = disc8(175, 175, 109, 31, 13, 152, 155, 237)
 )
 
 // InstructionData 指令数据
@@ -194,8 +199,208 @@ var (
 	pumpswapInnerRemoveLiquidity = []byte{228, 69, 165, 46, 81, 203, 154, 29, 22, 9, 133, 26, 160, 44, 71, 192}
 )
 
+var (
+	eventCPIPrefix = []byte{228, 69, 165, 46, 81, 203, 154, 29}
+	eventCPISuffix = []byte{155, 167, 108, 32, 122, 76, 173, 64}
+)
+
+func disc16HasPrefix(disc []byte) bool {
+	return len(disc) >= 16 && bytes.Equal(disc[:8], eventCPIPrefix)
+}
+
+func disc16HasSuffix(disc []byte) bool {
+	return len(disc) >= 16 && bytes.Equal(disc[8:16], eventCPISuffix)
+}
+
+func eventCPIDisc8(disc []byte) (uint64, bool) {
+	if len(disc) < 16 {
+		return 0, false
+	}
+	if disc16HasPrefix(disc) {
+		return binary.LittleEndian.Uint64(disc[8:16]), true
+	}
+	if disc16HasSuffix(disc) {
+		return binary.LittleEndian.Uint64(disc[:8]), true
+	}
+	return 0, false
+}
+
+func headInDiscs(data []byte, discs ...uint64) bool {
+	if len(data) < 8 {
+		return false
+	}
+	disc := binary.LittleEndian.Uint64(data[:8])
+	for _, want := range discs {
+		if disc == want {
+			return true
+		}
+	}
+	return false
+}
+
+func firstByteIn(data []byte, allowed ...byte) bool {
+	if len(data) == 0 {
+		return false
+	}
+	for _, want := range allowed {
+		if data[0] == want {
+			return true
+		}
+	}
+	return false
+}
+
+func normalInstructionDataMayParse(programID string, data []byte) bool {
+	if len(data) == 0 {
+		return false
+	}
+	switch programID {
+	case RAYDIUM_AMM_V4_PROGRAM_ID:
+		return firstByteIn(data, 1, 3, 4, 7, 9, 11)
+	case METEORA_DLMM_PROGRAM_ID:
+		return firstByteIn(data, 0, 1, 2, 7, 8, 11, 13, 14)
+	case METEORA_DAMM_V2_PROGRAM_ID:
+		return headInDiscs(data, discDammInit)
+	case PUMPFUN_PROGRAM_ID:
+		return headInDiscs(data,
+			instrPumpOuterCreate,
+			instrPumpOuterCreateV2,
+			instrPumpOuterBuy,
+			instrPumpOuterSell,
+			instrPumpOuterBuyExactSolIn,
+			instrPumpOuterBuyV2,
+			instrPumpOuterBuyExactQuoteInV2,
+			instrPumpOuterSellV2,
+		)
+	case PUMPSWAP_PROGRAM_ID:
+		return headInDiscs(data,
+			instrPumpSwapBuy,
+			instrPumpSwapSell,
+			instrPumpSwapCreatePool,
+			instrPumpSwapBuyExactQuote,
+			instrPumpSwapDeposit,
+			instrPumpSwapWithdraw,
+		)
+	case PUMP_FEES_PROGRAM_ID:
+		return headInDiscs(data,
+			instrPumpFeesCreateFeeSharingConfig,
+			instrPumpFeesInitializeFeeConfig,
+			instrPumpFeesResetFeeSharingConfig,
+			instrPumpFeesResetFeeSharingConfigV2,
+			instrPumpFeesRevokeFeeSharingAuthority,
+			instrPumpFeesTransferFeeSharingAuthority,
+			instrPumpFeesUpdateAdmin,
+			instrPumpFeesUpdateFeeConfig,
+			instrPumpFeesUpdateFeeShares,
+			instrPumpFeesUpdateFeeSharesV2,
+			instrPumpFeesUpsertFeeTiers,
+		)
+	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
+		return headInDiscs(data,
+			instrRaydiumLaunchlabBuyExactIn,
+			instrRaydiumLaunchlabBuyExactOut,
+			instrRaydiumLaunchlabSellExactIn,
+			instrRaydiumLaunchlabSellExactOut,
+			instrRaydiumLaunchlabInitialize,
+			instrRaydiumLaunchlabInitializeV2,
+			instrRaydiumLaunchlabInitializeToken2022,
+		)
+	case RAYDIUM_CPMM_PROGRAM_ID:
+		return headInDiscs(data,
+			discCpmmSwapIn,
+			discCpmmSwapOut,
+			instrCpmmInitialize,
+			discCpmmDeposit,
+			discCpmmWithdraw,
+		)
+	case RAYDIUM_CLMM_PROGRAM_ID, GrpcRaydiumClmmProgramID:
+		return headInDiscs(data,
+			instrClmmSwap,
+			instrClmmSwapV2,
+			instrClmmIncLiqV2,
+			instrClmmDecLiqV2,
+			instrClmmCreatePool,
+			instrClmmCreateCustomizablePool,
+			instrClmmOpenPosition,
+			instrClmmOpenPositionV2,
+			instrClmmOpenPositionWithToken22Nft,
+			instrClmmClosePosition,
+		)
+	case ORCA_WHIRLPOOL_PROGRAM_ID:
+		return headInDiscs(data,
+			disc8(248, 198, 158, 145, 225, 117, 135, 200),
+			disc8(43, 4, 237, 11, 26, 201, 30, 98),
+			disc8(46, 156, 243, 118, 13, 205, 251, 178),
+			disc8(160, 38, 208, 111, 104, 91, 44, 1),
+			disc8(17, 43, 80, 74, 168, 202, 6, 113),
+		)
+	case METEORA_POOLS_PROGRAM_ID:
+		return headInDiscs(data,
+			instrMeteoraPoolsSwap,
+			instrMeteoraPoolsAddLiquidity,
+			instrMeteoraPoolsRemoveLiquidity,
+			instrMeteoraPoolsCreatePool,
+		)
+	default:
+		return false
+	}
+}
+
+// ParseInnerCompiledInstructionIfSupported 尝试按 Rust normal-inner fallback 解析普通编译指令。
+func ParseInnerCompiledInstructionIfSupported(
+	instructionData []byte,
+	accounts []string,
+	signature string,
+	slot uint64,
+	txIndex uint32,
+	blockTimeUs *int64,
+	grpcRecvUs int64,
+	filter EventTypeFilter,
+	programID string,
+) DexEvent {
+	if !normalInstructionDataMayParse(programID, instructionData) {
+		return DexEvent{}
+	}
+	return ParseInstructionUnified(instructionData, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programID)
+}
+
+func parsePumpFeesInner(disc []byte, data []byte, meta EventMetadata) DexEvent {
+	eventDisc, ok := eventCPIDisc8(disc)
+	if !ok {
+		return DexEvent{}
+	}
+	switch eventDisc {
+	case discPumpFeesCreateFeeSharingConfig:
+		return parsePumpFeesCreateFeeSharingConfigFromData(data, meta)
+	case discPumpFeesInitializeFeeConfig:
+		return parsePumpFeesInitializeFeeConfigFromData(data, meta)
+	case discPumpFeesResetFeeSharingConfig:
+		return parsePumpFeesResetFeeSharingConfigFromData(data, meta)
+	case discPumpFeesRevokeFeeSharingAuthority:
+		return parsePumpFeesRevokeFeeSharingAuthorityFromData(data, meta)
+	case discPumpFeesTransferFeeSharingAuthority:
+		return parsePumpFeesTransferFeeSharingAuthorityFromData(data, meta)
+	case discPumpFeesUpdateAdmin:
+		return parsePumpFeesUpdateAdminFromData(data, meta)
+	case discPumpFeesUpdateFeeConfig:
+		return parsePumpFeesUpdateFeeConfigFromData(data, meta)
+	case discPumpFeesUpdateFeeShares:
+		return parsePumpFeesUpdateFeeSharesFromData(data, meta)
+	case discPumpFeesUpsertFeeTiers:
+		return parsePumpFeesUpsertFeeTiersFromData(data, meta)
+	default:
+		return DexEvent{}
+	}
+}
+
+func dlmmInnerBuffer(disc []byte, inner []byte) []byte {
+	buf := make([]byte, 8+len(inner))
+	copy(buf[:8], disc[:8])
+	copy(buf[8:], inner)
+	return buf
+}
+
 // ParseInnerInstructionUnified 与 Rust `parse_inner_instruction` 对齐：16 字节 discriminator，data[16..] 为 payload。
-// 当前实现 PumpFun、PumpSwap（其余 program 可按 Rust `instruction_parser` 扩展）。
 func ParseInnerInstructionUnified(
 	instructionData []byte,
 	accounts []string,
@@ -214,6 +419,7 @@ func ParseInnerInstructionUnified(
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 	disc := instructionData[:16]
 	inner := instructionData[16:]
+	disc8Value := binary.LittleEndian.Uint64(disc[:8])
 
 	switch programID {
 	case PUMPFUN_PROGRAM_ID:
@@ -263,6 +469,169 @@ func ParseInnerInstructionUnified(
 			return applyActualEventTypeFilter(parsePSAddLiqFromData(inner, meta), filter)
 		case bytes.Equal(disc, pumpswapInnerRemoveLiquidity):
 			return applyActualEventTypeFilter(parsePSRemoveLiqFromData(inner, meta), filter)
+		default:
+			return DexEvent{}
+		}
+	case PUMP_FEES_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesPumpFees(filter) {
+			return DexEvent{}
+		}
+		return applyActualEventTypeFilter(parsePumpFeesInner(disc, inner, meta), filter)
+	case RAYDIUM_CLMM_PROGRAM_ID, GrpcRaydiumClmmProgramID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumClmm(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasSuffix(disc) {
+			return DexEvent{}
+		}
+		switch disc8Value {
+		case discClmmSwap:
+			return applyActualEventTypeFilter(parseClmmSwapFromData(inner, meta), filter)
+		case discClmmIncLiq:
+			return applyActualEventTypeFilter(parseClmmIncFromData(inner, meta), filter)
+		case discClmmDecLiq:
+			return applyActualEventTypeFilter(parseClmmDecFromData(inner, meta), filter)
+		case discClmmLiqChange:
+			return applyActualEventTypeFilter(parseClmmLiquidityChangeFromData(inner, meta), filter)
+		case discClmmConfigChange:
+			return applyActualEventTypeFilter(parseClmmConfigChangeFromData(inner, meta), filter)
+		case discClmmCreatePersonalPosition:
+			return applyActualEventTypeFilter(parseClmmCreatePersonalPositionFromData(inner, meta), filter)
+		case discClmmLiqCalculate:
+			return applyActualEventTypeFilter(parseClmmLiquidityCalculateFromData(inner, meta), filter)
+		case discClmmOpenLimitOrder:
+			return applyActualEventTypeFilter(parseClmmOpenLimitOrderFromData(inner, meta), filter)
+		case discClmmIncreaseLimitOrder:
+			return applyActualEventTypeFilter(parseClmmIncreaseLimitOrderFromData(inner, meta), filter)
+		case discClmmDecreaseLimitOrder:
+			return applyActualEventTypeFilter(parseClmmDecreaseLimitOrderFromData(inner, meta), filter)
+		case discClmmSettleLimitOrder:
+			return applyActualEventTypeFilter(parseClmmSettleLimitOrderFromData(inner, meta), filter)
+		case discClmmUpdateRewardInfos:
+			return applyActualEventTypeFilter(parseClmmUpdateRewardInfosFromData(inner, meta), filter)
+		case discClmmCreate:
+			return applyActualEventTypeFilter(parseClmmCreateFromData(inner, meta), filter)
+		case discClmmCollectPersonal:
+			return applyActualEventTypeFilter(parseClmmCollectPersonalFromData(inner, meta), filter)
+		case discClmmCollectProtocol:
+			return applyActualEventTypeFilter(parseClmmCollectProtocolFromData(inner, meta), filter)
+		default:
+			return DexEvent{}
+		}
+	case RAYDIUM_CPMM_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumCpmm(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasSuffix(disc) {
+			return DexEvent{}
+		}
+		switch disc8Value {
+		case discCpmmSwapIn:
+			return applyActualEventTypeFilter(parseCpmmSwapInFromData(inner, meta), filter)
+		case discCpmmSwapOut:
+			return applyActualEventTypeFilter(parseCpmmSwapOutFromData(inner, meta), filter)
+		case discCpmmCreatePool:
+			return applyActualEventTypeFilter(parseCpmmInitFromData(inner, meta), filter)
+		case discCpmmDeposit:
+			return applyActualEventTypeFilter(parseCpmmDepositFromData(inner, meta), filter)
+		case discCpmmWithdraw:
+			return applyActualEventTypeFilter(parseCpmmWithdrawFromData(inner, meta), filter)
+		default:
+			return DexEvent{}
+		}
+	case RAYDIUM_AMM_V4_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumAmmV4(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasSuffix(disc) {
+			return DexEvent{}
+		}
+		switch disc8Value {
+		case discAmmSwapIn:
+			return applyActualEventTypeFilter(parseAmmSwapInFromData(inner, meta), filter)
+		case discAmmSwapOut:
+			return applyActualEventTypeFilter(parseAmmSwapOutFromData(inner, meta), filter)
+		case discAmmDeposit:
+			return applyActualEventTypeFilter(parseAmmDepositFromData(inner, meta), filter)
+		case discAmmWithdraw:
+			return applyActualEventTypeFilter(parseAmmWithdrawFromData(inner, meta), filter)
+		case discAmmInit2:
+			return applyActualEventTypeFilter(parseAmmInit2FromData(inner, meta), filter)
+		case discAmmWithdrawPnl:
+			return applyActualEventTypeFilter(parseAmmWithdrawPnlFromData(inner, meta), filter)
+		default:
+			return DexEvent{}
+		}
+	case ORCA_WHIRLPOOL_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesOrcaWhirlpool(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasSuffix(disc) {
+			return DexEvent{}
+		}
+		switch disc8Value {
+		case discOrcaSwap:
+			return applyActualEventTypeFilter(parseOrcaTradedFromData(inner, meta), filter)
+		case discOrcaIncLiq:
+			return applyActualEventTypeFilter(parseOrcaLiqIncFromData(inner, meta), filter)
+		case discOrcaDecLiq:
+			return applyActualEventTypeFilter(parseOrcaLiqDecFromData(inner, meta), filter)
+		case discOrcaPoolInit:
+			return applyActualEventTypeFilter(parseOrcaPoolInitFromData(inner, meta), filter)
+		default:
+			return DexEvent{}
+		}
+	case METEORA_POOLS_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesMeteoraPools(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasSuffix(disc) {
+			return DexEvent{}
+		}
+		switch disc8Value {
+		case discMeteoraSwap:
+			return applyActualEventTypeFilter(parseMeteoraSwapFromData(inner, meta), filter)
+		case discMeteoraAdd:
+			return applyActualEventTypeFilter(parseMeteoraAddFromData(inner, meta), filter)
+		case discMeteoraRemove:
+			return applyActualEventTypeFilter(parseMeteoraRemoveFromData(inner, meta), filter)
+		case discMeteoraBootstrap:
+			return applyActualEventTypeFilter(parseMeteoraBootstrapFromData(inner, meta), filter)
+		case discMeteoraPoolCreated:
+			return applyActualEventTypeFilter(parseMeteoraPoolCreatedFromData(inner, meta), filter)
+		case discMeteoraSetPoolFees:
+			return applyActualEventTypeFilter(parseMeteoraPoolsSetPoolFeesFromData(inner, meta), filter)
+		default:
+			return DexEvent{}
+		}
+	case METEORA_DAMM_V2_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesMeteoraDammV2(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasPrefix(disc) {
+			return DexEvent{}
+		}
+		return applyActualEventTypeFilter(ParseMeteoraDammCpiInstruction(instructionData, meta), filter)
+	case METEORA_DLMM_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesMeteoraDlmm(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasSuffix(disc) {
+			return DexEvent{}
+		}
+		return applyActualEventTypeFilter(parseDlmmFromProgramData(dlmmInnerBuffer(disc, inner), meta), filter)
+	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesRaydiumLaunchlab(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasSuffix(disc) {
+			return DexEvent{}
+		}
+		switch disc8Value {
+		case discRaydiumLaunchlabTrade:
+			return applyActualEventTypeFilter(parseRaydiumLaunchlabTradeFromData(inner, meta), filter)
+		case discRaydiumLaunchlabPoolCreate:
+			return applyActualEventTypeFilter(parseRaydiumLaunchlabPoolCreateFromData(inner, meta), filter)
 		default:
 			return DexEvent{}
 		}
@@ -603,15 +972,24 @@ func parsePumpFunCreateInstr(data []byte, accounts []string, meta EventMetadata)
 	return DexEvent{
 		Type: EventTypePumpFunCreate,
 		Data: &PumpFunCreateEvent{
-			Metadata:     meta,
-			Name:         name,
-			Symbol:       symbol,
-			Uri:          uri,
-			Creator:      creator,
-			Mint:         getAccountSafe(accounts, 0),
-			BondingCurve: getAccountSafe(accounts, 2),
-			User:         getAccountSafe(accounts, 7),
-			QuoteMint:    zeroPubkey,
+			Metadata:               meta,
+			Name:                   name,
+			Symbol:                 symbol,
+			Uri:                    uri,
+			Creator:                creator,
+			Mint:                   getAccountSafe(accounts, 0),
+			BondingCurve:           getAccountSafe(accounts, 2),
+			User:                   getAccountSafe(accounts, 7),
+			QuoteMint:              zeroPubkey,
+			IxName:                 "create",
+			MintAuthority:          getAccountSafe(accounts, 1),
+			AssociatedBondingCurve: getAccountSafe(accounts, 3),
+			Global:                 getAccountSafe(accounts, 4),
+			SystemProgram:          getAccountSafe(accounts, 8),
+			TokenProgram:           getAccountSafe(accounts, 9),
+			AssociatedTokenProgram: getAccountSafe(accounts, 10),
+			EventAuthority:         getAccountSafe(accounts, 12),
+			Program:                getAccountSafe(accounts, 13),
 		},
 	}
 }
@@ -665,7 +1043,10 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 			TokenProgram:           acc[7],
 			IsMayhemMode:           isMayhemMode,
 			IsCashbackEnabled:      isCashbackEnabled,
-			QuoteMint:              zeroPubkey,
+			QuoteMint:              getAccountSafe(accounts, 16),
+			QuoteVault:             getAccountSafe(accounts, 17),
+			QuoteTokenProgram:      getAccountSafe(accounts, 18),
+			IxName:                 "create_v2",
 			MintAuthority:          acc[1],
 			AssociatedBondingCurve: acc[3],
 			Global:                 acc[4],
@@ -922,7 +1303,34 @@ func ParseMeteoraDammInstruction(
 	blockTimeUs *int64,
 	grpcRecvUs int64,
 ) DexEvent {
-	_ = accounts
+	if len(data) >= 8 && binary.LittleEndian.Uint64(data[:8]) == discDammInit {
+		if len(data) < 8+16+16+1 {
+			return DexEvent{}
+		}
+		meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+		payload := data[8:]
+		liquidity, _ := readU128LE(payload, 0)
+		sqrtPrice, _ := readU128LE(payload, 16)
+		var activationPoint uint64
+		if len(payload) >= 41 && payload[32] == 1 {
+			activationPoint, _ = readU64LE(payload, 33)
+		}
+		return DexEvent{
+			Type: EventTypeMeteoraDammV2InitializePool,
+			Data: &MeteoraDammV2InitializePoolEvent{
+				Metadata:        meta,
+				Creator:         getAccountSafe(accounts, 0),
+				PositionNftMint: getAccountSafe(accounts, 1),
+				Pool:            getAccountSafe(accounts, 6),
+				Position:        getAccountSafe(accounts, 7),
+				TokenAMint:      getAccountSafe(accounts, 8),
+				TokenBMint:      getAccountSafe(accounts, 9),
+				Liquidity:       u128LEDecimalString(liquidity),
+				SqrtPrice:       u128LEDecimalString(sqrtPrice),
+				ActivationPoint: activationPoint,
+			},
+		}
+	}
 	if len(data) < 16 {
 		return DexEvent{}
 	}
@@ -950,11 +1358,11 @@ func ParseRaydiumClmmInstruction(
 
 	switch discriminator {
 	case instrClmmSwap, instrClmmSwapV2:
-		if len(payload) < 8+8+8+1 {
+		if len(payload) < 8+8+16+1 {
 			return DexEvent{}
 		}
-		sqrt, _ := readU64LE(payload, 16)
-		isBaseInput, ok := readBool(payload, 24)
+		sqrt, _ := readU128LE(payload, 16)
+		isBaseInput, ok := readBool(payload, 32)
 		if !ok {
 			return DexEvent{}
 		}
@@ -962,88 +1370,112 @@ func ParseRaydiumClmmInstruction(
 			Type: EventTypeRaydiumClmmSwap,
 			Data: &RaydiumClmmSwapEvent{
 				Metadata:      meta,
-				PoolState:     getAccountSafe(accounts, 0),
-				Sender:        getAccountSafe(accounts, 1),
-				TokenAccount0: zeroPubkey,
-				TokenAccount1: zeroPubkey,
+				PoolState:     getAccountSafe(accounts, 2),
+				Sender:        getAccountSafe(accounts, 0),
+				TokenAccount0: getAccountSafe(accounts, 3),
+				TokenAccount1: getAccountSafe(accounts, 4),
 				ZeroForOne:    isBaseInput,
-				SqrtPriceX64:  strconv.FormatUint(sqrt, 10),
+				SqrtPriceX64:  u128LEDecimalString(sqrt),
 				Liquidity:     "0",
 			},
 		}
 	case instrClmmIncLiqV2:
-		if len(payload) < 8+8+8 {
+		if len(payload) < 16+8+8 {
 			return DexEvent{}
 		}
-		liquidity, _ := readU64LE(payload, 0)
-		amount0Max, _ := readU64LE(payload, 8)
-		amount1Max, _ := readU64LE(payload, 16)
+		liquidity, _ := readU128LE(payload, 0)
+		amount0Max, _ := readU64LE(payload, 16)
+		amount1Max, _ := readU64LE(payload, 24)
 		return DexEvent{
 			Type: EventTypeRaydiumClmmIncreaseLiquidity,
 			Data: &RaydiumClmmIncreaseLiquidityEvent{
 				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 0),
+				Pool:            getAccountSafe(accounts, 2),
 				PositionNftMint: getAccountSafe(accounts, 1),
-				User:            getAccountSafe(accounts, 2),
-				Liquidity:       strconv.FormatUint(liquidity, 10),
+				User:            getAccountSafe(accounts, 0),
+				Liquidity:       u128LEDecimalString(liquidity),
 				Amount0Max:      amount0Max,
 				Amount1Max:      amount1Max,
 			},
 		}
 	case instrClmmDecLiqV2:
-		if len(payload) < 8+8+8 {
+		if len(payload) < 16+8+8 {
 			return DexEvent{}
 		}
-		liquidity, _ := readU64LE(payload, 0)
-		amount0Min, _ := readU64LE(payload, 8)
-		amount1Min, _ := readU64LE(payload, 16)
+		liquidity, _ := readU128LE(payload, 0)
+		amount0Min, _ := readU64LE(payload, 16)
+		amount1Min, _ := readU64LE(payload, 24)
 		return DexEvent{
 			Type: EventTypeRaydiumClmmDecreaseLiquidity,
 			Data: &RaydiumClmmDecreaseLiquidityEvent{
 				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 0),
+				Pool:            getAccountSafe(accounts, 3),
 				PositionNftMint: getAccountSafe(accounts, 1),
-				User:            getAccountSafe(accounts, 2),
-				Liquidity:       strconv.FormatUint(liquidity, 10),
+				User:            getAccountSafe(accounts, 0),
+				Liquidity:       u128LEDecimalString(liquidity),
 				Amount0Min:      amount0Min,
 				Amount1Min:      amount1Min,
 			},
 		}
 	case instrClmmCreatePool:
-		if len(payload) < 8+8 {
+		if len(payload) < 16+8 {
 			return DexEvent{}
 		}
-		sqrt, _ := readU64LE(payload, 0)
-		openTime, _ := readU64LE(payload, 8)
+		sqrt, _ := readU128LE(payload, 0)
+		openTime, _ := readU64LE(payload, 16)
 		return DexEvent{
 			Type: EventTypeRaydiumClmmCreatePool,
 			Data: &RaydiumClmmCreatePoolEvent{
 				Metadata:     meta,
-				Pool:         getAccountSafe(accounts, 0),
-				Creator:      getAccountSafe(accounts, 1),
-				Token0Mint:   getAccountSafe(accounts, 2),
-				Token1Mint:   getAccountSafe(accounts, 3),
-				SqrtPriceX64: strconv.FormatUint(sqrt, 10),
+				Pool:         getAccountSafe(accounts, 2),
+				Creator:      getAccountSafe(accounts, 0),
+				Token0Mint:   getAccountSafe(accounts, 3),
+				Token1Mint:   getAccountSafe(accounts, 4),
+				SqrtPriceX64: u128LEDecimalString(sqrt),
+				TokenVault0:  getAccountSafe(accounts, 5),
+				TokenVault1:  getAccountSafe(accounts, 6),
 				OpenTime:     openTime,
 			},
 		}
-	case instrClmmOpenPositionV2, instrClmmOpenPositionWithToken22Nft:
-		if len(payload) < 4+4+4+4+8+8+8 {
+	case instrClmmCreateCustomizablePool:
+		if len(payload) < 16 {
+			return DexEvent{}
+		}
+		sqrt, _ := readU128LE(payload, 0)
+		return DexEvent{
+			Type: EventTypeRaydiumClmmCreatePool,
+			Data: &RaydiumClmmCreatePoolEvent{
+				Metadata:     meta,
+				Pool:         getAccountSafe(accounts, 2),
+				Creator:      getAccountSafe(accounts, 0),
+				Token0Mint:   getAccountSafe(accounts, 3),
+				Token1Mint:   getAccountSafe(accounts, 4),
+				SqrtPriceX64: u128LEDecimalString(sqrt),
+				TokenVault0:  getAccountSafe(accounts, 5),
+				TokenVault1:  getAccountSafe(accounts, 6),
+			},
+		}
+	case instrClmmOpenPosition, instrClmmOpenPositionV2, instrClmmOpenPositionWithToken22Nft:
+		if len(payload) < 4+4+4+4+16+8+8 {
 			return DexEvent{}
 		}
 		tickLower, _ := readI32LE(payload, 0)
 		tickUpper, _ := readI32LE(payload, 4)
-		liquidity, _ := readU64LE(payload, 16)
+		liquidity, _ := readU128LE(payload, 16)
+		poolIndex := 5
+		if discriminator == instrClmmOpenPositionWithToken22Nft {
+			poolIndex = 4
+		}
 		return DexEvent{
 			Type: EventTypeRaydiumClmmOpenPosition,
 			Data: &RaydiumClmmOpenPositionEvent{
 				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 0),
+				Pool:            getAccountSafe(accounts, poolIndex),
 				User:            getAccountSafe(accounts, 1),
 				PositionNftMint: getAccountSafe(accounts, 2),
 				TickLowerIndex:  tickLower,
 				TickUpperIndex:  tickUpper,
-				Liquidity:       strconv.FormatUint(liquidity, 10),
+				Liquidity:       u128LEDecimalString(liquidity),
 			},
 		}
 	case instrClmmClosePosition:
@@ -1051,9 +1483,9 @@ func ParseRaydiumClmmInstruction(
 			Type: EventTypeRaydiumClmmClosePosition,
 			Data: &RaydiumClmmClosePositionEvent{
 				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 0),
-				User:            getAccountSafe(accounts, 1),
-				PositionNftMint: getAccountSafe(accounts, 2),
+				Pool:            zeroPubkey,
+				User:            getAccountSafe(accounts, 0),
+				PositionNftMint: getAccountSafe(accounts, 1),
 			},
 		}
 	}
@@ -1080,29 +1512,71 @@ func ParseRaydiumCpmmInstruction(
 
 	switch discriminator {
 	case discCpmmSwapIn, discCpmmSwapOut:
+		if len(data) < 8+16 {
+			return DexEvent{}
+		}
+		input, _ := readU64LE(data, 8)
+		output, _ := readU64LE(data, 16)
 		return DexEvent{
 			Type: EventTypeRaydiumCpmmSwap,
 			Data: &RaydiumCpmmSwapEvent{
-				Metadata: meta,
-				PoolID:   getAccountSafe(accounts, 2),
+				Metadata:     meta,
+				PoolID:       getAccountSafe(accounts, 0),
+				InputAmount:  input,
+				OutputAmount: output,
+				BaseInput:    discriminator == discCpmmSwapIn,
+			},
+		}
+	case instrCpmmInitialize:
+		if len(data) < 8+8+8+8 {
+			return DexEvent{}
+		}
+		initAmount0, _ := readU64LE(data, 8)
+		initAmount1, _ := readU64LE(data, 16)
+		return DexEvent{
+			Type: EventTypeRaydiumCpmmInitialize,
+			Data: &RaydiumCpmmInitializeEvent{
+				Metadata:    meta,
+				Pool:        getAccountSafe(accounts, 0),
+				Creator:     getAccountSafe(accounts, 1),
+				InitAmount0: initAmount0,
+				InitAmount1: initAmount1,
 			},
 		}
 	case discCpmmDeposit:
+		if len(data) < 8+8+8+8 {
+			return DexEvent{}
+		}
+		lp, _ := readU64LE(data, 8)
+		token0, _ := readU64LE(data, 16)
+		token1, _ := readU64LE(data, 24)
 		return DexEvent{
 			Type: EventTypeRaydiumCpmmDeposit,
 			Data: &RaydiumCpmmDepositEvent{
-				Metadata: meta,
-				Pool:     getAccountSafe(accounts, 2),
-				User:     getAccountSafe(accounts, 0),
+				Metadata:      meta,
+				Pool:          getAccountSafe(accounts, 0),
+				User:          getAccountSafe(accounts, 1),
+				LpTokenAmount: lp,
+				Token0Amount:  token0,
+				Token1Amount:  token1,
 			},
 		}
 	case discCpmmWithdraw:
+		if len(data) < 8+8+8+8 {
+			return DexEvent{}
+		}
+		lp, _ := readU64LE(data, 8)
+		token0, _ := readU64LE(data, 16)
+		token1, _ := readU64LE(data, 24)
 		return DexEvent{
 			Type: EventTypeRaydiumCpmmWithdraw,
 			Data: &RaydiumCpmmWithdrawEvent{
-				Metadata: meta,
-				Pool:     getAccountSafe(accounts, 2),
-				User:     getAccountSafe(accounts, 0),
+				Metadata:      meta,
+				Pool:          getAccountSafe(accounts, 0),
+				User:          getAccountSafe(accounts, 1),
+				LpTokenAmount: lp,
+				Token0Amount:  token0,
+				Token1Amount:  token1,
 			},
 		}
 	}
@@ -1130,12 +1604,133 @@ func ParseRaydiumAmmV4Instruction(
 
 	switch instrType {
 	case 9, 11: // SwapBaseIn, SwapBaseOut
+		if len(data) < 17 {
+			return DexEvent{}
+		}
+		var amountIn, minOut, maxIn, amountOut uint64
+		if instrType == 9 {
+			amountIn, _ = readU64LE(data, 1)
+			minOut, _ = readU64LE(data, 9)
+		} else {
+			maxIn, _ = readU64LE(data, 1)
+			amountOut, _ = readU64LE(data, 9)
+		}
 		return DexEvent{
 			Type: EventTypeRaydiumAmmV4Swap,
 			Data: &RaydiumAmmV4SwapEvent{
-				Metadata:        meta,
-				Amm:             getAccountSafe(accounts, 1),
-				UserSourceOwner: getAccountSafe(accounts, 17),
+				Metadata:                    meta,
+				Amm:                         getAccountSafe(accounts, 1),
+				UserSourceOwner:             getAccountSafe(accounts, 17),
+				AmountIn:                    amountIn,
+				MinimumAmountOut:            minOut,
+				MaxAmountIn:                 maxIn,
+				AmountOut:                   amountOut,
+				TokenProgram:                getAccountSafe(accounts, 0),
+				AmmAuthority:                getAccountSafe(accounts, 2),
+				AmmOpenOrders:               getAccountSafe(accounts, 3),
+				PoolCoinTokenAccount:        getAccountSafe(accounts, 5),
+				PoolPcTokenAccount:          getAccountSafe(accounts, 6),
+				SerumProgram:                getAccountSafe(accounts, 7),
+				SerumMarket:                 getAccountSafe(accounts, 8),
+				SerumBids:                   getAccountSafe(accounts, 9),
+				SerumAsks:                   getAccountSafe(accounts, 10),
+				SerumEventQueue:             getAccountSafe(accounts, 11),
+				SerumCoinVaultAccount:       getAccountSafe(accounts, 12),
+				SerumPcVaultAccount:         getAccountSafe(accounts, 13),
+				SerumVaultSigner:            getAccountSafe(accounts, 14),
+				UserSourceTokenAccount:      getAccountSafe(accounts, 15),
+				UserDestinationTokenAccount: getAccountSafe(accounts, 16),
+			},
+		}
+	case 3:
+		if len(data) < 25 {
+			return DexEvent{}
+		}
+		maxCoin, _ := readU64LE(data, 1)
+		maxPc, _ := readU64LE(data, 9)
+		baseSide, _ := readU64LE(data, 17)
+		return DexEvent{
+			Type: EventTypeRaydiumAmmV4Deposit,
+			Data: &RaydiumAmmV4DepositEvent{
+				Metadata:             meta,
+				Amm:                  getAccountSafe(accounts, 1),
+				UserOwner:            getAccountSafe(accounts, 12),
+				MaxCoinAmount:        maxCoin,
+				MaxPcAmount:          maxPc,
+				BaseSide:             baseSide,
+				TokenProgram:         getAccountSafe(accounts, 0),
+				AmmAuthority:         getAccountSafe(accounts, 2),
+				AmmOpenOrders:        getAccountSafe(accounts, 3),
+				AmmTargetOrders:      getAccountSafe(accounts, 4),
+				LpMintAddress:        getAccountSafe(accounts, 5),
+				PoolCoinTokenAccount: getAccountSafe(accounts, 6),
+				PoolPcTokenAccount:   getAccountSafe(accounts, 7),
+				SerumMarket:          getAccountSafe(accounts, 8),
+				UserCoinTokenAccount: getAccountSafe(accounts, 9),
+				UserPcTokenAccount:   getAccountSafe(accounts, 10),
+				UserLpTokenAccount:   getAccountSafe(accounts, 11),
+				SerumEventQueue:      getAccountSafe(accounts, 13),
+			},
+		}
+	case 4:
+		if len(data) < 9 {
+			return DexEvent{}
+		}
+		amount, _ := readU64LE(data, 1)
+		return DexEvent{
+			Type: EventTypeRaydiumAmmV4Withdraw,
+			Data: &RaydiumAmmV4WithdrawEvent{
+				Metadata:               meta,
+				Amm:                    getAccountSafe(accounts, 1),
+				UserOwner:              getAccountSafe(accounts, 18),
+				Amount:                 amount,
+				TokenProgram:           getAccountSafe(accounts, 0),
+				AmmAuthority:           getAccountSafe(accounts, 2),
+				AmmOpenOrders:          getAccountSafe(accounts, 3),
+				AmmTargetOrders:        getAccountSafe(accounts, 4),
+				LpMintAddress:          getAccountSafe(accounts, 5),
+				PoolCoinTokenAccount:   getAccountSafe(accounts, 6),
+				PoolPcTokenAccount:     getAccountSafe(accounts, 7),
+				PoolWithdrawQueue:      getAccountSafe(accounts, 8),
+				PoolTempLpTokenAccount: getAccountSafe(accounts, 9),
+				SerumProgram:           getAccountSafe(accounts, 10),
+				SerumMarket:            getAccountSafe(accounts, 11),
+				SerumCoinVaultAccount:  getAccountSafe(accounts, 12),
+				SerumPcVaultAccount:    getAccountSafe(accounts, 13),
+				SerumVaultSigner:       getAccountSafe(accounts, 14),
+				UserLpTokenAccount:     getAccountSafe(accounts, 15),
+				UserCoinTokenAccount:   getAccountSafe(accounts, 16),
+				UserPcTokenAccount:     getAccountSafe(accounts, 17),
+				SerumEventQueue:        getAccountSafe(accounts, 19),
+				SerumBids:              getAccountSafe(accounts, 20),
+				SerumAsks:              getAccountSafe(accounts, 21),
+			},
+		}
+	case 1:
+		if len(data) < 26 {
+			return DexEvent{}
+		}
+		openTime, _ := readU64LE(data, 2)
+		initPcAmount, _ := readU64LE(data, 10)
+		initCoinAmount, _ := readU64LE(data, 18)
+		return DexEvent{
+			Type: EventTypeRaydiumAmmV4Initialize2,
+			Data: &RaydiumAmmV4DepositEvent{
+				Metadata:      meta,
+				Amm:           getAccountSafe(accounts, 4),
+				MaxCoinAmount: initCoinAmount,
+				MaxPcAmount:   initPcAmount,
+				BaseSide:      openTime,
+				TokenProgram:  getAccountSafe(accounts, 0),
+			},
+		}
+	case 7:
+		return DexEvent{
+			Type: EventTypeRaydiumAmmV4WithdrawPnl,
+			Data: &RaydiumAmmV4WithdrawEvent{
+				Metadata:     meta,
+				Amm:          getAccountSafe(accounts, 1),
+				TokenProgram: getAccountSafe(accounts, 0),
 			},
 		}
 	}
@@ -1160,33 +1755,88 @@ func ParseOrcaWhirlpoolInstruction(
 	discriminator := binary.LittleEndian.Uint64(data[:8])
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 
-	// Orca Whirlpool swap discriminators（与 matcher.go 中对齐）
 	switch discriminator {
-	case discOrcaSwap:
+	case disc8(248, 198, 158, 145, 225, 117, 135, 200), disc8(43, 4, 237, 11, 26, 201, 30, 98):
+		if len(data) < 8+8+8+16+1+1 {
+			return DexEvent{}
+		}
+		amount, _ := readU64LE(data, 8)
+		threshold, _ := readU64LE(data, 16)
+		sqrt, _ := readU128LE(data, 24)
+		inputSpecified, _ := readBool(data, 40)
+		aToB, _ := readBool(data, 41)
+		inputAmount := uint64(0)
+		outputAmount := threshold
+		if inputSpecified {
+			inputAmount = amount
+		} else {
+			outputAmount = amount
+		}
 		return DexEvent{
 			Type: EventTypeOrcaWhirlpoolSwap,
 			Data: &OrcaWhirlpoolSwapEvent{
-				Metadata:  meta,
-				Whirlpool: getAccountSafe(accounts, 2),
-				AToB:      true,
+				Metadata:     meta,
+				Whirlpool:    getAccountSafe(accounts, 1),
+				AToB:         aToB,
+				PreSqrtPrice: u128LEDecimalString(sqrt),
+				InputAmount:  inputAmount,
+				OutputAmount: outputAmount,
 			},
 		}
-	case discOrcaIncLiq:
+	case disc8(46, 156, 243, 118, 13, 205, 251, 178):
+		if len(data) < 8+16+8+8 {
+			return DexEvent{}
+		}
+		liquidity, _ := readU128LE(data, 8)
+		amountA, _ := readU64LE(data, 24)
+		amountB, _ := readU64LE(data, 32)
 		return DexEvent{
 			Type: EventTypeOrcaWhirlpoolLiquidityIncreased,
 			Data: &OrcaWhirlpoolLiquidityIncreasedEvent{
-				Metadata:  meta,
-				Whirlpool: getAccountSafe(accounts, 1),
-				Position:  getAccountSafe(accounts, 3),
+				Metadata:     meta,
+				Whirlpool:    getAccountSafe(accounts, 1),
+				Position:     getAccountSafe(accounts, 3),
+				Liquidity:    u128LEDecimalString(liquidity),
+				TokenAAmount: amountA,
+				TokenBAmount: amountB,
 			},
 		}
-	case discOrcaDecLiq:
+	case disc8(160, 38, 208, 111, 104, 91, 44, 1):
+		if len(data) < 8+16+8+8 {
+			return DexEvent{}
+		}
+		liquidity, _ := readU128LE(data, 8)
+		amountA, _ := readU64LE(data, 24)
+		amountB, _ := readU64LE(data, 32)
 		return DexEvent{
 			Type: EventTypeOrcaWhirlpoolLiquidityDecreased,
 			Data: &OrcaWhirlpoolLiquidityDecreasedEvent{
-				Metadata:  meta,
-				Whirlpool: getAccountSafe(accounts, 1),
-				Position:  getAccountSafe(accounts, 3),
+				Metadata:     meta,
+				Whirlpool:    getAccountSafe(accounts, 1),
+				Position:     getAccountSafe(accounts, 3),
+				Liquidity:    u128LEDecimalString(liquidity),
+				TokenAAmount: amountA,
+				TokenBAmount: amountB,
+			},
+		}
+	case disc8(17, 43, 80, 74, 168, 202, 6, 113):
+		if len(data) < 8+2+16 {
+			return DexEvent{}
+		}
+		tickSpacing, _ := readU16LE(data, 8)
+		sqrt, _ := readU128LE(data, 10)
+		return DexEvent{
+			Type: EventTypeOrcaWhirlpoolPoolInitialized,
+			Data: &OrcaWhirlpoolPoolInitializedEvent{
+				Metadata:         meta,
+				Whirlpool:        getAccountSafe(accounts, 1),
+				WhirlpoolsConfig: getAccountSafe(accounts, 2),
+				TokenMintA:       getAccountSafe(accounts, 3),
+				TokenMintB:       getAccountSafe(accounts, 4),
+				TickSpacing:      tickSpacing,
+				TokenProgramA:    getAccountSafe(accounts, 8),
+				TokenProgramB:    getAccountSafe(accounts, 9),
+				InitialSqrtPrice: u128LEDecimalString(sqrt),
 			},
 		}
 	}

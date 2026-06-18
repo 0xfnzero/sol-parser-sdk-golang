@@ -232,7 +232,6 @@ func parseRpcTransactionImpl(
 	}
 
 	// 解析日志（PumpFun/PumpSwap 等成交多数来自 Program data 日志，非指令表）
-	isCreatedBuy := false
 	logEvents := make([]DexEvent, 0)
 	activeProgramStack := make([]string, 0, 8)
 
@@ -260,15 +259,11 @@ func parseRpcTransactionImpl(
 			blockTimeUs,
 			grpcRecvUs,
 			filter,
-			isCreatedBuy,
+			isCreatedBuyFromLogs,
 			recentBlockhash,
 			currentProgram,
 		)
 		if ev.Type != "" {
-			// 检查是否是 PumpFun Create 事件
-			if ev.Type == EventTypePumpFunCreate || ev.Type == EventTypePumpFunCreateV2 {
-				isCreatedBuy = true
-			}
 			logEvents = append(logEvents, ev)
 		}
 		if completed, ok := ParseProgramCompleteInfo(log); ok {
@@ -282,10 +277,10 @@ func parseRpcTransactionImpl(
 	}
 
 	// Rust gRPC 路径先分别补齐 log / instruction 侧账户与数据，再按业务键去重合并。
-	fillRpcDexEventsPump(instrEvents, msg, meta)
-	fillRpcDexEventsPump(logEvents, msg, meta)
+	fillRpcDexEvents(instrEvents, msg, meta)
+	fillRpcDexEvents(logEvents, msg, meta)
 	events := DedupeLogInstructionEvents(logEvents, instrEvents)
-	fillRpcDexEventsPump(events, msg, meta)
+	fillRpcDexEvents(events, msg, meta)
 	enrichPumpfunSameTxPostMerge(events)
 
 	return events, nil
@@ -322,6 +317,9 @@ func parseRpcInstruction(
 	}
 
 	if inner {
+		if ev := ParseInnerCompiledInstructionIfSupported(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId); ev.Type != "" {
+			return ev
+		}
 		return ParseInnerInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId, isCreatedBuy)
 	}
 	return ParseInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId)

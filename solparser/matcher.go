@@ -66,12 +66,32 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeRaydiumClmmIncreaseLiquidity, true
 	case discClmmDecLiq:
 		return EventTypeRaydiumClmmDecreaseLiquidity, true
+	case discClmmLiqChange:
+		return EventTypeRaydiumClmmLiquidityChange, true
+	case discClmmConfigChange:
+		return EventTypeRaydiumClmmConfigChange, true
+	case discClmmCreatePersonalPosition:
+		return EventTypeRaydiumClmmCreatePersonalPosition, true
+	case discClmmLiqCalculate:
+		return EventTypeRaydiumClmmLiquidityCalculate, true
+	case discClmmOpenLimitOrder:
+		return EventTypeRaydiumClmmOpenLimitOrder, true
+	case discClmmIncreaseLimitOrder:
+		return EventTypeRaydiumClmmIncreaseLimitOrder, true
+	case discClmmDecreaseLimitOrder:
+		return EventTypeRaydiumClmmDecreaseLimitOrder, true
+	case discClmmSettleLimitOrder:
+		return EventTypeRaydiumClmmSettleLimitOrder, true
+	case discClmmUpdateRewardInfos:
+		return EventTypeRaydiumClmmUpdateRewardInfos, true
 	case discClmmCreate:
 		return EventTypeRaydiumClmmCreatePool, true
-	case discClmmCollect:
+	case discClmmCollectPersonal, discClmmCollectProtocol:
 		return EventTypeRaydiumClmmCollectFee, true
 	case discCpmmSwapIn, discCpmmSwapOut:
 		return EventTypeRaydiumCpmmSwap, true
+	case discCpmmCreatePool:
+		return EventTypeRaydiumCpmmInitialize, true
 	case discCpmmDeposit:
 		return EventTypeRaydiumCpmmDeposit, true
 	case discCpmmWithdraw:
@@ -143,12 +163,154 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 
 func programScopedLogDiscriminatorEventType(programID string, disc uint64) (EventType, bool) {
 	switch programID {
+	case PUMPFUN_PROGRAM_ID:
+		switch disc {
+		case discPumpCreate:
+			return EventTypePumpFunCreate, true
+		case discPumpTrade:
+			return EventTypePumpFunTrade, true
+		case discPumpMigrate:
+			return EventTypePumpFunMigrate, true
+		case discPumpMigrateBondingCurveCreator:
+			return EventTypePumpFunMigrateBondingCurveCreator, true
+		default:
+			return "", false
+		}
+	case PUMP_FEES_PROGRAM_ID:
+		switch disc {
+		case discPumpFeesCreateFeeSharingConfig:
+			return EventTypePumpFeesCreateFeeSharingConfig, true
+		case discPumpFeesInitializeFeeConfig:
+			return EventTypePumpFeesInitializeFeeConfig, true
+		case discPumpFeesResetFeeSharingConfig:
+			return EventTypePumpFeesResetFeeSharingConfig, true
+		case discPumpFeesRevokeFeeSharingAuthority:
+			return EventTypePumpFeesRevokeFeeSharingAuthority, true
+		case discPumpFeesTransferFeeSharingAuthority:
+			return EventTypePumpFeesTransferFeeSharingAuthority, true
+		case discPumpFeesUpdateAdmin:
+			return EventTypePumpFeesUpdateAdmin, true
+		case discPumpFeesUpdateFeeConfig:
+			return EventTypePumpFeesUpdateFeeConfig, true
+		case discPumpFeesUpdateFeeShares:
+			return EventTypePumpFeesUpdateFeeShares, true
+		case discPumpFeesUpsertFeeTiers:
+			return EventTypePumpFeesUpsertFeeTiers, true
+		default:
+			return "", false
+		}
+	case PUMPSWAP_PROGRAM_ID:
+		switch disc {
+		case discPSBuy:
+			return EventTypePumpSwapBuy, true
+		case discPSSell:
+			return EventTypePumpSwapSell, true
+		case discPSCreatePool:
+			return EventTypePumpSwapCreatePool, true
+		case discPSAddLiq:
+			return EventTypePumpSwapLiquidityAdded, true
+		case discPSRemLiq:
+			return EventTypePumpSwapLiquidityRemoved, true
+		default:
+			return "", false
+		}
 	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
 		switch disc {
 		case discRaydiumLaunchlabTrade:
 			return EventTypeRaydiumLaunchlabTrade, true
 		case discRaydiumLaunchlabPoolCreate:
 			return EventTypeRaydiumLaunchlabPoolCreate, true
+		default:
+			return "", false
+		}
+	case RAYDIUM_CLMM_PROGRAM_ID:
+		switch disc {
+		case discClmmSwap:
+			return EventTypeRaydiumClmmSwap, true
+		case discClmmIncLiq:
+			return EventTypeRaydiumClmmIncreaseLiquidity, true
+		case discClmmDecLiq:
+			return EventTypeRaydiumClmmDecreaseLiquidity, true
+		case discClmmLiqChange:
+			return EventTypeRaydiumClmmLiquidityChange, true
+		case discClmmConfigChange:
+			return EventTypeRaydiumClmmConfigChange, true
+		case discClmmCreatePersonalPosition:
+			return EventTypeRaydiumClmmCreatePersonalPosition, true
+		case discClmmLiqCalculate:
+			return EventTypeRaydiumClmmLiquidityCalculate, true
+		case discClmmOpenLimitOrder:
+			return EventTypeRaydiumClmmOpenLimitOrder, true
+		case discClmmIncreaseLimitOrder:
+			return EventTypeRaydiumClmmIncreaseLimitOrder, true
+		case discClmmDecreaseLimitOrder:
+			return EventTypeRaydiumClmmDecreaseLimitOrder, true
+		case discClmmSettleLimitOrder:
+			return EventTypeRaydiumClmmSettleLimitOrder, true
+		case discClmmUpdateRewardInfos:
+			return EventTypeRaydiumClmmUpdateRewardInfos, true
+		case discClmmCreate:
+			return EventTypeRaydiumClmmCreatePool, true
+		case discClmmCollectPersonal, discClmmCollectProtocol:
+			return EventTypeRaydiumClmmCollectFee, true
+		default:
+			return "", false
+		}
+	case RAYDIUM_CPMM_PROGRAM_ID:
+		switch disc {
+		case discCpmmSwapIn, discCpmmSwapOut:
+			return EventTypeRaydiumCpmmSwap, true
+		case discCpmmCreatePool:
+			return EventTypeRaydiumCpmmInitialize, true
+		case discCpmmDeposit:
+			return EventTypeRaydiumCpmmDeposit, true
+		case discCpmmWithdraw:
+			return EventTypeRaydiumCpmmWithdraw, true
+		default:
+			return "", false
+		}
+	case RAYDIUM_AMM_V4_PROGRAM_ID:
+		switch disc {
+		case discAmmSwapIn, discAmmSwapOut:
+			return EventTypeRaydiumAmmV4Swap, true
+		case discAmmDeposit:
+			return EventTypeRaydiumAmmV4Deposit, true
+		case discAmmWithdraw:
+			return EventTypeRaydiumAmmV4Withdraw, true
+		case discAmmInit2:
+			return EventTypeRaydiumAmmV4Initialize2, true
+		case discAmmWithdrawPnl:
+			return EventTypeRaydiumAmmV4WithdrawPnl, true
+		default:
+			return "", false
+		}
+	case ORCA_WHIRLPOOL_PROGRAM_ID:
+		switch disc {
+		case discOrcaSwap:
+			return EventTypeOrcaWhirlpoolSwap, true
+		case discOrcaIncLiq:
+			return EventTypeOrcaWhirlpoolLiquidityIncreased, true
+		case discOrcaDecLiq:
+			return EventTypeOrcaWhirlpoolLiquidityDecreased, true
+		case discOrcaPoolInit:
+			return EventTypeOrcaWhirlpoolPoolInitialized, true
+		default:
+			return "", false
+		}
+	case METEORA_POOLS_PROGRAM_ID:
+		switch disc {
+		case discMeteoraSwap:
+			return EventTypeMeteoraPoolsSwap, true
+		case discMeteoraAdd:
+			return EventTypeMeteoraPoolsAddLiquidity, true
+		case discMeteoraRemove:
+			return EventTypeMeteoraPoolsRemoveLiquidity, true
+		case discMeteoraBootstrap:
+			return EventTypeMeteoraPoolsBootstrapLiquidity, true
+		case discMeteoraPoolCreated:
+			return EventTypeMeteoraPoolsPoolCreated, true
+		case discMeteoraSetPoolFees:
+			return EventTypeMeteoraPoolsSetPoolFees, true
 		default:
 			return "", false
 		}
@@ -180,6 +342,27 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 		default:
 			return "", false
 		}
+	case METEORA_DLMM_PROGRAM_ID:
+		switch disc {
+		case dlmmSwap:
+			return EventTypeMeteoraDlmmSwap, true
+		case dlmmAddLiq:
+			return EventTypeMeteoraDlmmAddLiquidity, true
+		case dlmmRemoveLiq:
+			return EventTypeMeteoraDlmmRemoveLiquidity, true
+		case dlmmInitPool:
+			return EventTypeMeteoraDlmmInitializePool, true
+		case dlmmInitBin:
+			return EventTypeMeteoraDlmmInitializeBinArray, true
+		case dlmmCreatePos:
+			return EventTypeMeteoraDlmmCreatePosition, true
+		case dlmmClosePos:
+			return EventTypeMeteoraDlmmClosePosition, true
+		case dlmmClaimFee:
+			return EventTypeMeteoraDlmmClaimFee, true
+		default:
+			return "", false
+		}
 	default:
 		return logDiscriminatorEventType(disc)
 	}
@@ -190,8 +373,24 @@ func filterIncludesProgram(filter EventTypeFilter, programID string) bool {
 		return true
 	}
 	switch programID {
+	case PUMPFUN_PROGRAM_ID:
+		return EventTypeFilterIncludesPumpfun(filter)
+	case PUMP_FEES_PROGRAM_ID:
+		return EventTypeFilterIncludesPumpFees(filter)
+	case PUMPSWAP_PROGRAM_ID:
+		return EventTypeFilterIncludesPumpswap(filter)
 	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
 		return EventTypeFilterIncludesRaydiumLaunchlab(filter)
+	case RAYDIUM_CLMM_PROGRAM_ID:
+		return EventTypeFilterIncludesRaydiumClmm(filter)
+	case RAYDIUM_CPMM_PROGRAM_ID:
+		return EventTypeFilterIncludesRaydiumCpmm(filter)
+	case RAYDIUM_AMM_V4_PROGRAM_ID:
+		return EventTypeFilterIncludesRaydiumAmmV4(filter)
+	case ORCA_WHIRLPOOL_PROGRAM_ID:
+		return EventTypeFilterIncludesOrcaWhirlpool(filter)
+	case METEORA_POOLS_PROGRAM_ID:
+		return EventTypeFilterIncludesMeteoraPools(filter)
 	case METEORA_DAMM_V2_PROGRAM_ID:
 		return EventTypeFilterIncludesMeteoraDammV2(filter)
 	case METEORA_DBC_PROGRAM_ID:
@@ -211,6 +410,21 @@ func logFilterAllowsUnknown(filter EventTypeFilter) bool {
 	return !ok
 }
 
+func filterWantsSupportedLogs(filter EventTypeFilter) bool {
+	return filterIncludesProgram(filter, PUMPFUN_PROGRAM_ID) ||
+		filterIncludesProgram(filter, PUMP_FEES_PROGRAM_ID) ||
+		filterIncludesProgram(filter, PUMPSWAP_PROGRAM_ID) ||
+		filterIncludesProgram(filter, RAYDIUM_LAUNCHLAB_PROGRAM_ID) ||
+		filterIncludesProgram(filter, RAYDIUM_CLMM_PROGRAM_ID) ||
+		filterIncludesProgram(filter, RAYDIUM_CPMM_PROGRAM_ID) ||
+		filterIncludesProgram(filter, RAYDIUM_AMM_V4_PROGRAM_ID) ||
+		filterIncludesProgram(filter, ORCA_WHIRLPOOL_PROGRAM_ID) ||
+		filterIncludesProgram(filter, METEORA_POOLS_PROGRAM_ID) ||
+		filterIncludesProgram(filter, METEORA_DAMM_V2_PROGRAM_ID) ||
+		filterIncludesProgram(filter, METEORA_DLMM_PROGRAM_ID) ||
+		filterIncludesProgram(filter, METEORA_DBC_PROGRAM_ID)
+}
+
 func applyActualEventTypeFilter(ev DexEvent, filter EventTypeFilter) DexEvent {
 	if ev.Type == "" || filter == nil {
 		return ev
@@ -219,6 +433,148 @@ func applyActualEventTypeFilter(ev DexEvent, filter EventTypeFilter) DexEvent {
 		return DexEvent{}
 	}
 	return ev
+}
+
+func pumpfunTradeMatchesIncludeOnly(ev DexEvent, includeOnly []EventType) bool {
+	switch ev.Type {
+	case EventTypePumpFunBuy:
+		return eventTypeSliceContains(includeOnly, EventTypePumpFunBuy) ||
+			eventTypeSliceContains(includeOnly, EventTypePumpFunBuyExactSolIn)
+	case EventTypePumpFunSell:
+		return eventTypeSliceContains(includeOnly, EventTypePumpFunSell)
+	case EventTypePumpFunBuyExactSolIn:
+		return eventTypeSliceContains(includeOnly, EventTypePumpFunBuy) ||
+			eventTypeSliceContains(includeOnly, EventTypePumpFunBuyExactSolIn)
+	case EventTypePumpFunTrade:
+		return eventTypeSliceContains(includeOnly, EventTypePumpFunTrade)
+	case EventTypePumpFunCreate, EventTypePumpFunCreateV2:
+		return eventTypeSliceContains(includeOnly, EventTypePumpFunCreate) ||
+			eventTypeSliceContains(includeOnly, EventTypePumpFunCreateV2)
+	default:
+		return false
+	}
+}
+
+func applyPumpfunSecondaryFilter(ev DexEvent, filter EventTypeFilter) DexEvent {
+	if ev.Type == "" || filter == nil {
+		return ev
+	}
+	includeOnly, ok := filter.(*IncludeOnlyFilter)
+	if ok {
+		hasSpecific := false
+		for _, t := range includeOnly.IncludeOnly {
+			switch t {
+			case EventTypePumpFunBuy, EventTypePumpFunSell, EventTypePumpFunBuyExactSolIn,
+				EventTypePumpFunCreate, EventTypePumpFunCreateV2:
+				hasSpecific = true
+			}
+		}
+		if hasSpecific && !pumpfunTradeMatchesIncludeOnly(ev, includeOnly.IncludeOnly) {
+			return DexEvent{}
+		}
+	}
+	return applyActualEventTypeFilter(ev, filter)
+}
+
+func filterWantsPumpfunTrade(filter EventTypeFilter) bool {
+	if filter == nil {
+		return true
+	}
+	return filter.ShouldInclude(EventTypePumpFunTrade) ||
+		filter.ShouldInclude(EventTypePumpFunBuy) ||
+		filter.ShouldInclude(EventTypePumpFunSell) ||
+		filter.ShouldInclude(EventTypePumpFunBuyExactSolIn)
+}
+
+func filterWantsRaydiumLaunchlabTrade(filter EventTypeFilter) bool {
+	return filter == nil || filter.ShouldInclude(EventTypeRaydiumLaunchlabTrade)
+}
+
+func filterAllowsUnscopedDiscriminator(filter EventTypeFilter, disc uint64) bool {
+	if filter == nil {
+		return true
+	}
+	switch disc {
+	case discPumpTrade:
+		return filterWantsPumpfunTrade(filter) || filterWantsRaydiumLaunchlabTrade(filter)
+	case discCpmmSwapIn:
+		return filter.ShouldInclude(EventTypeRaydiumCpmmSwap) ||
+			filter.ShouldInclude(EventTypeMeteoraDlmmSwap)
+	default:
+		if eventType, ok := logDiscriminatorEventType(disc); ok {
+			return filter.ShouldInclude(eventType)
+		}
+		return filterWantsSupportedLogs(filter)
+	}
+}
+
+func parseUnscopedPumpfunLaunchlabTrade(data []byte, meta EventMetadata, filter EventTypeFilter, isCreatedBuy bool) DexEvent {
+	if filterWantsPumpfunTrade(filter) {
+		if ev := applyPumpfunSecondaryFilter(parseTradeFromData(data, meta, isCreatedBuy), filter); ev.Type != "" {
+			return ev
+		}
+	}
+	if filterWantsRaydiumLaunchlabTrade(filter) {
+		return applyActualEventTypeFilter(ParseRaydiumLaunchlabFromDiscriminator(discPumpTrade, data, meta), filter)
+	}
+	return DexEvent{}
+}
+
+func parseScopedPumpfunData(disc uint64, data []byte, meta EventMetadata, filter EventTypeFilter, isCreatedBuy bool) DexEvent {
+	switch disc {
+	case discPumpTrade:
+		return applyPumpfunSecondaryFilter(parseTradeFromData(data, meta, isCreatedBuy), filter)
+	case discPumpCreate:
+		return applyActualEventTypeFilter(parseCreateFromData(data, meta), filter)
+	case discPumpMigrate:
+		return applyActualEventTypeFilter(parseMigrateFromData(data, meta), filter)
+	case discPumpMigrateBondingCurveCreator:
+		return applyActualEventTypeFilter(parseMigrateBondingCurveCreatorFromData(data, meta), filter)
+	default:
+		return DexEvent{}
+	}
+}
+
+func parseScopedPumpFeesData(disc uint64, data []byte, meta EventMetadata, filter EventTypeFilter) DexEvent {
+	switch disc {
+	case discPumpFeesCreateFeeSharingConfig:
+		return applyActualEventTypeFilter(parsePumpFeesCreateFeeSharingConfigFromData(data, meta), filter)
+	case discPumpFeesInitializeFeeConfig:
+		return applyActualEventTypeFilter(parsePumpFeesInitializeFeeConfigFromData(data, meta), filter)
+	case discPumpFeesResetFeeSharingConfig:
+		return applyActualEventTypeFilter(parsePumpFeesResetFeeSharingConfigFromData(data, meta), filter)
+	case discPumpFeesRevokeFeeSharingAuthority:
+		return applyActualEventTypeFilter(parsePumpFeesRevokeFeeSharingAuthorityFromData(data, meta), filter)
+	case discPumpFeesTransferFeeSharingAuthority:
+		return applyActualEventTypeFilter(parsePumpFeesTransferFeeSharingAuthorityFromData(data, meta), filter)
+	case discPumpFeesUpdateAdmin:
+		return applyActualEventTypeFilter(parsePumpFeesUpdateAdminFromData(data, meta), filter)
+	case discPumpFeesUpdateFeeConfig:
+		return applyActualEventTypeFilter(parsePumpFeesUpdateFeeConfigFromData(data, meta), filter)
+	case discPumpFeesUpdateFeeShares:
+		return applyActualEventTypeFilter(parsePumpFeesUpdateFeeSharesFromData(data, meta), filter)
+	case discPumpFeesUpsertFeeTiers:
+		return applyActualEventTypeFilter(parsePumpFeesUpsertFeeTiersFromData(data, meta), filter)
+	default:
+		return DexEvent{}
+	}
+}
+
+func parseScopedPumpswapData(disc uint64, data []byte, meta EventMetadata, filter EventTypeFilter) DexEvent {
+	switch disc {
+	case discPSBuy:
+		return applyActualEventTypeFilter(parsePSBuyFromData(data, meta), filter)
+	case discPSSell:
+		return applyActualEventTypeFilter(parsePSSellFromData(data, meta), filter)
+	case discPSCreatePool:
+		return applyActualEventTypeFilter(parsePSCreatePoolFromData(data, meta), filter)
+	case discPSAddLiq:
+		return applyActualEventTypeFilter(parsePSAddLiqFromData(data, meta), filter)
+	case discPSRemLiq:
+		return applyActualEventTypeFilter(parsePSRemoveLiqFromData(data, meta), filter)
+	default:
+		return DexEvent{}
+	}
 }
 
 // ParseLogOptimized 超低延迟日志解析（与 Rust `parse_log_optimized` 等价）
@@ -237,17 +593,26 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 	meta := makeMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs, recentB58)
 	eventFilter, _ := filter.(EventTypeFilter)
 	if eventFilter != nil {
+		unscopedShared := programID == "" && (disc == discPumpTrade || disc == discCpmmSwapIn)
 		eventType, ok := logDiscriminatorEventType(disc)
 		if programID != "" {
 			eventType, ok = programScopedLogDiscriminatorEventType(programID, disc)
 		}
-		if ok {
+		if unscopedShared {
+			if !filterAllowsUnscopedDiscriminator(eventFilter, disc) {
+				return DexEvent{}
+			}
+		} else if programID == PUMPFUN_PROGRAM_ID && disc == discPumpTrade {
+			if !filterWantsPumpfunTrade(eventFilter) {
+				return DexEvent{}
+			}
+		} else if ok {
 			if !eventFilter.ShouldInclude(eventType) {
 				return DexEvent{}
 			}
 		} else if programID != "" && !filterIncludesProgram(eventFilter, programID) {
 			return DexEvent{}
-		} else if !logFilterAllowsUnknown(eventFilter) {
+		} else if !filterAllowsUnscopedDiscriminator(eventFilter, disc) {
 			return DexEvent{}
 		}
 	}
@@ -255,16 +620,130 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 	if programID == RAYDIUM_LAUNCHLAB_PROGRAM_ID {
 		return applyActualEventTypeFilter(ParseRaydiumLaunchlabFromDiscriminator(disc, data, meta), eventFilter)
 	}
+	if programID == RAYDIUM_CLMM_PROGRAM_ID {
+		switch disc {
+		case discClmmSwap:
+			return applyActualEventTypeFilter(parseClmmSwapFromData(data, meta), eventFilter)
+		case discClmmIncLiq:
+			return applyActualEventTypeFilter(parseClmmIncFromData(data, meta), eventFilter)
+		case discClmmDecLiq:
+			return applyActualEventTypeFilter(parseClmmDecFromData(data, meta), eventFilter)
+		case discClmmLiqChange:
+			return applyActualEventTypeFilter(parseClmmLiquidityChangeFromData(data, meta), eventFilter)
+		case discClmmConfigChange:
+			return applyActualEventTypeFilter(parseClmmConfigChangeFromData(data, meta), eventFilter)
+		case discClmmCreatePersonalPosition:
+			return applyActualEventTypeFilter(parseClmmCreatePersonalPositionFromData(data, meta), eventFilter)
+		case discClmmLiqCalculate:
+			return applyActualEventTypeFilter(parseClmmLiquidityCalculateFromData(data, meta), eventFilter)
+		case discClmmOpenLimitOrder:
+			return applyActualEventTypeFilter(parseClmmOpenLimitOrderFromData(data, meta), eventFilter)
+		case discClmmIncreaseLimitOrder:
+			return applyActualEventTypeFilter(parseClmmIncreaseLimitOrderFromData(data, meta), eventFilter)
+		case discClmmDecreaseLimitOrder:
+			return applyActualEventTypeFilter(parseClmmDecreaseLimitOrderFromData(data, meta), eventFilter)
+		case discClmmSettleLimitOrder:
+			return applyActualEventTypeFilter(parseClmmSettleLimitOrderFromData(data, meta), eventFilter)
+		case discClmmUpdateRewardInfos:
+			return applyActualEventTypeFilter(parseClmmUpdateRewardInfosFromData(data, meta), eventFilter)
+		case discClmmCreate:
+			return applyActualEventTypeFilter(parseClmmCreateFromData(data, meta), eventFilter)
+		case discClmmCollectPersonal:
+			return applyActualEventTypeFilter(parseClmmCollectPersonalFromData(data, meta), eventFilter)
+		case discClmmCollectProtocol:
+			return applyActualEventTypeFilter(parseClmmCollectProtocolFromData(data, meta), eventFilter)
+		default:
+			return DexEvent{}
+		}
+	}
+	if programID == RAYDIUM_CPMM_PROGRAM_ID {
+		switch disc {
+		case discCpmmSwapIn:
+			return applyActualEventTypeFilter(parseCpmmSwapInFromData(data, meta), eventFilter)
+		case discCpmmSwapOut:
+			return applyActualEventTypeFilter(parseCpmmSwapOutFromData(data, meta), eventFilter)
+		case discCpmmCreatePool:
+			return applyActualEventTypeFilter(parseCpmmInitFromData(data, meta), eventFilter)
+		case discCpmmDeposit:
+			return applyActualEventTypeFilter(parseCpmmDepositFromData(data, meta), eventFilter)
+		case discCpmmWithdraw:
+			return applyActualEventTypeFilter(parseCpmmWithdrawFromData(data, meta), eventFilter)
+		default:
+			return DexEvent{}
+		}
+	}
+	if programID == RAYDIUM_AMM_V4_PROGRAM_ID {
+		switch disc {
+		case discAmmSwapIn:
+			return applyActualEventTypeFilter(parseAmmSwapInFromData(data, meta), eventFilter)
+		case discAmmSwapOut:
+			return applyActualEventTypeFilter(parseAmmSwapOutFromData(data, meta), eventFilter)
+		case discAmmDeposit:
+			return applyActualEventTypeFilter(parseAmmDepositFromData(data, meta), eventFilter)
+		case discAmmWithdraw:
+			return applyActualEventTypeFilter(parseAmmWithdrawFromData(data, meta), eventFilter)
+		case discAmmInit2:
+			return applyActualEventTypeFilter(parseAmmInit2FromData(data, meta), eventFilter)
+		case discAmmWithdrawPnl:
+			return applyActualEventTypeFilter(parseAmmWithdrawPnlFromData(data, meta), eventFilter)
+		default:
+			return DexEvent{}
+		}
+	}
+	if programID == ORCA_WHIRLPOOL_PROGRAM_ID {
+		switch disc {
+		case discOrcaSwap:
+			return applyActualEventTypeFilter(parseOrcaTradedFromData(data, meta), eventFilter)
+		case discOrcaIncLiq:
+			return applyActualEventTypeFilter(parseOrcaLiqIncFromData(data, meta), eventFilter)
+		case discOrcaDecLiq:
+			return applyActualEventTypeFilter(parseOrcaLiqDecFromData(data, meta), eventFilter)
+		case discOrcaPoolInit:
+			return applyActualEventTypeFilter(parseOrcaPoolInitFromData(data, meta), eventFilter)
+		default:
+			return DexEvent{}
+		}
+	}
+	if programID == METEORA_POOLS_PROGRAM_ID {
+		switch disc {
+		case discMeteoraSwap:
+			return applyActualEventTypeFilter(parseMeteoraSwapFromData(data, meta), eventFilter)
+		case discMeteoraAdd:
+			return applyActualEventTypeFilter(parseMeteoraAddFromData(data, meta), eventFilter)
+		case discMeteoraRemove:
+			return applyActualEventTypeFilter(parseMeteoraRemoveFromData(data, meta), eventFilter)
+		case discMeteoraBootstrap:
+			return applyActualEventTypeFilter(parseMeteoraBootstrapFromData(data, meta), eventFilter)
+		case discMeteoraPoolCreated:
+			return applyActualEventTypeFilter(parseMeteoraPoolCreatedFromData(data, meta), eventFilter)
+		case discMeteoraSetPoolFees:
+			return applyActualEventTypeFilter(parseMeteoraPoolsSetPoolFeesFromData(data, meta), eventFilter)
+		default:
+			return DexEvent{}
+		}
+	}
+	if programID == METEORA_DAMM_V2_PROGRAM_ID {
+		return applyActualEventTypeFilter(ParseMeteoraDammLog(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs), eventFilter)
+	}
 	if programID == METEORA_DBC_PROGRAM_ID {
 		return applyActualEventTypeFilter(parseMeteoraDbcFromDiscriminator(disc, data, meta), eventFilter)
 	}
 	if programID == METEORA_DLMM_PROGRAM_ID {
 		return applyActualEventTypeFilter(parseDlmmFromProgramData(buf, meta), eventFilter)
 	}
+	if programID == PUMPFUN_PROGRAM_ID {
+		return parseScopedPumpfunData(disc, data, meta, eventFilter, isCreatedBuy)
+	}
+	if programID == PUMP_FEES_PROGRAM_ID {
+		return parseScopedPumpFeesData(disc, data, meta, eventFilter)
+	}
+	if programID == PUMPSWAP_PROGRAM_ID {
+		return parseScopedPumpswapData(disc, data, meta, eventFilter)
+	}
 
 	// 热路径：PumpFun Trade（最频繁的事件）
 	if disc == discPumpTrade {
-		return applyActualEventTypeFilter(parseTradeFromData(data, meta, isCreatedBuy), eventFilter)
+		return parseUnscopedPumpfunLaunchlabTrade(data, meta, eventFilter, isCreatedBuy)
 	}
 
 	// 热路径：Raydium CLMM Swap
@@ -326,10 +805,30 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 		return applyActualEventTypeFilter(parseClmmIncFromData(data, meta), eventFilter)
 	case discClmmDecLiq:
 		return applyActualEventTypeFilter(parseClmmDecFromData(data, meta), eventFilter)
+	case discClmmLiqChange:
+		return applyActualEventTypeFilter(parseClmmLiquidityChangeFromData(data, meta), eventFilter)
+	case discClmmConfigChange:
+		return applyActualEventTypeFilter(parseClmmConfigChangeFromData(data, meta), eventFilter)
+	case discClmmCreatePersonalPosition:
+		return applyActualEventTypeFilter(parseClmmCreatePersonalPositionFromData(data, meta), eventFilter)
+	case discClmmLiqCalculate:
+		return applyActualEventTypeFilter(parseClmmLiquidityCalculateFromData(data, meta), eventFilter)
+	case discClmmOpenLimitOrder:
+		return applyActualEventTypeFilter(parseClmmOpenLimitOrderFromData(data, meta), eventFilter)
+	case discClmmIncreaseLimitOrder:
+		return applyActualEventTypeFilter(parseClmmIncreaseLimitOrderFromData(data, meta), eventFilter)
+	case discClmmDecreaseLimitOrder:
+		return applyActualEventTypeFilter(parseClmmDecreaseLimitOrderFromData(data, meta), eventFilter)
+	case discClmmSettleLimitOrder:
+		return applyActualEventTypeFilter(parseClmmSettleLimitOrderFromData(data, meta), eventFilter)
+	case discClmmUpdateRewardInfos:
+		return applyActualEventTypeFilter(parseClmmUpdateRewardInfosFromData(data, meta), eventFilter)
 	case discClmmCreate:
 		return applyActualEventTypeFilter(parseClmmCreateFromData(data, meta), eventFilter)
-	case discClmmCollect:
-		return applyActualEventTypeFilter(parseClmmCollectFromData(data, meta), eventFilter)
+	case discClmmCollectPersonal:
+		return applyActualEventTypeFilter(parseClmmCollectPersonalFromData(data, meta), eventFilter)
+	case discClmmCollectProtocol:
+		return applyActualEventTypeFilter(parseClmmCollectProtocolFromData(data, meta), eventFilter)
 
 	// Raydium CPMM
 	case discCpmmSwapIn:

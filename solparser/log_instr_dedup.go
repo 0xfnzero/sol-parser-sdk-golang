@@ -13,7 +13,6 @@ type logInstrDedupKey struct {
 const (
 	dedupPumpFunTrade uint8 = iota + 1
 	dedupPumpFunCreate
-	dedupPumpFunCreateV2
 	dedupPumpFunMigrate
 	dedupRaydiumLaunchlabTrade
 	dedupRaydiumLaunchlabPoolCreate
@@ -80,7 +79,7 @@ func dedupeKey(ev DexEvent, pumpfunLaneCounts map[pumpfunLaneBase]uint16) (logIn
 		}
 	case EventTypePumpFunCreateV2:
 		if c, ok := ev.Data.(*PumpFunCreateV2TokenEvent); ok && c != nil {
-			return logInstrDedupKey{kind: dedupPumpFunCreateV2, a: c.Mint}, true
+			return logInstrDedupKey{kind: dedupPumpFunCreate, a: c.Mint}, true
 		}
 	case EventTypePumpFunMigrate:
 		if m, ok := ev.Data.(*PumpFunMigrateEvent); ok && m != nil {
@@ -146,6 +145,171 @@ func fillUint64IfDefault(dst *uint64, src uint64) {
 	}
 }
 
+func mergePumpFunCreateAccountFields(log *PumpFunCreateEvent, ix *PumpFunCreateEvent) {
+	if log.IxName == "" && ix.IxName != "" {
+		log.IxName = ix.IxName
+	}
+	fillStringIfDefault(&log.MintAuthority, ix.MintAuthority)
+	fillStringIfDefault(&log.AssociatedBondingCurve, ix.AssociatedBondingCurve)
+	fillStringIfDefault(&log.Global, ix.Global)
+	fillStringIfDefault(&log.SystemProgram, ix.SystemProgram)
+	fillStringIfDefault(&log.AssociatedTokenProgram, ix.AssociatedTokenProgram)
+	fillStringIfDefault(&log.MayhemProgramID, ix.MayhemProgramID)
+	fillStringIfDefault(&log.GlobalParams, ix.GlobalParams)
+	fillStringIfDefault(&log.SolVault, ix.SolVault)
+	fillStringIfDefault(&log.MayhemState, ix.MayhemState)
+	fillStringIfDefault(&log.MayhemTokenVault, ix.MayhemTokenVault)
+	fillStringIfDefault(&log.EventAuthority, ix.EventAuthority)
+	fillStringIfDefault(&log.Program, ix.Program)
+	fillStringIfDefault(&log.ObservedFeeRecipient, ix.ObservedFeeRecipient)
+}
+
+func mergePumpFunCreateV2AccountFieldsIntoCreate(log *PumpFunCreateEvent, ix *PumpFunCreateV2TokenEvent) {
+	if log.IxName == "" && ix.IxName != "" {
+		log.IxName = ix.IxName
+	}
+	fillStringIfDefault(&log.MintAuthority, ix.MintAuthority)
+	fillStringIfDefault(&log.AssociatedBondingCurve, ix.AssociatedBondingCurve)
+	fillStringIfDefault(&log.Global, ix.Global)
+	fillStringIfDefault(&log.SystemProgram, ix.SystemProgram)
+	fillStringIfDefault(&log.AssociatedTokenProgram, ix.AssociatedTokenProgram)
+	fillStringIfDefault(&log.MayhemProgramID, ix.MayhemProgramID)
+	fillStringIfDefault(&log.GlobalParams, ix.GlobalParams)
+	fillStringIfDefault(&log.SolVault, ix.SolVault)
+	fillStringIfDefault(&log.MayhemState, ix.MayhemState)
+	fillStringIfDefault(&log.MayhemTokenVault, ix.MayhemTokenVault)
+	fillStringIfDefault(&log.EventAuthority, ix.EventAuthority)
+	fillStringIfDefault(&log.Program, ix.Program)
+	fillStringIfDefault(&log.ObservedFeeRecipient, ix.ObservedFeeRecipient)
+}
+
+func mergePumpFunCreateFields(log *PumpFunCreateEvent, ix *PumpFunCreateEvent) {
+	fillStringIfDefault(&log.Name, ix.Name)
+	fillStringIfDefault(&log.Symbol, ix.Symbol)
+	fillStringIfDefault(&log.Uri, ix.Uri)
+	fillStringIfDefault(&log.Mint, ix.Mint)
+	fillStringIfDefault(&log.BondingCurve, ix.BondingCurve)
+	fillStringIfDefault(&log.User, ix.User)
+	fillStringIfDefault(&log.Creator, ix.Creator)
+	if log.Timestamp == 0 && ix.Timestamp != 0 {
+		log.Timestamp = ix.Timestamp
+	}
+	fillUint64IfDefault(&log.VirtualTokenReserves, ix.VirtualTokenReserves)
+	fillUint64IfDefault(&log.VirtualSolReserves, ix.VirtualSolReserves)
+	fillUint64IfDefault(&log.RealTokenReserves, ix.RealTokenReserves)
+	fillUint64IfDefault(&log.TokenTotalSupply, ix.TokenTotalSupply)
+	fillStringIfDefault(&log.TokenProgram, ix.TokenProgram)
+	fillStringIfDefault(&log.QuoteMint, ix.QuoteMint)
+	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
+	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
+	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
+	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	mergePumpFunCreateAccountFields(log, ix)
+}
+
+func mergePumpFunCreateV2IntoCreate(log *PumpFunCreateEvent, ix *PumpFunCreateV2TokenEvent) {
+	fillStringIfDefault(&log.Name, ix.Name)
+	fillStringIfDefault(&log.Symbol, ix.Symbol)
+	fillStringIfDefault(&log.Uri, ix.Uri)
+	fillStringIfDefault(&log.Mint, ix.Mint)
+	fillStringIfDefault(&log.BondingCurve, ix.BondingCurve)
+	fillStringIfDefault(&log.User, ix.User)
+	fillStringIfDefault(&log.Creator, ix.Creator)
+	if log.Timestamp == 0 && ix.Timestamp != 0 {
+		log.Timestamp = ix.Timestamp
+	}
+	fillUint64IfDefault(&log.VirtualTokenReserves, ix.VirtualTokenReserves)
+	fillUint64IfDefault(&log.VirtualSolReserves, ix.VirtualSolReserves)
+	fillUint64IfDefault(&log.RealTokenReserves, ix.RealTokenReserves)
+	fillUint64IfDefault(&log.TokenTotalSupply, ix.TokenTotalSupply)
+	fillStringIfDefault(&log.TokenProgram, ix.TokenProgram)
+	fillStringIfDefault(&log.QuoteMint, ix.QuoteMint)
+	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
+	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
+	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
+	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	mergePumpFunCreateV2AccountFieldsIntoCreate(log, ix)
+}
+
+func mergePumpFunCreateIntoCreateV2(log *PumpFunCreateV2TokenEvent, ix *PumpFunCreateEvent) {
+	fillStringIfDefault(&log.Name, ix.Name)
+	fillStringIfDefault(&log.Symbol, ix.Symbol)
+	fillStringIfDefault(&log.Uri, ix.Uri)
+	fillStringIfDefault(&log.Mint, ix.Mint)
+	fillStringIfDefault(&log.BondingCurve, ix.BondingCurve)
+	fillStringIfDefault(&log.User, ix.User)
+	fillStringIfDefault(&log.Creator, ix.Creator)
+	if log.Timestamp == 0 && ix.Timestamp != 0 {
+		log.Timestamp = ix.Timestamp
+	}
+	fillUint64IfDefault(&log.VirtualTokenReserves, ix.VirtualTokenReserves)
+	fillUint64IfDefault(&log.VirtualSolReserves, ix.VirtualSolReserves)
+	fillUint64IfDefault(&log.RealTokenReserves, ix.RealTokenReserves)
+	fillUint64IfDefault(&log.TokenTotalSupply, ix.TokenTotalSupply)
+	fillStringIfDefault(&log.TokenProgram, ix.TokenProgram)
+	fillStringIfDefault(&log.QuoteMint, ix.QuoteMint)
+	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
+	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
+	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
+	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	if log.IxName == "" && ix.IxName != "" {
+		log.IxName = ix.IxName
+	}
+	fillStringIfDefault(&log.MintAuthority, ix.MintAuthority)
+	fillStringIfDefault(&log.AssociatedBondingCurve, ix.AssociatedBondingCurve)
+	fillStringIfDefault(&log.Global, ix.Global)
+	fillStringIfDefault(&log.SystemProgram, ix.SystemProgram)
+	fillStringIfDefault(&log.AssociatedTokenProgram, ix.AssociatedTokenProgram)
+	fillStringIfDefault(&log.MayhemProgramID, ix.MayhemProgramID)
+	fillStringIfDefault(&log.GlobalParams, ix.GlobalParams)
+	fillStringIfDefault(&log.SolVault, ix.SolVault)
+	fillStringIfDefault(&log.MayhemState, ix.MayhemState)
+	fillStringIfDefault(&log.MayhemTokenVault, ix.MayhemTokenVault)
+	fillStringIfDefault(&log.EventAuthority, ix.EventAuthority)
+	fillStringIfDefault(&log.Program, ix.Program)
+	fillStringIfDefault(&log.ObservedFeeRecipient, ix.ObservedFeeRecipient)
+}
+
+func mergePumpFunCreateV2Fields(log *PumpFunCreateV2TokenEvent, ix *PumpFunCreateV2TokenEvent) {
+	fillStringIfDefault(&log.Name, ix.Name)
+	fillStringIfDefault(&log.Symbol, ix.Symbol)
+	fillStringIfDefault(&log.Uri, ix.Uri)
+	fillStringIfDefault(&log.Mint, ix.Mint)
+	fillStringIfDefault(&log.BondingCurve, ix.BondingCurve)
+	fillStringIfDefault(&log.User, ix.User)
+	fillStringIfDefault(&log.Creator, ix.Creator)
+	if log.Timestamp == 0 && ix.Timestamp != 0 {
+		log.Timestamp = ix.Timestamp
+	}
+	fillUint64IfDefault(&log.VirtualTokenReserves, ix.VirtualTokenReserves)
+	fillUint64IfDefault(&log.VirtualSolReserves, ix.VirtualSolReserves)
+	fillUint64IfDefault(&log.RealTokenReserves, ix.RealTokenReserves)
+	fillUint64IfDefault(&log.TokenTotalSupply, ix.TokenTotalSupply)
+	fillStringIfDefault(&log.TokenProgram, ix.TokenProgram)
+	fillStringIfDefault(&log.QuoteMint, ix.QuoteMint)
+	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
+	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
+	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
+	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	fillStringIfDefault(&log.MintAuthority, ix.MintAuthority)
+	fillStringIfDefault(&log.AssociatedBondingCurve, ix.AssociatedBondingCurve)
+	fillStringIfDefault(&log.Global, ix.Global)
+	fillStringIfDefault(&log.SystemProgram, ix.SystemProgram)
+	fillStringIfDefault(&log.AssociatedTokenProgram, ix.AssociatedTokenProgram)
+	fillStringIfDefault(&log.MayhemProgramID, ix.MayhemProgramID)
+	fillStringIfDefault(&log.GlobalParams, ix.GlobalParams)
+	fillStringIfDefault(&log.SolVault, ix.SolVault)
+	fillStringIfDefault(&log.MayhemState, ix.MayhemState)
+	fillStringIfDefault(&log.MayhemTokenVault, ix.MayhemTokenVault)
+	fillStringIfDefault(&log.EventAuthority, ix.EventAuthority)
+	fillStringIfDefault(&log.Program, ix.Program)
+	fillStringIfDefault(&log.ObservedFeeRecipient, ix.ObservedFeeRecipient)
+}
+
 func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 	if log == nil {
 		return
@@ -175,44 +339,31 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 		}
 	case EventTypePumpFunCreate:
 		l, ok1 := log.Data.(*PumpFunCreateEvent)
-		i, ok2 := ix.Data.(*PumpFunCreateEvent)
-		if ok1 && ok2 && l != nil && i != nil {
-			fillStringIfDefault(&l.Name, i.Name)
-			fillStringIfDefault(&l.Symbol, i.Symbol)
-			fillStringIfDefault(&l.Uri, i.Uri)
-			fillStringIfDefault(&l.BondingCurve, i.BondingCurve)
-			fillStringIfDefault(&l.User, i.User)
-			fillStringIfDefault(&l.Creator, i.Creator)
-			fillStringIfDefault(&l.TokenProgram, i.TokenProgram)
-			fillStringIfDefault(&l.QuoteMint, i.QuoteMint)
-			fillUint64IfDefault(&l.VirtualQuoteReserves, i.VirtualQuoteReserves)
+		if ok1 && l != nil {
+			switch i := ix.Data.(type) {
+			case *PumpFunCreateEvent:
+				if i != nil {
+					mergePumpFunCreateFields(l, i)
+				}
+			case *PumpFunCreateV2TokenEvent:
+				if i != nil {
+					mergePumpFunCreateV2IntoCreate(l, i)
+				}
+			}
 		}
 	case EventTypePumpFunCreateV2:
 		l, ok1 := log.Data.(*PumpFunCreateV2TokenEvent)
-		i, ok2 := ix.Data.(*PumpFunCreateV2TokenEvent)
-		if ok1 && ok2 && l != nil && i != nil {
-			fillStringIfDefault(&l.Name, i.Name)
-			fillStringIfDefault(&l.Symbol, i.Symbol)
-			fillStringIfDefault(&l.Uri, i.Uri)
-			fillStringIfDefault(&l.BondingCurve, i.BondingCurve)
-			fillStringIfDefault(&l.User, i.User)
-			fillStringIfDefault(&l.Creator, i.Creator)
-			fillStringIfDefault(&l.TokenProgram, i.TokenProgram)
-			fillStringIfDefault(&l.QuoteMint, i.QuoteMint)
-			fillUint64IfDefault(&l.VirtualQuoteReserves, i.VirtualQuoteReserves)
-			fillStringIfDefault(&l.MintAuthority, i.MintAuthority)
-			fillStringIfDefault(&l.AssociatedBondingCurve, i.AssociatedBondingCurve)
-			fillStringIfDefault(&l.Global, i.Global)
-			fillStringIfDefault(&l.SystemProgram, i.SystemProgram)
-			fillStringIfDefault(&l.AssociatedTokenProgram, i.AssociatedTokenProgram)
-			fillStringIfDefault(&l.MayhemProgramID, i.MayhemProgramID)
-			fillStringIfDefault(&l.GlobalParams, i.GlobalParams)
-			fillStringIfDefault(&l.SolVault, i.SolVault)
-			fillStringIfDefault(&l.MayhemState, i.MayhemState)
-			fillStringIfDefault(&l.MayhemTokenVault, i.MayhemTokenVault)
-			fillStringIfDefault(&l.EventAuthority, i.EventAuthority)
-			fillStringIfDefault(&l.Program, i.Program)
-			fillStringIfDefault(&l.ObservedFeeRecipient, i.ObservedFeeRecipient)
+		if ok1 && l != nil {
+			switch i := ix.Data.(type) {
+			case *PumpFunCreateEvent:
+				if i != nil {
+					mergePumpFunCreateIntoCreateV2(l, i)
+				}
+			case *PumpFunCreateV2TokenEvent:
+				if i != nil {
+					mergePumpFunCreateV2Fields(l, i)
+				}
+			}
 		}
 	case EventTypePumpFunMigrate:
 		l, ok1 := log.Data.(*PumpFunMigrateEvent)

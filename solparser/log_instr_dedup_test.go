@@ -152,3 +152,74 @@ func TestDedupeLogInstructionEventsFillsPumpfunUpgradeFields(t *testing.T) {
 		t.Fatalf("v2 instruction args were not filled: spendable=%d min=%d", trade.SpendableQuoteIn, trade.MinTokensOut)
 	}
 }
+
+func TestDedupeLogInstructionEventsCollapsesPumpfunCreateFamily(t *testing.T) {
+	logEvent := DexEvent{
+		Type: EventTypePumpFunCreate,
+		Data: &PumpFunCreateEvent{
+			Mint:                 "Mint333333333333333333333333333333333333",
+			Name:                 "Log Name",
+			Symbol:               "LOG",
+			Uri:                  "https://log.example/token.json",
+			BondingCurve:         zeroPubkey,
+			User:                 zeroPubkey,
+			Creator:              zeroPubkey,
+			TokenProgram:         zeroPubkey,
+			QuoteMint:            zeroPubkey,
+			QuoteVault:           zeroPubkey,
+			QuoteTokenProgram:    zeroPubkey,
+			VirtualQuoteReserves: 0,
+		},
+	}
+	ixEvent := DexEvent{
+		Type: EventTypePumpFunCreateV2,
+		Data: &PumpFunCreateV2TokenEvent{
+			Mint:                 "Mint333333333333333333333333333333333333",
+			BondingCurve:         "Curve333333333333333333333333333333333333",
+			User:                 "User333333333333333333333333333333333333",
+			Creator:              "Creator3333333333333333333333333333333333",
+			TokenProgram:         "Token33333333333333333333333333333333333",
+			QuoteMint:            "Quote33333333333333333333333333333333333",
+			QuoteVault:           "Vault33333333333333333333333333333333333",
+			QuoteTokenProgram:    "QToken333333333333333333333333333333333",
+			Timestamp:            456,
+			VirtualTokenReserves: 1,
+			VirtualSolReserves:   2,
+			RealTokenReserves:    3,
+			TokenTotalSupply:     4,
+			VirtualQuoteReserves: 123,
+			IsMayhemMode:         true,
+			IsCashbackEnabled:    true,
+		},
+	}
+
+	out := DedupeLogInstructionEvents([]DexEvent{logEvent}, []DexEvent{ixEvent})
+	if len(out) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(out))
+	}
+	if out[0].Type != EventTypePumpFunCreate {
+		t.Fatalf("expected log variant to remain PumpFunCreate, got %q", out[0].Type)
+	}
+	create := out[0].Data.(*PumpFunCreateEvent)
+	if create.Name != "Log Name" {
+		t.Fatalf("log name was overwritten: %q", create.Name)
+	}
+	if create.BondingCurve != "Curve333333333333333333333333333333333333" {
+		t.Fatalf("bonding curve was not filled: %q", create.BondingCurve)
+	}
+	if create.QuoteVault != "Vault33333333333333333333333333333333333" {
+		t.Fatalf("quote vault was not filled: %q", create.QuoteVault)
+	}
+	if create.Timestamp != 456 {
+		t.Fatalf("timestamp was not filled: %d", create.Timestamp)
+	}
+	if create.TokenTotalSupply != 4 {
+		t.Fatalf("token total supply was not filled: %d", create.TokenTotalSupply)
+	}
+	if create.VirtualQuoteReserves != 123 {
+		t.Fatalf("virtual quote reserves were not filled: %d", create.VirtualQuoteReserves)
+	}
+	if !create.IsMayhemMode || !create.IsCashbackEnabled {
+		t.Fatalf("create flags were not OR-merged: mayhem=%v cashback=%v", create.IsMayhemMode, create.IsCashbackEnabled)
+	}
+}

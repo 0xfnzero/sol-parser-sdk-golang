@@ -48,8 +48,6 @@ func mergeRpcInstructionEvents(events []rpcIndexedEvent) []DexEvent {
 		}
 		if pendingOuter != nil && pendingOuterIdx == e.OuterIdx {
 			mergeDexEvents(pendingOuter, e.Event)
-			out = append(out, *pendingOuter)
-			pendingOuter = nil
 		} else {
 			flushPending()
 			out = append(out, e.Event)
@@ -167,42 +165,91 @@ func mergeDexEvents(base *DexEvent, inner DexEvent) {
 }
 
 func mergePumpfunTrade(base, inner *PumpFunTradeEvent) {
-	base.Mint = inner.Mint
-	base.SolAmount = inner.SolAmount
-	base.TokenAmount = inner.TokenAmount
-	base.IsBuy = inner.IsBuy
-	base.User = inner.User
-	base.Timestamp = inner.Timestamp
-	base.VirtualSolReserves = inner.VirtualSolReserves
-	base.VirtualTokenReserves = inner.VirtualTokenReserves
-	base.RealSolReserves = inner.RealSolReserves
-	base.RealTokenReserves = inner.RealTokenReserves
-	base.FeeRecipient = inner.FeeRecipient
-	base.FeeBasisPoints = inner.FeeBasisPoints
-	base.Fee = inner.Fee
-	base.Creator = inner.Creator
-	base.CreatorFeeBasisPoints = inner.CreatorFeeBasisPoints
-	base.CreatorFee = inner.CreatorFee
-	base.TrackVolume = inner.TrackVolume
-	base.TotalUnclaimedTokens = inner.TotalUnclaimedTokens
-	base.TotalClaimedTokens = inner.TotalClaimedTokens
-	base.CurrentSolVolume = inner.CurrentSolVolume
-	base.LastUpdateTimestamp = inner.LastUpdateTimestamp
-	base.IxName = inner.IxName
-	base.IsCreatedBuy = inner.IsCreatedBuy
-	base.MayhemMode = inner.MayhemMode
-	base.CashbackFeeBasisPoints = inner.CashbackFeeBasisPoints
-	base.Cashback = inner.Cashback
-	putUint64IfNonzero(&base.BuybackFeeBasisPoints, inner.BuybackFeeBasisPoints)
-	putUint64IfNonzero(&base.BuybackFee, inner.BuybackFee)
-	if len(inner.Shareholders) != 0 {
-		base.Shareholders = inner.Shareholders
+	leg := inner.SolAmount != 0 || inner.TokenAmount != 0
+
+	putStringIfSet(&base.Mint, inner.Mint)
+	putStringIfSet(&base.User, inner.User)
+	putStringIfSet(&base.FeeRecipient, inner.FeeRecipient)
+	putStringIfSet(&base.Creator, inner.Creator)
+
+	if leg {
+		base.SolAmount = inner.SolAmount
+		base.TokenAmount = inner.TokenAmount
+		base.IsBuy = inner.IsBuy
+		base.Timestamp = inner.Timestamp
+		base.VirtualSolReserves = inner.VirtualSolReserves
+		base.VirtualTokenReserves = inner.VirtualTokenReserves
+		base.RealSolReserves = inner.RealSolReserves
+		base.RealTokenReserves = inner.RealTokenReserves
+		base.FeeBasisPoints = inner.FeeBasisPoints
+		base.Fee = inner.Fee
+		base.CreatorFeeBasisPoints = inner.CreatorFeeBasisPoints
+		base.CreatorFee = inner.CreatorFee
+		base.TrackVolume = inner.TrackVolume
+		base.TotalUnclaimedTokens = inner.TotalUnclaimedTokens
+		base.TotalClaimedTokens = inner.TotalClaimedTokens
+		base.CurrentSolVolume = inner.CurrentSolVolume
+		base.LastUpdateTimestamp = inner.LastUpdateTimestamp
+		putStringIfSet(&base.IxName, inner.IxName)
+		base.MayhemMode = inner.MayhemMode
+		putUint64IfNonzero(&base.CashbackFeeBasisPoints, inner.CashbackFeeBasisPoints)
+		putUint64IfNonzero(&base.Cashback, inner.Cashback)
+		putUint64IfNonzero(&base.BuybackFeeBasisPoints, inner.BuybackFeeBasisPoints)
+		putUint64IfNonzero(&base.BuybackFee, inner.BuybackFee)
+		if len(base.Shareholders) == 0 && len(inner.Shareholders) != 0 {
+			base.Shareholders = inner.Shareholders
+		}
+		putStringIfSet(&base.QuoteMint, inner.QuoteMint)
+		putUint64IfNonzero(&base.QuoteAmount, inner.QuoteAmount)
+		putUint64IfNonzero(&base.VirtualQuoteReserves, inner.VirtualQuoteReserves)
+		putUint64IfNonzero(&base.RealQuoteReserves, inner.RealQuoteReserves)
+		base.IsCashbackCoin = inner.IsCashbackCoin
+	} else {
+		putUint64IfNonzero(&base.Fee, inner.Fee)
+		putUint64IfNonzero(&base.CreatorFee, inner.CreatorFee)
+		putUint64IfNonzero(&base.FeeBasisPoints, inner.FeeBasisPoints)
+		putUint64IfNonzero(&base.CreatorFeeBasisPoints, inner.CreatorFeeBasisPoints)
+		putUint64IfNonzero(&base.VirtualSolReserves, inner.VirtualSolReserves)
+		putUint64IfNonzero(&base.VirtualTokenReserves, inner.VirtualTokenReserves)
+		putUint64IfNonzero(&base.RealSolReserves, inner.RealSolReserves)
+		putUint64IfNonzero(&base.RealTokenReserves, inner.RealTokenReserves)
+		putUint64IfNonzero(&base.TotalUnclaimedTokens, inner.TotalUnclaimedTokens)
+		putUint64IfNonzero(&base.TotalClaimedTokens, inner.TotalClaimedTokens)
+		putUint64IfNonzero(&base.CurrentSolVolume, inner.CurrentSolVolume)
+		putUint64IfNonzero(&base.CashbackFeeBasisPoints, inner.CashbackFeeBasisPoints)
+		putUint64IfNonzero(&base.Cashback, inner.Cashback)
+		putUint64IfNonzero(&base.BuybackFeeBasisPoints, inner.BuybackFeeBasisPoints)
+		putUint64IfNonzero(&base.BuybackFee, inner.BuybackFee)
+		if len(base.Shareholders) == 0 && len(inner.Shareholders) != 0 {
+			base.Shareholders = inner.Shareholders
+		}
+		putStringIfSet(&base.QuoteMint, inner.QuoteMint)
+		putUint64IfNonzero(&base.QuoteAmount, inner.QuoteAmount)
+		putUint64IfNonzero(&base.VirtualQuoteReserves, inner.VirtualQuoteReserves)
+		putUint64IfNonzero(&base.RealQuoteReserves, inner.RealQuoteReserves)
+		putInt64IfNonzero(&base.Timestamp, inner.Timestamp)
+		putInt64IfNonzero(&base.LastUpdateTimestamp, inner.LastUpdateTimestamp)
+		putStringIfSet(&base.IxName, inner.IxName)
+		if inner.TrackVolume {
+			base.TrackVolume = true
+		}
+		if inner.MayhemMode {
+			base.MayhemMode = true
+		}
+		if inner.IsCashbackCoin {
+			base.IsCashbackCoin = true
+		}
 	}
-	putStringIfSet(&base.QuoteMint, inner.QuoteMint)
-	putUint64IfNonzero(&base.QuoteAmount, inner.QuoteAmount)
-	putUint64IfNonzero(&base.VirtualQuoteReserves, inner.VirtualQuoteReserves)
-	putUint64IfNonzero(&base.RealQuoteReserves, inner.RealQuoteReserves)
-	base.IsCashbackCoin = inner.IsCashbackCoin
+
+	putUint64IfNonzero(&base.Amount, inner.Amount)
+	putUint64IfNonzero(&base.MaxSolCost, inner.MaxSolCost)
+	putUint64IfNonzero(&base.MinSolOutput, inner.MinSolOutput)
+	putUint64IfNonzero(&base.SpendableSolIn, inner.SpendableSolIn)
+	putUint64IfNonzero(&base.SpendableQuoteIn, inner.SpendableQuoteIn)
+	putUint64IfNonzero(&base.MinTokensOut, inner.MinTokensOut)
+	if inner.IsCreatedBuy {
+		base.IsCreatedBuy = true
+	}
 	supplementPumpfunTradeAccountFields(base, inner)
 }
 
@@ -213,6 +260,12 @@ func putStringIfSet(dst *string, src string) {
 }
 
 func putUint64IfNonzero(dst *uint64, src uint64) {
+	if src != 0 {
+		*dst = src
+	}
+}
+
+func putInt64IfNonzero(dst *int64, src int64) {
 	if src != 0 {
 		*dst = src
 	}
@@ -269,6 +322,8 @@ func mergePumpfunCreate(base, inner *PumpFunCreateEvent) {
 	base.IsMayhemMode = inner.IsMayhemMode
 	base.IsCashbackEnabled = inner.IsCashbackEnabled
 	base.QuoteMint = inner.QuoteMint
+	base.QuoteVault = inner.QuoteVault
+	base.QuoteTokenProgram = inner.QuoteTokenProgram
 	base.VirtualQuoteReserves = inner.VirtualQuoteReserves
 }
 
@@ -289,6 +344,8 @@ func mergePumpfunCreateV2(base, inner *PumpFunCreateV2TokenEvent) {
 	base.IsMayhemMode = inner.IsMayhemMode
 	base.IsCashbackEnabled = inner.IsCashbackEnabled
 	base.QuoteMint = inner.QuoteMint
+	base.QuoteVault = inner.QuoteVault
+	base.QuoteTokenProgram = inner.QuoteTokenProgram
 	base.VirtualQuoteReserves = inner.VirtualQuoteReserves
 	base.MintAuthority = inner.MintAuthority
 	base.AssociatedBondingCurve = inner.AssociatedBondingCurve

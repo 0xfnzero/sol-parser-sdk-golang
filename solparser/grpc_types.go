@@ -177,6 +177,15 @@ const (
 	EventTypeRaydiumClmmSwap                        EventType = "RaydiumClmmSwap"
 	EventTypeRaydiumClmmIncreaseLiquidity           EventType = "RaydiumClmmIncreaseLiquidity"
 	EventTypeRaydiumClmmDecreaseLiquidity           EventType = "RaydiumClmmDecreaseLiquidity"
+	EventTypeRaydiumClmmLiquidityChange             EventType = "RaydiumClmmLiquidityChange"
+	EventTypeRaydiumClmmConfigChange                EventType = "RaydiumClmmConfigChange"
+	EventTypeRaydiumClmmCreatePersonalPosition      EventType = "RaydiumClmmCreatePersonalPosition"
+	EventTypeRaydiumClmmLiquidityCalculate          EventType = "RaydiumClmmLiquidityCalculate"
+	EventTypeRaydiumClmmOpenLimitOrder              EventType = "RaydiumClmmOpenLimitOrder"
+	EventTypeRaydiumClmmIncreaseLimitOrder          EventType = "RaydiumClmmIncreaseLimitOrder"
+	EventTypeRaydiumClmmDecreaseLimitOrder          EventType = "RaydiumClmmDecreaseLimitOrder"
+	EventTypeRaydiumClmmSettleLimitOrder            EventType = "RaydiumClmmSettleLimitOrder"
+	EventTypeRaydiumClmmUpdateRewardInfos           EventType = "RaydiumClmmUpdateRewardInfos"
 	EventTypeRaydiumClmmCreatePool                  EventType = "RaydiumClmmCreatePool"
 	EventTypeRaydiumClmmOpenPosition                EventType = "RaydiumClmmOpenPosition"
 	EventTypeRaydiumClmmOpenPositionWithTokenExtNft EventType = "RaydiumClmmOpenPositionWithTokenExtNft"
@@ -293,6 +302,15 @@ var (
 		EventTypeRaydiumClmmSwap,
 		EventTypeRaydiumClmmIncreaseLiquidity,
 		EventTypeRaydiumClmmDecreaseLiquidity,
+		EventTypeRaydiumClmmLiquidityChange,
+		EventTypeRaydiumClmmConfigChange,
+		EventTypeRaydiumClmmCreatePersonalPosition,
+		EventTypeRaydiumClmmLiquidityCalculate,
+		EventTypeRaydiumClmmOpenLimitOrder,
+		EventTypeRaydiumClmmIncreaseLimitOrder,
+		EventTypeRaydiumClmmDecreaseLimitOrder,
+		EventTypeRaydiumClmmSettleLimitOrder,
+		EventTypeRaydiumClmmUpdateRewardInfos,
 		EventTypeRaydiumClmmCreatePool,
 		EventTypeRaydiumClmmOpenPosition,
 		EventTypeRaydiumClmmOpenPositionWithTokenExtNft,
@@ -828,10 +846,10 @@ func EventTypeFilterIncludesRaydiumAmmV4(filter EventTypeFilter) bool {
 // AllEventTypes 返回所有支持的事件类型列表
 func AllEventTypes() []EventType {
 	return []EventType{
-		// Block
 		EventTypeBlockMeta,
-
-		// PumpFun
+		EventTypeRaydiumLaunchlabTrade,
+		EventTypeRaydiumLaunchlabPoolCreate,
+		EventTypeRaydiumLaunchlabMigrateAmm,
 		EventTypePumpFunTrade,
 		EventTypePumpFunBuy,
 		EventTypePumpFunSell,
@@ -850,45 +868,57 @@ func AllEventTypes() []EventType {
 		EventTypePumpFeesUpdateFeeShares,
 		EventTypePumpFeesUpsertFeeTiers,
 		EventTypePumpFunMigrateBondingCurveCreator,
-
-		// PumpSwap
+		EventTypePumpSwapTrade,
 		EventTypePumpSwapBuy,
 		EventTypePumpSwapSell,
 		EventTypePumpSwapCreatePool,
 		EventTypePumpSwapLiquidityAdded,
 		EventTypePumpSwapLiquidityRemoved,
-		EventTypePumpSwapTrade,
-
-		// Raydium CLMM
-		EventTypeRaydiumClmmSwap,
-		EventTypeRaydiumClmmIncreaseLiquidity,
-		EventTypeRaydiumClmmDecreaseLiquidity,
-		EventTypeRaydiumClmmCreatePool,
-		EventTypeRaydiumClmmOpenPosition,
-		EventTypeRaydiumClmmOpenPositionWithTokenExtNft,
-		EventTypeRaydiumClmmClosePosition,
-		EventTypeRaydiumClmmCollectFee,
-
-		// Raydium CPMM
 		EventTypeRaydiumCpmmSwap,
 		EventTypeRaydiumCpmmDeposit,
 		EventTypeRaydiumCpmmWithdraw,
 		EventTypeRaydiumCpmmInitialize,
-
-		// Raydium AMM V4
+		EventTypeRaydiumClmmSwap,
+		EventTypeRaydiumClmmCreatePool,
+		EventTypeRaydiumClmmOpenPosition,
+		EventTypeRaydiumClmmClosePosition,
+		EventTypeRaydiumClmmIncreaseLiquidity,
+		EventTypeRaydiumClmmDecreaseLiquidity,
+		EventTypeRaydiumClmmLiquidityChange,
+		EventTypeRaydiumClmmConfigChange,
+		EventTypeRaydiumClmmCreatePersonalPosition,
+		EventTypeRaydiumClmmLiquidityCalculate,
+		EventTypeRaydiumClmmOpenLimitOrder,
+		EventTypeRaydiumClmmIncreaseLimitOrder,
+		EventTypeRaydiumClmmDecreaseLimitOrder,
+		EventTypeRaydiumClmmSettleLimitOrder,
+		EventTypeRaydiumClmmUpdateRewardInfos,
+		EventTypeRaydiumClmmOpenPositionWithTokenExtNft,
+		EventTypeRaydiumClmmCollectFee,
 		EventTypeRaydiumAmmV4Swap,
 		EventTypeRaydiumAmmV4Deposit,
 		EventTypeRaydiumAmmV4Withdraw,
-		EventTypeRaydiumAmmV4WithdrawPnl,
 		EventTypeRaydiumAmmV4Initialize2,
-
-		// Orca
+		EventTypeRaydiumAmmV4WithdrawPnl,
 		EventTypeOrcaWhirlpoolSwap,
 		EventTypeOrcaWhirlpoolLiquidityIncreased,
 		EventTypeOrcaWhirlpoolLiquidityDecreased,
 		EventTypeOrcaWhirlpoolPoolInitialized,
-
-		// Meteora DLMM
+		EventTypeMeteoraPoolsSwap,
+		EventTypeMeteoraPoolsAddLiquidity,
+		EventTypeMeteoraPoolsRemoveLiquidity,
+		EventTypeMeteoraPoolsBootstrapLiquidity,
+		EventTypeMeteoraPoolsPoolCreated,
+		EventTypeMeteoraPoolsSetPoolFees,
+		EventTypeMeteoraDammV2Swap,
+		EventTypeMeteoraDammV2AddLiquidity,
+		EventTypeMeteoraDammV2RemoveLiquidity,
+		EventTypeMeteoraDammV2InitializePool,
+		EventTypeMeteoraDammV2CreatePosition,
+		EventTypeMeteoraDammV2ClosePosition,
+		EventTypeMeteoraDbcSwap,
+		EventTypeMeteoraDbcInitializePool,
+		EventTypeMeteoraDbcCurveComplete,
 		EventTypeMeteoraDlmmSwap,
 		EventTypeMeteoraDlmmAddLiquidity,
 		EventTypeMeteoraDlmmRemoveLiquidity,
@@ -897,34 +927,6 @@ func AllEventTypes() []EventType {
 		EventTypeMeteoraDlmmCreatePosition,
 		EventTypeMeteoraDlmmClosePosition,
 		EventTypeMeteoraDlmmClaimFee,
-
-		// Meteora Pools
-		EventTypeMeteoraPoolsSwap,
-		EventTypeMeteoraPoolsAddLiquidity,
-		EventTypeMeteoraPoolsRemoveLiquidity,
-		EventTypeMeteoraPoolsBootstrapLiquidity,
-		EventTypeMeteoraPoolsPoolCreated,
-		EventTypeMeteoraPoolsSetPoolFees,
-
-		// Meteora DAMM v2
-		EventTypeMeteoraDammV2Swap,
-		EventTypeMeteoraDammV2CreatePosition,
-		EventTypeMeteoraDammV2ClosePosition,
-		EventTypeMeteoraDammV2AddLiquidity,
-		EventTypeMeteoraDammV2RemoveLiquidity,
-		EventTypeMeteoraDammV2InitializePool,
-
-		// Meteora DBC
-		EventTypeMeteoraDbcSwap,
-		EventTypeMeteoraDbcInitializePool,
-		EventTypeMeteoraDbcCurveComplete,
-
-		// RaydiumLaunchlab
-		EventTypeRaydiumLaunchlabTrade,
-		EventTypeRaydiumLaunchlabPoolCreate,
-		EventTypeRaydiumLaunchlabMigrateAmm,
-
-		// Account types
 		EventTypeTokenAccount,
 		EventTypeTokenInfo,
 		EventTypeNonceAccount,

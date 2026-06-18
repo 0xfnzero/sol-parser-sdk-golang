@@ -32,10 +32,10 @@ func shredWireTestRawTx(t *testing.T, keys []solana.PublicKey, ixs ...solana.Com
 }
 
 func shredWireClmmSwapInstruction() []byte {
-	data := make([]byte, 33)
+	data := make([]byte, 41)
 	binary.LittleEndian.PutUint64(data[:8], instrClmmSwap)
 	binary.LittleEndian.PutUint64(data[24:32], 123)
-	data[32] = 1
+	data[40] = 1
 	return data
 }
 
@@ -46,7 +46,7 @@ func TestDexEventsFromShredTransactionWireDefaultsAltLoadedAccounts(t *testing.T
 		[]solana.PublicKey{solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), pool},
 		solana.CompiledInstruction{
 			ProgramIDIndex: 0,
-			Accounts:       []uint16{1, 99},
+			Accounts:       []uint16{99, 99, 1},
 			Data:           solana.Base58(shredWireClmmSwapInstruction()),
 		},
 	)

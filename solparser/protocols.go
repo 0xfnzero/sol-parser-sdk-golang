@@ -2,131 +2,178 @@ package solparser
 
 // Raydium CLMM
 func parseClmmSwapFromData(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 32+32+8+8+16+1 {
+	if len(data) < 32+32+32+32+8+8+8+8+1+16+16+4 {
 		return DexEvent{}
 	}
 	o := 0
 	ps, _ := readPubkey(data, o)
 	o += 32
-	user, _ := readPubkey(data, o)
+	sender, _ := readPubkey(data, o)
 	o += 32
+	tokenAccount0, _ := readPubkey(data, o)
+	o += 32
+	tokenAccount1, _ := readPubkey(data, o)
+	o += 32
+	amount0, _ := readU64LE(data, o)
 	o += 8
+	transferFee0, _ := readU64LE(data, o)
 	o += 8
+	amount1, _ := readU64LE(data, o)
+	o += 8
+	transferFee1, _ := readU64LE(data, o)
+	o += 8
+	zfo, _ := readBool(data, o)
+	o++
 	sqrt, _ := readU128LE(data, o)
 	o += 16
-	zfo, _ := readBool(data, o)
+	liquidity, _ := readU128LE(data, o)
+	o += 16
+	tick, _ := readI32LE(data, o)
 	return DexEvent{
 		Type: EventTypeRaydiumClmmSwap,
 		Data: &RaydiumClmmSwapEvent{
 			Metadata:      meta,
 			PoolState:     ps,
-			Sender:        user,
-			TokenAccount0: zeroPubkey,
-			TokenAccount1: zeroPubkey,
-			Amount0:       0,
-			Amount1:       0,
+			Sender:        sender,
+			TokenAccount0: tokenAccount0,
+			TokenAccount1: tokenAccount1,
+			Amount0:       amount0,
+			Amount1:       amount1,
 			ZeroForOne:    zfo,
 			SqrtPriceX64:  u128LEDecimalString(sqrt),
-			Liquidity:     "0",
-			TransferFee0:  0,
-			TransferFee1:  0,
-			Tick:          0,
+			Liquidity:     u128LEDecimalString(liquidity),
+			TransferFee0:  transferFee0,
+			TransferFee1:  transferFee1,
+			Tick:          tick,
 		},
 	}
 }
 
 func parseClmmIncFromData(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 32+32+16+8+8 {
+	if len(data) < 32+16+8+8+8+8 {
 		return DexEvent{}
 	}
 	o := 0
-	pool, _ := readPubkey(data, o)
-	o += 32
-	user, _ := readPubkey(data, o)
+	positionNftMint, _ := readPubkey(data, o)
 	o += 32
 	liq, _ := readU128LE(data, o)
 	o += 16
-	a0, _ := readU64LE(data, o)
+	amount0, _ := readU64LE(data, o)
 	o += 8
-	a1, _ := readU64LE(data, o)
+	amount1, _ := readU64LE(data, o)
+	o += 8
+	amount0TransferFee, _ := readU64LE(data, o)
+	o += 8
+	amount1TransferFee, _ := readU64LE(data, o)
 	return DexEvent{
 		Type: EventTypeRaydiumClmmIncreaseLiquidity,
 		Data: &RaydiumClmmIncreaseLiquidityEvent{
-			Metadata:        meta,
-			Pool:            pool,
-			PositionNftMint: zeroPubkey,
-			User:            user,
-			Liquidity:       u128LEDecimalString(liq),
-			Amount0Max:      a0,
-			Amount1Max:      a1,
+			Metadata:           meta,
+			Pool:               zeroPubkey,
+			PositionNftMint:    positionNftMint,
+			User:               zeroPubkey,
+			Liquidity:          u128LEDecimalString(liq),
+			Amount0:            amount0,
+			Amount1:            amount1,
+			Amount0TransferFee: amount0TransferFee,
+			Amount1TransferFee: amount1TransferFee,
 		},
 	}
 }
 
 func parseClmmDecFromData(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 32+32+16+8+8 {
+	if len(data) < 32+16+8+8+8+8+8+8+8+8+8 {
 		return DexEvent{}
 	}
 	o := 0
-	pool, _ := readPubkey(data, o)
-	o += 32
-	user, _ := readPubkey(data, o)
+	positionNftMint, _ := readPubkey(data, o)
 	o += 32
 	liq, _ := readU128LE(data, o)
 	o += 16
-	a0, _ := readU64LE(data, o)
+	decreaseAmount0, _ := readU64LE(data, o)
 	o += 8
-	a1, _ := readU64LE(data, o)
+	decreaseAmount1, _ := readU64LE(data, o)
+	o += 8
+	feeAmount0, _ := readU64LE(data, o)
+	o += 8
+	feeAmount1, _ := readU64LE(data, o)
+	o += 8
+	reward0, _ := readU64LE(data, o)
+	o += 8
+	reward1, _ := readU64LE(data, o)
+	o += 8
+	reward2, _ := readU64LE(data, o)
+	o += 8
+	transferFee0, _ := readU64LE(data, o)
+	o += 8
+	transferFee1, _ := readU64LE(data, o)
 	return DexEvent{
 		Type: EventTypeRaydiumClmmDecreaseLiquidity,
 		Data: &RaydiumClmmDecreaseLiquidityEvent{
 			Metadata:        meta,
-			Pool:            pool,
-			PositionNftMint: zeroPubkey,
-			User:            user,
+			Pool:            zeroPubkey,
+			PositionNftMint: positionNftMint,
+			User:            zeroPubkey,
 			Liquidity:       u128LEDecimalString(liq),
-			Amount0Min:      a0,
-			Amount1Min:      a1,
+			DecreaseAmount0: decreaseAmount0,
+			DecreaseAmount1: decreaseAmount1,
+			FeeAmount0:      feeAmount0,
+			FeeAmount1:      feeAmount1,
+			RewardAmounts:   [3]uint64{reward0, reward1, reward2},
+			TransferFee0:    transferFee0,
+			TransferFee1:    transferFee1,
 		},
 	}
 }
 
 func parseClmmCreateFromData(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 32+32+16+8 {
+	if len(data) < 32+32+2+32+16+4+32+32 {
 		return DexEvent{}
 	}
 	o := 0
-	pool, _ := readPubkey(data, o)
+	token0Mint, _ := readPubkey(data, o)
 	o += 32
-	cr, _ := readPubkey(data, o)
+	token1Mint, _ := readPubkey(data, o)
+	o += 32
+	tickSpacing, _ := readU16LE(data, o)
+	o += 2
+	pool, _ := readPubkey(data, o)
 	o += 32
 	sqrt, _ := readU128LE(data, o)
 	o += 16
-	ot, _ := readU64LE(data, o)
+	tick, _ := readI32LE(data, o)
+	o += 4
+	tokenVault0, _ := readPubkey(data, o)
+	o += 32
+	tokenVault1, _ := readPubkey(data, o)
 	return DexEvent{
 		Type: EventTypeRaydiumClmmCreatePool,
 		Data: &RaydiumClmmCreatePoolEvent{
 			Metadata:     meta,
 			Pool:         pool,
-			Creator:      cr,
-			Token0Mint:   zeroPubkey,
-			Token1Mint:   zeroPubkey,
-			TickSpacing:  0,
+			Creator:      zeroPubkey,
+			Token0Mint:   token0Mint,
+			Token1Mint:   token1Mint,
+			TickSpacing:  int(tickSpacing),
 			FeeRate:      0,
 			SqrtPriceX64: u128LEDecimalString(sqrt),
-			OpenTime:     ot,
+			Tick:         tick,
+			TokenVault0:  tokenVault0,
+			TokenVault1:  tokenVault1,
 		},
 	}
 }
 
-func parseClmmCollectFromData(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 32+32+8+8 {
+func parseClmmCollectPersonalFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+32+8+8 {
 		return DexEvent{}
 	}
 	o := 0
-	ps, _ := readPubkey(data, o)
-	o += 32
 	pn, _ := readPubkey(data, o)
+	o += 32
+	recipient0, _ := readPubkey(data, o)
+	o += 32
+	recipient1, _ := readPubkey(data, o)
 	o += 32
 	a0, _ := readU64LE(data, o)
 	o += 8
@@ -134,13 +181,310 @@ func parseClmmCollectFromData(data []byte, meta EventMetadata) DexEvent {
 	return DexEvent{
 		Type: EventTypeRaydiumClmmCollectFee,
 		Data: &RaydiumClmmCollectFeeEvent{
-			Metadata:        meta,
-			PoolState:       ps,
-			PositionNftMint: pn,
-			Amount0:         a0,
-			Amount1:         a1,
+			Metadata:               meta,
+			PoolState:              zeroPubkey,
+			PositionNftMint:        pn,
+			RecipientTokenAccount0: recipient0,
+			RecipientTokenAccount1: recipient1,
+			Amount0:                a0,
+			Amount1:                a1,
 		},
 	}
+}
+
+func parseClmmCollectProtocolFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+32+8+8 {
+		return DexEvent{}
+	}
+	o := 0
+	ps, _ := readPubkey(data, o)
+	o += 32
+	recipient0, _ := readPubkey(data, o)
+	o += 32
+	recipient1, _ := readPubkey(data, o)
+	o += 32
+	a0, _ := readU64LE(data, o)
+	o += 8
+	a1, _ := readU64LE(data, o)
+	return DexEvent{
+		Type: EventTypeRaydiumClmmCollectFee,
+		Data: &RaydiumClmmCollectFeeEvent{
+			Metadata:               meta,
+			PoolState:              ps,
+			PositionNftMint:        zeroPubkey,
+			RecipientTokenAccount0: recipient0,
+			RecipientTokenAccount1: recipient1,
+			Amount0:                a0,
+			Amount1:                a1,
+		},
+	}
+}
+
+func parseClmmLiquidityChangeFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+4+4+4+16+16 {
+		return DexEvent{}
+	}
+	o := 0
+	poolState, _ := readPubkey(data, o)
+	o += 32
+	tick, _ := readI32LE(data, o)
+	o += 4
+	tickLower, _ := readI32LE(data, o)
+	o += 4
+	tickUpper, _ := readI32LE(data, o)
+	o += 4
+	before, _ := readU128LE(data, o)
+	o += 16
+	after, _ := readU128LE(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmLiquidityChange, Data: &RaydiumClmmLiquidityChangeEvent{
+		Metadata:        meta,
+		PoolState:       poolState,
+		Tick:            tick,
+		TickLower:       tickLower,
+		TickUpper:       tickUpper,
+		LiquidityBefore: u128LEDecimalString(before),
+		LiquidityAfter:  u128LEDecimalString(after),
+	}}
+}
+
+func parseClmmConfigChangeFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 2+32+4+4+2+4+32 {
+		return DexEvent{}
+	}
+	o := 0
+	index, _ := readU16LE(data, o)
+	o += 2
+	owner, _ := readPubkey(data, o)
+	o += 32
+	protocolFeeRate, _ := readU32LE(data, o)
+	o += 4
+	tradeFeeRate, _ := readU32LE(data, o)
+	o += 4
+	tickSpacing, _ := readU16LE(data, o)
+	o += 2
+	fundFeeRate, _ := readU32LE(data, o)
+	o += 4
+	fundOwner, _ := readPubkey(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmConfigChange, Data: &RaydiumClmmConfigChangeEvent{
+		Metadata:        meta,
+		Index:           index,
+		Owner:           owner,
+		ProtocolFeeRate: protocolFeeRate,
+		TradeFeeRate:    tradeFeeRate,
+		TickSpacing:     tickSpacing,
+		FundFeeRate:     fundFeeRate,
+		FundOwner:       fundOwner,
+	}}
+}
+
+func parseClmmCreatePersonalPositionFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+32+4+4+16+8+8+8+8 {
+		return DexEvent{}
+	}
+	o := 0
+	poolState, _ := readPubkey(data, o)
+	o += 32
+	minter, _ := readPubkey(data, o)
+	o += 32
+	nftOwner, _ := readPubkey(data, o)
+	o += 32
+	tickLowerIndex, _ := readI32LE(data, o)
+	o += 4
+	tickUpperIndex, _ := readI32LE(data, o)
+	o += 4
+	liquidity, _ := readU128LE(data, o)
+	o += 16
+	depositAmount0, _ := readU64LE(data, o)
+	o += 8
+	depositAmount1, _ := readU64LE(data, o)
+	o += 8
+	depositAmount0TransferFee, _ := readU64LE(data, o)
+	o += 8
+	depositAmount1TransferFee, _ := readU64LE(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmCreatePersonalPosition, Data: &RaydiumClmmCreatePersonalPositionEvent{
+		Metadata:                  meta,
+		PoolState:                 poolState,
+		Minter:                    minter,
+		NftOwner:                  nftOwner,
+		TickLowerIndex:            tickLowerIndex,
+		TickUpperIndex:            tickUpperIndex,
+		Liquidity:                 u128LEDecimalString(liquidity),
+		DepositAmount0:            depositAmount0,
+		DepositAmount1:            depositAmount1,
+		DepositAmount0TransferFee: depositAmount0TransferFee,
+		DepositAmount1TransferFee: depositAmount1TransferFee,
+	}}
+}
+
+func parseClmmLiquidityCalculateFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 16+16+4+8+8+8+8+8+8 {
+		return DexEvent{}
+	}
+	o := 0
+	poolLiquidity, _ := readU128LE(data, o)
+	o += 16
+	poolSqrtPriceX64, _ := readU128LE(data, o)
+	o += 16
+	poolTick, _ := readI32LE(data, o)
+	o += 4
+	calcAmount0, _ := readU64LE(data, o)
+	o += 8
+	calcAmount1, _ := readU64LE(data, o)
+	o += 8
+	tradeFeeOwed0, _ := readU64LE(data, o)
+	o += 8
+	tradeFeeOwed1, _ := readU64LE(data, o)
+	o += 8
+	transferFee0, _ := readU64LE(data, o)
+	o += 8
+	transferFee1, _ := readU64LE(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmLiquidityCalculate, Data: &RaydiumClmmLiquidityCalculateEvent{
+		Metadata:         meta,
+		PoolLiquidity:    u128LEDecimalString(poolLiquidity),
+		PoolSqrtPriceX64: u128LEDecimalString(poolSqrtPriceX64),
+		PoolTick:         poolTick,
+		CalcAmount0:      calcAmount0,
+		CalcAmount1:      calcAmount1,
+		TradeFeeOwed0:    tradeFeeOwed0,
+		TradeFeeOwed1:    tradeFeeOwed1,
+		TransferFee0:     transferFee0,
+		TransferFee1:     transferFee1,
+	}}
+}
+
+func parseClmmOpenLimitOrderFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+1+4+8+8 {
+		return DexEvent{}
+	}
+	o := 0
+	poolID, _ := readPubkey(data, o)
+	o += 32
+	limitOrder, _ := readPubkey(data, o)
+	o += 32
+	zeroForOne, _ := readBool(data, o)
+	o += 1
+	tickIndex, _ := readI32LE(data, o)
+	o += 4
+	totalAmount, _ := readU64LE(data, o)
+	o += 8
+	transferFee, _ := readU64LE(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmOpenLimitOrder, Data: &RaydiumClmmOpenLimitOrderEvent{
+		Metadata:    meta,
+		PoolID:      poolID,
+		LimitOrder:  limitOrder,
+		ZeroForOne:  zeroForOne,
+		TickIndex:   tickIndex,
+		TotalAmount: totalAmount,
+		TransferFee: transferFee,
+	}}
+}
+
+func parseClmmIncreaseLimitOrderFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+1+4+8+8+8 {
+		return DexEvent{}
+	}
+	o := 0
+	poolID, _ := readPubkey(data, o)
+	o += 32
+	limitOrder, _ := readPubkey(data, o)
+	o += 32
+	zeroForOne, _ := readBool(data, o)
+	o += 1
+	tickIndex, _ := readI32LE(data, o)
+	o += 4
+	totalAmount, _ := readU64LE(data, o)
+	o += 8
+	increasedAmount, _ := readU64LE(data, o)
+	o += 8
+	transferFee, _ := readU64LE(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmIncreaseLimitOrder, Data: &RaydiumClmmIncreaseLimitOrderEvent{
+		Metadata:        meta,
+		PoolID:          poolID,
+		LimitOrder:      limitOrder,
+		ZeroForOne:      zeroForOne,
+		TickIndex:       tickIndex,
+		TotalAmount:     totalAmount,
+		IncreasedAmount: increasedAmount,
+		TransferFee:     transferFee,
+	}}
+}
+
+func parseClmmDecreaseLimitOrderFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+1+4+8+8+8+8 {
+		return DexEvent{}
+	}
+	o := 0
+	poolID, _ := readPubkey(data, o)
+	o += 32
+	limitOrder, _ := readPubkey(data, o)
+	o += 32
+	zeroForOne, _ := readBool(data, o)
+	o += 1
+	tickIndex, _ := readI32LE(data, o)
+	o += 4
+	totalAmount, _ := readU64LE(data, o)
+	o += 8
+	filledAmount, _ := readU64LE(data, o)
+	o += 8
+	settledOutputAmount, _ := readU64LE(data, o)
+	o += 8
+	decreasedAmount, _ := readU64LE(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmDecreaseLimitOrder, Data: &RaydiumClmmDecreaseLimitOrderEvent{
+		Metadata:            meta,
+		PoolID:              poolID,
+		LimitOrder:          limitOrder,
+		ZeroForOne:          zeroForOne,
+		TickIndex:           tickIndex,
+		TotalAmount:         totalAmount,
+		FilledAmount:        filledAmount,
+		SettledOutputAmount: settledOutputAmount,
+		DecreasedAmount:     decreasedAmount,
+	}}
+}
+
+func parseClmmSettleLimitOrderFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+1+4+8+8+8 {
+		return DexEvent{}
+	}
+	o := 0
+	poolID, _ := readPubkey(data, o)
+	o += 32
+	limitOrder, _ := readPubkey(data, o)
+	o += 32
+	zeroForOne, _ := readBool(data, o)
+	o += 1
+	tickIndex, _ := readI32LE(data, o)
+	o += 4
+	totalAmount, _ := readU64LE(data, o)
+	o += 8
+	filledAmount, _ := readU64LE(data, o)
+	o += 8
+	settledAmountOut, _ := readU64LE(data, o)
+	return DexEvent{Type: EventTypeRaydiumClmmSettleLimitOrder, Data: &RaydiumClmmSettleLimitOrderEvent{
+		Metadata:         meta,
+		PoolID:           poolID,
+		LimitOrder:       limitOrder,
+		ZeroForOne:       zeroForOne,
+		TickIndex:        tickIndex,
+		TotalAmount:      totalAmount,
+		FilledAmount:     filledAmount,
+		SettledAmountOut: settledAmountOut,
+	}}
+}
+
+func parseClmmUpdateRewardInfosFromData(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 16*3 {
+		return DexEvent{}
+	}
+	rewards := make([]string, 3)
+	for i := 0; i < 3; i++ {
+		raw, _ := readU128LE(data, i*16)
+		rewards[i] = u128LEDecimalString(raw)
+	}
+	return DexEvent{Type: EventTypeRaydiumClmmUpdateRewardInfos, Data: &RaydiumClmmUpdateRewardInfosEvent{
+		Metadata:              meta,
+		RewardGrowthGlobalX64: rewards,
+	}}
 }
 
 // Raydium CPMM

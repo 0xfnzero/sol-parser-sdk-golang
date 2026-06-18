@@ -9,11 +9,13 @@ var (
 	instrPumpFeesCreateFeeSharingConfig      = disc8(195, 78, 86, 76, 111, 52, 251, 213)
 	instrPumpFeesInitializeFeeConfig         = disc8(62, 162, 20, 133, 121, 65, 145, 27)
 	instrPumpFeesResetFeeSharingConfig       = disc8(10, 2, 182, 95, 16, 127, 129, 186)
+	instrPumpFeesResetFeeSharingConfigV2     = disc8(169, 245, 17, 209, 94, 91, 248, 128)
 	instrPumpFeesRevokeFeeSharingAuthority   = disc8(18, 233, 158, 39, 185, 207, 58, 104)
 	instrPumpFeesTransferFeeSharingAuthority = disc8(202, 10, 75, 200, 164, 34, 210, 96)
 	instrPumpFeesUpdateAdmin                 = disc8(161, 176, 40, 213, 60, 184, 179, 228)
 	instrPumpFeesUpdateFeeConfig             = disc8(104, 184, 103, 242, 88, 151, 107, 20)
 	instrPumpFeesUpdateFeeShares             = disc8(189, 13, 136, 99, 187, 164, 237, 35)
+	instrPumpFeesUpdateFeeSharesV2           = disc8(111, 251, 49, 6, 78, 78, 106, 18)
 	instrPumpFeesUpsertFeeTiers              = disc8(227, 23, 150, 12, 77, 86, 94, 4)
 )
 
@@ -414,7 +416,7 @@ func parsePumpFeesInstruction(data []byte, accounts []string, meta EventMetadata
 			SharingConfig: accOrZero(5), Admin: admin, InitialShareholders: []PumpFeesShareholder{},
 			Status: PumpFeesConfigStatusActive,
 		}}
-	case instrPumpFeesUpdateFeeShares:
+	case instrPumpFeesUpdateFeeShares, instrPumpFeesUpdateFeeSharesV2:
 		admin, ok1 := acc(2)
 		mint, ok2 := acc(4)
 		sharingConfig, ok3 := acc(5)
@@ -439,11 +441,11 @@ func parsePumpFeesInstruction(data []byte, accounts []string, meta EventMetadata
 		return DexEvent{Type: EventTypePumpFeesInitializeFeeConfig, Data: &PumpFeesInitializeFeeConfigEvent{
 			Metadata: meta, Timestamp: 0, Admin: admin, FeeConfig: feeConfig,
 		}}
-	case instrPumpFeesResetFeeSharingConfig:
-		oldAdmin, ok1 := acc(0)
-		newAdmin, ok2 := acc(2)
-		mint, ok3 := acc(3)
-		sharingConfig, ok4 := acc(4)
+	case instrPumpFeesResetFeeSharingConfig, instrPumpFeesResetFeeSharingConfigV2:
+		newAdmin, ok1 := acc(0)
+		oldAdmin, ok2 := acc(3)
+		mint, ok3 := acc(5)
+		sharingConfig, ok4 := acc(6)
 		if !ok1 || !ok2 || !ok3 || !ok4 {
 			return DexEvent{}
 		}

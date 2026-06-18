@@ -77,6 +77,24 @@ func (e DexEvent) GetMetadata() EventMetadata {
 		return d.Metadata
 	case *RaydiumClmmCollectFeeEvent:
 		return d.Metadata
+	case *RaydiumClmmLiquidityChangeEvent:
+		return d.Metadata
+	case *RaydiumClmmConfigChangeEvent:
+		return d.Metadata
+	case *RaydiumClmmCreatePersonalPositionEvent:
+		return d.Metadata
+	case *RaydiumClmmLiquidityCalculateEvent:
+		return d.Metadata
+	case *RaydiumClmmOpenLimitOrderEvent:
+		return d.Metadata
+	case *RaydiumClmmIncreaseLimitOrderEvent:
+		return d.Metadata
+	case *RaydiumClmmDecreaseLimitOrderEvent:
+		return d.Metadata
+	case *RaydiumClmmSettleLimitOrderEvent:
+		return d.Metadata
+	case *RaydiumClmmUpdateRewardInfosEvent:
+		return d.Metadata
 	case *RaydiumCpmmSwapEvent:
 		return d.Metadata
 	case *RaydiumCpmmDepositEvent:
@@ -251,6 +269,24 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 	case *RaydiumClmmClosePositionEvent:
 		d.Metadata.RecentBlockhash = h
 	case *RaydiumClmmCollectFeeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmLiquidityChangeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmConfigChangeEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmCreatePersonalPositionEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmLiquidityCalculateEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmOpenLimitOrderEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmIncreaseLimitOrderEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmDecreaseLimitOrderEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmSettleLimitOrderEvent:
+		d.Metadata.RecentBlockhash = h
+	case *RaydiumClmmUpdateRewardInfosEvent:
 		d.Metadata.RecentBlockhash = h
 	case *RaydiumCpmmSwapEvent:
 		d.Metadata.RecentBlockhash = h

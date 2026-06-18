@@ -68,6 +68,8 @@ func enrichCreateV2FromCreateEvents(events []DexEvent) {
 		fillStringIfEmpty(&c2.Creator, c.Creator)
 		fillStringIfEmpty(&c2.TokenProgram, c.TokenProgram)
 		fillStringIfEmpty(&c2.QuoteMint, c.QuoteMint)
+		fillStringIfEmpty(&c2.QuoteVault, c.QuoteVault)
+		fillStringIfEmpty(&c2.QuoteTokenProgram, c.QuoteTokenProgram)
 		fillInt64IfZero(&c2.Timestamp, c.Timestamp)
 		fillUint64IfZero(&c2.VirtualTokenReserves, c.VirtualTokenReserves)
 		fillUint64IfZero(&c2.VirtualSolReserves, c.VirtualSolReserves)
