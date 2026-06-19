@@ -33,6 +33,17 @@
 | Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) |
 | Go | [github.com/0xfnzero/sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) |
 
+## What This SDK Is For
+
+This is the Go implementation of the FnZero Solana DEX parser SDK for bots, indexers, copy-trading systems, sniper pipelines, and backend services that need normalized real-time DEX events.
+
+| Area | Coverage |
+|------|----------|
+| Parser inputs | Yellowstone gRPC, ShredStream, RPC transactions, encoded transactions, protocol account data |
+| DEX protocols | PumpFun, PumpSwap, Pump Fees, Raydium LaunchLab, Raydium CPMM, Raydium CLMM, Raydium AMM V4, Meteora DAMM v2, Meteora DLMM, Meteora DBC, Orca Whirlpool |
+| Use cases | Real-time DEX event parsing, token launch monitoring, copy trading, sniper bots, account filling, JSON event pipelines |
+| Runtime | Go 1.22+, backend services, workers, low-latency bot infrastructure |
+
 ## Release notes
 
 ### v0.5.6
