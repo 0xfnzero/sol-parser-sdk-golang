@@ -81,7 +81,7 @@ go mod tidy
 **在其他 Go 工程引用**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.6
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.7
 ```
 
 （本地开发可用 `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` 指向克隆目录。）
