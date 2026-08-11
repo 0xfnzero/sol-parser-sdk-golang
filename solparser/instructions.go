@@ -1195,6 +1195,7 @@ func parsePumpSwapBuyInstr(data []byte, accounts []string, meta EventMetadata, b
 		ProtocolFeeRecipientTokenAccount: getAccountSafe(accounts, 10),
 		BaseTokenProgram:                 getAccountSafe(accounts, 11),
 		QuoteTokenProgram:                getAccountSafe(accounts, 12),
+		VirtualQuoteReserves:             "0",
 	}
 	if buyExactQuoteIn {
 		ev.IxName = "buy_exact_quote_in"
@@ -1235,6 +1236,7 @@ func parsePumpSwapSellInstr(data []byte, accounts []string, meta EventMetadata) 
 		ProtocolFeeRecipientTokenAccount: getAccountSafe(accounts, 10),
 		BaseTokenProgram:                 getAccountSafe(accounts, 11),
 		QuoteTokenProgram:                getAccountSafe(accounts, 12),
+		VirtualQuoteReserves:             "0",
 	}
 	if len(accounts) >= 19 {
 		ev.CoinCreatorVaultAta = getAccountSafe(accounts, 17)

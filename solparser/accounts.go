@@ -776,10 +776,15 @@ func ParsePumpswapGlobalConfig(account *AccountData, metadata EventMetadata) Dex
 // - coin_creator: pubkey (32 bytes)
 // - is_mayhem_mode: bool (1 byte)
 // - is_cashback_coin: bool (1 byte)
+// - virtual_quote_reserves: i128 (16 bytes, current layout only)
 func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
-	const poolBody = 244
+	const legacyPoolBody = 244
+	const poolBody = 253
 
-	if len(account.Data) < 8+poolBody {
+	if len(account.Data) < 8+legacyPoolBody {
+		return DexEvent{}
+	}
+	if len(account.Data) != 8+legacyPoolBody && len(account.Data) < 8+poolBody {
 		return DexEvent{}
 	}
 
@@ -823,6 +828,13 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 	offset++
 
 	isCashbackCoin := data[offset] != 0
+	offset++
+
+	virtualQuoteReserves := "0"
+	if len(data) >= poolBody {
+		raw, _ := readU128LE(data, offset)
+		virtualQuoteReserves = i128LEDecimalString(raw[:])
+	}
 
 	return DexEvent{
 		Type: EventTypeAccountPumpSwapPool,
@@ -842,6 +854,7 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 				CoinCreator:           coinCreator,
 				IsMayhemMode:          isMayhemMode,
 				IsCashbackCoin:        isCashbackCoin,
+				VirtualQuoteReserves:  virtualQuoteReserves,
 			},
 		},
 	}

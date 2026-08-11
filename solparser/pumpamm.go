@@ -1,8 +1,65 @@
 package solparser
 
+import "unicode/utf8"
+
+type pumpSwapTradeTail struct {
+	CashbackFeeBasisPoints uint64
+	Cashback               uint64
+	BuybackFeeBasisPoints  uint64
+	BuybackFee             uint64
+	VirtualQuoteReserves   string
+	CanBoost               bool
+	BaseSupply             uint64
+}
+
+func parsePumpSwapTradeTail(data []byte) (pumpSwapTradeTail, bool) {
+	tail := pumpSwapTradeTail{VirtualQuoteReserves: "0"}
+	if len(data) == 0 {
+		return tail, true
+	}
+	if len(data) < 16 {
+		return tail, false
+	}
+
+	tail.CashbackFeeBasisPoints, _ = readU64LE(data, 0)
+	tail.Cashback, _ = readU64LE(data, 8)
+	if len(data) == 16 {
+		return tail, true
+	}
+	if len(data) < 32 {
+		return tail, false
+	}
+
+	tail.BuybackFeeBasisPoints, _ = readU64LE(data, 16)
+	tail.BuybackFee, _ = readU64LE(data, 24)
+	if len(data) == 32 {
+		return tail, true
+	}
+	if len(data) < 57 {
+		return tail, false
+	}
+
+	raw, _ := readU128LE(data, 32)
+	tail.VirtualQuoteReserves = i128LEDecimalString(raw[:])
+	switch data[48] {
+	case 0:
+		tail.CanBoost = false
+	case 1:
+		tail.CanBoost = true
+	default:
+		return tail, false
+	}
+	tail.BaseSupply, _ = readU64LE(data, 49)
+	return tail, true
+}
+
 func parsePSBuyFromData(data []byte, meta EventMetadata) DexEvent {
-	const min = 16*8 + 7*32 + 1 + 5*8 + 4
-	if len(data) < min {
+	const legacyLen = 16*8 + 7*32 + 1 + 4*8
+	const minRequiredLen = legacyLen + 8 + 4
+	if len(data) != legacyLen && len(data) < minRequiredLen {
+		return DexEvent{}
+	}
+	if data[352] != 0 && data[352] != 1 {
 		return DexEvent{}
 	}
 	o := 0
@@ -36,46 +93,45 @@ func parsePSBuyFromData(data []byte, meta EventMetadata) DexEvent {
 		CoinCreatorFeeBasisPoints:        rd(),
 		CoinCreatorFee:                   rd(),
 	}
-	tv, _ := readBool(data, o)
+	tv := data[o] == 1
 	o++
 	ev.TrackVolume = tv
 	ev.TotalUnclaimedTokens = rd()
 	ev.TotalClaimedTokens = rd()
 	ev.CurrentSolVolume = rd()
 	ev.LastUpdateTimestamp = ri()
-	ev.MinBaseAmountOut = rd()
-	ix := ""
-	if o+4 <= len(data) {
-		l, _ := readU32LE(data, o)
-		o += 4
-		if o+int(l) <= len(data) {
-			ix = string(data[o : o+int(l)])
-			o += int(l)
+	tail := pumpSwapTradeTail{VirtualQuoteReserves: "0"}
+	if len(data) != legacyLen {
+		ev.MinBaseAmountOut = rd()
+		ix, next, ok := readBorshString(data, o)
+		if !ok || !utf8.ValidString(ix) {
+			return DexEvent{}
 		}
+		o = next
+		tail, ok = parsePumpSwapTradeTail(data[o:])
+		if !ok {
+			return DexEvent{}
+		}
+		ev.IxName = ix
 	}
-	ev.IxName = ix
-	mm := false
-	if o < len(data) {
-		mm, _ = readBool(data, o)
-		o++
-	}
-	cbBps := uint64(0)
-	cb := uint64(0)
-	if o+16 <= len(data) {
-		cbBps, _ = readU64LE(data, o)
-		o += 8
-		cb, _ = readU64LE(data, o)
-	}
-	ev.MayhemMode = mm
-	ev.CashbackFeeBasisPoints = cbBps
-	ev.Cashback = cb
-	ev.IsCashbackCoin = cbBps > 0
+	ev.CashbackFeeBasisPoints = tail.CashbackFeeBasisPoints
+	ev.Cashback = tail.Cashback
+	ev.BuybackFeeBasisPoints = tail.BuybackFeeBasisPoints
+	ev.BuybackFee = tail.BuybackFee
+	ev.VirtualQuoteReserves = tail.VirtualQuoteReserves
+	ev.CanBoost = tail.CanBoost
+	ev.BaseSupply = tail.BaseSupply
+	ev.IsCashbackCoin = tail.CashbackFeeBasisPoints > 0
 	return DexEvent{Type: EventTypePumpSwapBuy, Data: ev}
 }
 
 func parsePSSellFromData(data []byte, meta EventMetadata) DexEvent {
-	const req = 13*8 + 7*32
+	const req = 14*8 + 7*32 + 2*8
 	if len(data) < req {
+		return DexEvent{}
+	}
+	tail, ok := parsePumpSwapTradeTail(data[req:])
+	if !ok {
 		return DexEvent{}
 	}
 	o := 0
@@ -108,13 +164,13 @@ func parsePSSellFromData(data []byte, meta EventMetadata) DexEvent {
 		CoinCreatorFeeBasisPoints:        rd(),
 		CoinCreatorFee:                   rd(),
 	}
-	cashBps, cash := uint64(0), uint64(0)
-	if len(data) >= 368 {
-		cashBps, _ = readU64LE(data, 352)
-		cash, _ = readU64LE(data, 360)
-	}
-	ev.CashbackFeeBasisPoints = cashBps
-	ev.Cashback = cash
+	ev.CashbackFeeBasisPoints = tail.CashbackFeeBasisPoints
+	ev.Cashback = tail.Cashback
+	ev.BuybackFeeBasisPoints = tail.BuybackFeeBasisPoints
+	ev.BuybackFee = tail.BuybackFee
+	ev.VirtualQuoteReserves = tail.VirtualQuoteReserves
+	ev.CanBoost = tail.CanBoost
+	ev.BaseSupply = tail.BaseSupply
 	return DexEvent{Type: EventTypePumpSwapSell, Data: ev}
 }
 

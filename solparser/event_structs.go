@@ -543,6 +543,11 @@ type PumpSwapBuyEvent struct {
 	MayhemMode                       bool          `json:"mayhem_mode"`
 	CashbackFeeBasisPoints           uint64        `json:"cashback_fee_basis_points"`
 	Cashback                         uint64        `json:"cashback"`
+	BuybackFeeBasisPoints            uint64        `json:"buyback_fee_basis_points"`
+	BuybackFee                       uint64        `json:"buyback_fee"`
+	VirtualQuoteReserves             string        `json:"virtual_quote_reserves"`
+	CanBoost                         bool          `json:"can_boost"`
+	BaseSupply                       uint64        `json:"base_supply"`
 	IsCashbackCoin                   bool          `json:"is_cashback_coin"`
 	BaseMint                         string        `json:"base_mint"`
 	QuoteMint                        string        `json:"quote_mint"`
@@ -589,6 +594,11 @@ type PumpSwapSellEvent struct {
 	CoinCreatorFee                   uint64        `json:"coin_creator_fee"`
 	CashbackFeeBasisPoints           uint64        `json:"cashback_fee_basis_points"`
 	Cashback                         uint64        `json:"cashback"`
+	BuybackFeeBasisPoints            uint64        `json:"buyback_fee_basis_points"`
+	BuybackFee                       uint64        `json:"buyback_fee"`
+	VirtualQuoteReserves             string        `json:"virtual_quote_reserves"`
+	CanBoost                         bool          `json:"can_boost"`
+	BaseSupply                       uint64        `json:"base_supply"`
 	BaseMint                         string        `json:"base_mint"`
 	QuoteMint                        string        `json:"quote_mint"`
 	PoolBaseTokenAccount             string        `json:"pool_base_token_account"`
@@ -2057,6 +2067,7 @@ type PumpSwapPoolAccountData struct {
 	CoinCreator           string `json:"coin_creator"`
 	IsMayhemMode          bool   `json:"is_mayhem_mode"`
 	IsCashbackCoin        bool   `json:"is_cashback_coin"`
+	VirtualQuoteReserves  string `json:"virtual_quote_reserves"`
 }
 
 func (e *PumpSwapPoolAccountEvent) EventType() EventType       { return EventTypeAccountPumpSwapPool }

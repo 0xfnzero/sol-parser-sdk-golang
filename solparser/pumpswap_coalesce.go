@@ -118,6 +118,15 @@ func supplementString(dst *string, src string) {
 	}
 }
 
+func supplementDecimalString(dst *string, src string) {
+	if src == "" {
+		return
+	}
+	if *dst == "" || (*dst == "0" && src != "0") {
+		*dst = src
+	}
+}
+
 func supplementU64(dst *uint64, src uint64) {
 	if src != 0 && *dst == 0 {
 		*dst = src
@@ -166,12 +175,17 @@ func supplementPumpSwapBuy(dst, src *PumpSwapBuyEvent) {
 	supplementU64(&dst.MinBaseAmountOut, src.MinBaseAmountOut)
 	supplementU64(&dst.CashbackFeeBasisPoints, src.CashbackFeeBasisPoints)
 	supplementU64(&dst.Cashback, src.Cashback)
+	supplementU64(&dst.BuybackFeeBasisPoints, src.BuybackFeeBasisPoints)
+	supplementU64(&dst.BuybackFee, src.BuybackFee)
+	supplementDecimalString(&dst.VirtualQuoteReserves, src.VirtualQuoteReserves)
+	supplementU64(&dst.BaseSupply, src.BaseSupply)
 
 	if dst.IxName == "" {
 		dst.IxName = src.IxName
 	}
 	dst.MayhemMode = dst.MayhemMode || src.MayhemMode
 	dst.TrackVolume = dst.TrackVolume || src.TrackVolume
+	dst.CanBoost = dst.CanBoost || src.CanBoost
 	dst.IsCashbackCoin = dst.IsCashbackCoin || src.IsCashbackCoin
 	dst.IsPumpPool = dst.IsPumpPool || src.IsPumpPool
 
@@ -215,6 +229,11 @@ func supplementPumpSwapSell(dst, src *PumpSwapSellEvent) {
 	supplementU64(&dst.CoinCreatorFee, src.CoinCreatorFee)
 	supplementU64(&dst.CashbackFeeBasisPoints, src.CashbackFeeBasisPoints)
 	supplementU64(&dst.Cashback, src.Cashback)
+	supplementU64(&dst.BuybackFeeBasisPoints, src.BuybackFeeBasisPoints)
+	supplementU64(&dst.BuybackFee, src.BuybackFee)
+	supplementDecimalString(&dst.VirtualQuoteReserves, src.VirtualQuoteReserves)
+	supplementU64(&dst.BaseSupply, src.BaseSupply)
+	dst.CanBoost = dst.CanBoost || src.CanBoost
 
 	supplementString(&dst.Pool, src.Pool)
 	supplementString(&dst.User, src.User)
