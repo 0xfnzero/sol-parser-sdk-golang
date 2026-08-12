@@ -6,9 +6,29 @@ import (
 
 // rpcIndexedEvent 与 Rust `parse_instructions_enhanced` 中 (outer_idx, inner_idx, DexEvent) 对应。
 type rpcIndexedEvent struct {
-	OuterIdx int
-	InnerIdx *int // nil 表示外层指令
-	Event    DexEvent
+	OuterIdx       int
+	InnerIdx       *int // nil identifies an outer instruction.
+	StackHeight    *uint32
+	IsDlmmEventCPI bool
+	Event          DexEvent
+}
+
+func uint32Ptr(value uint32) *uint32 { return &value }
+
+func isDlmmEvent(event DexEvent) bool {
+	switch event.Type {
+	case EventTypeMeteoraDlmmSwap,
+		EventTypeMeteoraDlmmAddLiquidity,
+		EventTypeMeteoraDlmmRemoveLiquidity,
+		EventTypeMeteoraDlmmInitializePool,
+		EventTypeMeteoraDlmmInitializeBinArray,
+		EventTypeMeteoraDlmmCreatePosition,
+		EventTypeMeteoraDlmmClosePosition,
+		EventTypeMeteoraDlmmClaimFee:
+		return true
+	default:
+		return false
+	}
 }
 
 // mergeRpcInstructionEvents 合并同一 outer_idx 下的外层与内层事件（对齐 Rust `merge_instruction_events`）。
@@ -17,7 +37,7 @@ func mergeRpcInstructionEvents(events []rpcIndexedEvent) []DexEvent {
 	if len(events) == 0 {
 		return nil
 	}
-	sort.SliceStable(events, func(i, j int) bool {
+	sort.Slice(events, func(i, j int) bool {
 		ai, aj := events[i].OuterIdx, events[j].OuterIdx
 		if ai != aj {
 			return ai < aj
@@ -28,32 +48,76 @@ func mergeRpcInstructionEvents(events []rpcIndexedEvent) []DexEvent {
 	})
 
 	out := make([]DexEvent, 0, len(events))
-	var pendingOuter *DexEvent
-	var pendingOuterIdx int
-
-	flushPending := func() {
-		if pendingOuter != nil {
-			out = append(out, *pendingOuter)
-			pendingOuter = nil
-		}
+	outerTargetIdx := -1
+	outerTargetOuter := -1
+	type dlmmTarget struct {
+		outerIdx    int
+		stackHeight *uint32
+		resultIdx   int
 	}
+	var dlmmTargets [8]dlmmTarget
+	dlmmTargetsLen := 0
 
 	for _, e := range events {
 		if e.InnerIdx == nil {
-			flushPending()
-			pendingOuterIdx = e.OuterIdx
-			ev := e.Event
-			pendingOuter = &ev
+			out = append(out, e.Event)
+			outerTargetIdx = len(out) - 1
+			outerTargetOuter = e.OuterIdx
+			dlmmTargetsLen = 0
+			if isDlmmEvent(e.Event) {
+				dlmmTargets[0] = dlmmTarget{e.OuterIdx, e.StackHeight, outerTargetIdx}
+				dlmmTargetsLen = 1
+			}
 			continue
 		}
-		if pendingOuter != nil && pendingOuterIdx == e.OuterIdx {
-			mergeDexEvents(pendingOuter, e.Event)
+
+		if e.IsDlmmEventCPI {
+			merged := false
+			for i := dlmmTargetsLen - 1; i >= 0; i-- {
+				target := dlmmTargets[i]
+				directChild := target.stackHeight == nil || e.StackHeight == nil ||
+					*e.StackHeight == *target.stackHeight+1
+				if target.outerIdx == e.OuterIdx && directChild {
+					dlmmTargetsLen = i + 1
+					merged = tryMergeDexEvents(&out[target.resultIdx], e.Event)
+					break
+				}
+			}
+			if !merged {
+				out = append(out, e.Event)
+			}
+			continue
+		}
+
+		targetIdx := -1
+		if outerTargetOuter == e.OuterIdx && outerTargetIdx >= 0 &&
+			tryMergeDexEvents(&out[outerTargetIdx], e.Event) {
+			targetIdx = outerTargetIdx
 		} else {
-			flushPending()
 			out = append(out, e.Event)
+			targetIdx = len(out) - 1
+		}
+
+		if isDlmmEvent(e.Event) {
+			if e.StackHeight == nil {
+				dlmmTargetsLen = 0
+			} else {
+				for dlmmTargetsLen > 0 {
+					last := dlmmTargets[dlmmTargetsLen-1]
+					if last.outerIdx != e.OuterIdx ||
+						(last.stackHeight != nil && *last.stackHeight >= *e.StackHeight) {
+						dlmmTargetsLen--
+					} else {
+						break
+					}
+				}
+			}
+			if dlmmTargetsLen < len(dlmmTargets) {
+				dlmmTargets[dlmmTargetsLen] = dlmmTarget{e.OuterIdx, e.StackHeight, targetIdx}
+				dlmmTargetsLen++
+			}
 		}
 	}
-	flushPending()
 	return out
 }
 
@@ -66,102 +130,186 @@ func secondaryMergeKey(inner *int) int {
 
 // mergeDexEvents 对齐 Rust `core::merger::merge_events`（Pump 系子集）。
 func mergeDexEvents(base *DexEvent, inner DexEvent) {
+	tryMergeDexEvents(base, inner)
+}
+
+func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 	if base == nil || base.Type == "" || inner.Type == "" {
-		return
+		return false
 	}
 	switch base.Type {
 	case EventTypePumpFunTrade, EventTypePumpFunBuy, EventTypePumpFunSell, EventTypePumpFunBuyExactSolIn:
 		if inner.Type != EventTypePumpFunTrade && inner.Type != EventTypePumpFunBuy &&
 			inner.Type != EventTypePumpFunSell && inner.Type != EventTypePumpFunBuyExactSolIn {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpFunTradeEvent)
 		i, ok2 := inner.Data.(*PumpFunTradeEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		mergePumpfunTrade(b, i)
+		return true
 	case EventTypePumpFunCreate:
 		if inner.Type != EventTypePumpFunCreate {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpFunCreateEvent)
 		i, ok2 := inner.Data.(*PumpFunCreateEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		mergePumpfunCreate(b, i)
+		return true
 	case EventTypePumpFunCreateV2:
 		if inner.Type != EventTypePumpFunCreateV2 {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpFunCreateV2TokenEvent)
 		i, ok2 := inner.Data.(*PumpFunCreateV2TokenEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		mergePumpfunCreateV2(b, i)
+		return true
 	case EventTypePumpFunMigrate:
 		if inner.Type != EventTypePumpFunMigrate {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpFunMigrateEvent)
 		i, ok2 := inner.Data.(*PumpFunMigrateEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		mergePumpfunMigrate(b, i)
+		return true
 	case EventTypePumpSwapBuy:
 		if inner.Type != EventTypePumpSwapBuy {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpSwapBuyEvent)
 		i, ok2 := inner.Data.(*PumpSwapBuyEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		supplementPumpSwapBuy(b, i)
+		return true
 	case EventTypePumpSwapSell:
 		if inner.Type != EventTypePumpSwapSell {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpSwapSellEvent)
 		i, ok2 := inner.Data.(*PumpSwapSellEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		supplementPumpSwapSell(b, i)
+		return true
 	case EventTypePumpSwapCreatePool:
 		if inner.Type != EventTypePumpSwapCreatePool {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpSwapCreatePoolEvent)
 		i, ok2 := inner.Data.(*PumpSwapCreatePoolEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		*b = *i
+		return true
 	case EventTypePumpSwapLiquidityAdded:
 		if inner.Type != EventTypePumpSwapLiquidityAdded {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpSwapLiquidityAddedEvent)
 		i, ok2 := inner.Data.(*PumpSwapLiquidityAddedEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		*b = *i
+		return true
 	case EventTypePumpSwapLiquidityRemoved:
 		if inner.Type != EventTypePumpSwapLiquidityRemoved {
-			return
+			return false
 		}
 		b, ok1 := base.Data.(*PumpSwapLiquidityRemovedEvent)
 		i, ok2 := inner.Data.(*PumpSwapLiquidityRemovedEvent)
 		if !ok1 || !ok2 {
-			return
+			return false
 		}
 		*b = *i
+		return true
+	case EventTypeMeteoraDlmmSwap:
+		b, ok1 := base.Data.(*MeteoraDlmmSwapEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmSwapEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		*b = *i
+		return true
+	case EventTypeMeteoraDlmmAddLiquidity:
+		b, ok1 := base.Data.(*MeteoraDlmmAddLiquidityEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmAddLiquidityEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		*b = *i
+		return true
+	case EventTypeMeteoraDlmmRemoveLiquidity:
+		b, ok1 := base.Data.(*MeteoraDlmmRemoveLiquidityEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmRemoveLiquidityEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		*b = *i
+		return true
+	case EventTypeMeteoraDlmmInitializePool:
+		b, ok1 := base.Data.(*MeteoraDlmmInitializePoolEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmInitializePoolEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		creator, activeBinID := b.Creator, b.ActiveBinID
+		*b = *i
+		b.Creator, b.ActiveBinID = creator, activeBinID
+		return true
+	case EventTypeMeteoraDlmmInitializeBinArray:
+		b, ok1 := base.Data.(*MeteoraDlmmInitializeBinArrayEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmInitializeBinArrayEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		*b = *i
+		return true
+	case EventTypeMeteoraDlmmCreatePosition:
+		b, ok1 := base.Data.(*MeteoraDlmmCreatePositionEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmCreatePositionEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		lowerBinID, width := b.LowerBinID, b.Width
+		*b = *i
+		b.LowerBinID, b.Width = lowerBinID, width
+		return true
+	case EventTypeMeteoraDlmmClosePosition:
+		b, ok1 := base.Data.(*MeteoraDlmmClosePositionEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmClosePositionEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		pool := b.Pool
+		*b = *i
+		b.Pool = pool
+		return true
+	case EventTypeMeteoraDlmmClaimFee:
+		b, ok1 := base.Data.(*MeteoraDlmmClaimFeeEvent)
+		i, ok2 := inner.Data.(*MeteoraDlmmClaimFeeEvent)
+		if inner.Type != base.Type || !ok1 || !ok2 {
+			return false
+		}
+		*b = *i
+		return true
 	}
+	return false
 }
 
 func mergePumpfunTrade(base, inner *PumpFunTradeEvent) {

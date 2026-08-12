@@ -131,6 +131,8 @@ func fillRpcOneEvent(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, in
 		fillRpcRaydiumClmmIncreaseLiquidity(ev, msg, meta, invokes)
 	case EventTypeRaydiumClmmDecreaseLiquidity:
 		fillRpcRaydiumClmmDecreaseLiquidity(ev, msg, meta, invokes)
+	case EventTypeRaydiumCpmmSwap:
+		fillRpcRaydiumCpmmSwap(ev, msg, meta, invokes)
 	case EventTypeRaydiumCpmmDeposit:
 		fillRpcRaydiumCpmmDeposit(ev, msg, meta, invokes)
 	case EventTypeRaydiumCpmmWithdraw:
@@ -554,6 +556,16 @@ func fillRpcRaydiumCpmmDeposit(ev *DexEvent, msg *RpcMessage, meta *RpcTransacti
 	}
 }
 
+func fillRpcRaydiumCpmmSwap(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
+	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_CPMM_PROGRAM_ID)
+	if get == nil {
+		return
+	}
+	if e, ok := ev.Data.(*RaydiumCpmmSwapEvent); ok {
+		fillStringFromAccount(&e.PoolID, get, 3)
+	}
+}
+
 func fillRpcRaydiumCpmmWithdraw(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
 	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_CPMM_PROGRAM_ID)
 	if get == nil {
@@ -582,6 +594,11 @@ func fillRpcRaydiumAmmV4Swap(ev *DexEvent, msg *RpcMessage, meta *RpcTransaction
 	}
 	if e, ok := ev.Data.(*RaydiumAmmV4SwapEvent); ok {
 		fillStringFromAccount(&e.Amm, get, 1)
+		if owner := get(17); isDefaultPubkeyString(owner) {
+			fillStringFromAccount(&e.UserSourceOwner, get, 16)
+		} else if isDefaultPubkeyString(e.UserSourceOwner) {
+			e.UserSourceOwner = owner
+		}
 	}
 }
 

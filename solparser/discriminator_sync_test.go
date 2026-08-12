@@ -85,6 +85,43 @@ func innerCPI(eventDisc uint64, payload []byte) []byte {
 	return ix
 }
 
+func currentAnchorEventCPI(eventDisc uint64, payload []byte) []byte {
+	var d [8]byte
+	binary.LittleEndian.PutUint64(d[:], eventDisc)
+	ix := make([]byte, 0, 16+len(payload))
+	ix = append(ix, eventCPIPrefix...)
+	ix = append(ix, d[:]...)
+	ix = append(ix, payload...)
+	return ix
+}
+
+func TestParseMeteoraDlmmCurrentAnchorEventCPI(t *testing.T) {
+	payload := make([]byte, 147)
+	payload[72] = 1
+	binary.LittleEndian.PutUint64(payload[89:97], 100)
+	binary.LittleEndian.PutUint64(payload[105:113], 90)
+
+	ev := ParseInnerInstructionUnified(
+		currentAnchorEventCPI(dlmmSwap2, payload),
+		nil,
+		"sig",
+		1,
+		0,
+		nil,
+		10,
+		EventTypeFilterIncludeOnly([]EventType{EventTypeMeteoraDlmmSwap}),
+		METEORA_DLMM_PROGRAM_ID,
+		false,
+	)
+	if ev.Type != EventTypeMeteoraDlmmSwap {
+		t.Fatalf("expected MeteoraDlmmSwap, got %q", ev.Type)
+	}
+	swap := ev.Data.(*MeteoraDlmmSwapEvent)
+	if swap.AmountIn != 100 || swap.AmountOut != 90 {
+		t.Fatalf("unexpected swap values: %+v", swap)
+	}
+}
+
 func TestParseInnerInstructionCoversRustAdvancedPrograms(t *testing.T) {
 	clmmPayload := make([]byte, 32+32+1+4+8+8)
 	clmmPayload[64] = 1

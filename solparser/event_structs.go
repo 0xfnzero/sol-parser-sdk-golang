@@ -1281,7 +1281,7 @@ type MeteoraDlmmInitializeBinArrayEvent struct {
 	Metadata EventMetadata `json:"metadata"`
 	Pool     string        `json:"pool"`
 	BinArray string        `json:"bin_array"`
-	Index    uint64        `json:"index"`
+	Index    int64         `json:"index"`
 }
 
 func (e *MeteoraDlmmInitializeBinArrayEvent) EventType() EventType {

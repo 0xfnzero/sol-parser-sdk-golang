@@ -1,6 +1,7 @@
 package solparser
 
 import (
+	"encoding/base64"
 	"encoding/binary"
 	"strings"
 )
@@ -140,21 +141,21 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDammV2ClosePosition, true
 	case discRaydiumLaunchlabPoolCreate:
 		return EventTypeRaydiumLaunchlabPoolCreate, true
-	case dlmmSwap:
+	case dlmmSwap, dlmmSwap2, dlmmLegacySwap:
 		return EventTypeMeteoraDlmmSwap, true
-	case dlmmAddLiq:
+	case dlmmAddLiq, dlmmLegacyAddLiq:
 		return EventTypeMeteoraDlmmAddLiquidity, true
-	case dlmmRemoveLiq:
+	case dlmmRemoveLiq, dlmmLegacyRemoveLiq:
 		return EventTypeMeteoraDlmmRemoveLiquidity, true
-	case dlmmInitPool:
+	case dlmmInitPool, dlmmLegacyInitPool:
 		return EventTypeMeteoraDlmmInitializePool, true
 	case dlmmInitBin:
 		return EventTypeMeteoraDlmmInitializeBinArray, true
-	case dlmmCreatePos:
+	case dlmmCreatePos, dlmmLegacyCreatePos:
 		return EventTypeMeteoraDlmmCreatePosition, true
-	case dlmmClosePos:
+	case dlmmClosePos, dlmmLegacyClosePos:
 		return EventTypeMeteoraDlmmClosePosition, true
-	case dlmmClaimFee:
+	case dlmmClaimFee, dlmmClaimFee2, dlmmLegacyClaimFee:
 		return EventTypeMeteoraDlmmClaimFee, true
 	default:
 		return "", false
@@ -258,7 +259,7 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 		}
 	case RAYDIUM_CPMM_PROGRAM_ID:
 		switch disc {
-		case discCpmmSwapIn, discCpmmSwapOut:
+		case discCpmmSwapEvent, discCpmmSwapIn, discCpmmSwapOut:
 			return EventTypeRaydiumCpmmSwap, true
 		case discCpmmCreatePool:
 			return EventTypeRaydiumCpmmInitialize, true
@@ -344,21 +345,21 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 		}
 	case METEORA_DLMM_PROGRAM_ID:
 		switch disc {
-		case dlmmSwap:
+		case dlmmSwap, dlmmSwap2, dlmmLegacySwap:
 			return EventTypeMeteoraDlmmSwap, true
-		case dlmmAddLiq:
+		case dlmmAddLiq, dlmmLegacyAddLiq:
 			return EventTypeMeteoraDlmmAddLiquidity, true
-		case dlmmRemoveLiq:
+		case dlmmRemoveLiq, dlmmLegacyRemoveLiq:
 			return EventTypeMeteoraDlmmRemoveLiquidity, true
-		case dlmmInitPool:
+		case dlmmInitPool, dlmmLegacyInitPool:
 			return EventTypeMeteoraDlmmInitializePool, true
 		case dlmmInitBin:
 			return EventTypeMeteoraDlmmInitializeBinArray, true
-		case dlmmCreatePos:
+		case dlmmCreatePos, dlmmLegacyCreatePos:
 			return EventTypeMeteoraDlmmCreatePosition, true
-		case dlmmClosePos:
+		case dlmmClosePos, dlmmLegacyClosePos:
 			return EventTypeMeteoraDlmmClosePosition, true
-		case dlmmClaimFee:
+		case dlmmClaimFee, dlmmClaimFee2, dlmmLegacyClaimFee:
 			return EventTypeMeteoraDlmmClaimFee, true
 		default:
 			return "", false
@@ -584,6 +585,21 @@ func ParseLogOptimized(log, signature string, slot, txIndex uint64, blockTimeUs 
 }
 
 func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64, blockTimeUs *int64, grpcRecvUs int64, filter any, isCreatedBuy bool, recentB58 string, programID string) DexEvent {
+	eventFilter, _ := filter.(EventTypeFilter)
+	if programID == RAYDIUM_AMM_V4_PROGRAM_ID {
+		if start := strings.Index(log, "ray_log: "); start >= 0 {
+			if eventFilter != nil && !eventFilter.ShouldInclude(EventTypeRaydiumAmmV4Swap) {
+				return DexEvent{}
+			}
+			encoded := strings.TrimSpace(log[start+len("ray_log: "):])
+			data, err := base64.StdEncoding.DecodeString(encoded)
+			if err != nil {
+				return DexEvent{}
+			}
+			meta := makeMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs, recentB58)
+			return parseAmmRayLogSwap(data, meta)
+		}
+	}
 	buf := decodeProgramDataLine(log)
 	if len(buf) < 8 {
 		return DexEvent{}
@@ -591,7 +607,6 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 	disc := binary.LittleEndian.Uint64(buf[:8])
 	data := buf[8:]
 	meta := makeMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs, recentB58)
-	eventFilter, _ := filter.(EventTypeFilter)
 	if eventFilter != nil {
 		unscopedShared := programID == "" && (disc == discPumpTrade || disc == discCpmmSwapIn)
 		eventType, ok := logDiscriminatorEventType(disc)
@@ -658,6 +673,8 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 	}
 	if programID == RAYDIUM_CPMM_PROGRAM_ID {
 		switch disc {
+		case discCpmmSwapEvent:
+			return applyActualEventTypeFilter(parseCpmmSwapEventFromData(data, meta), eventFilter)
 		case discCpmmSwapIn:
 			return applyActualEventTypeFilter(parseCpmmSwapInFromData(data, meta), eventFilter)
 		case discCpmmSwapOut:

@@ -488,6 +488,35 @@ func parseClmmUpdateRewardInfosFromData(data []byte, meta EventMetadata) DexEven
 }
 
 // Raydium CPMM
+func parseCpmmSwapEventFromData(data []byte, meta EventMetadata) DexEvent {
+	const payloadLen = 32 + 6*8 + 1
+	if len(data) < payloadLen {
+		return DexEvent{}
+	}
+	pool, ok := readPubkey(data, 0)
+	if !ok {
+		return DexEvent{}
+	}
+	inputVaultBefore, _ := readU64LE(data, 32)
+	outputVaultBefore, _ := readU64LE(data, 40)
+	inputAmount, _ := readU64LE(data, 48)
+	outputAmount, _ := readU64LE(data, 56)
+	inputTransferFee, _ := readU64LE(data, 64)
+	outputTransferFee, _ := readU64LE(data, 72)
+	baseInput, _ := readBool(data, 80)
+	return DexEvent{Type: EventTypeRaydiumCpmmSwap, Data: &RaydiumCpmmSwapEvent{
+		Metadata:          meta,
+		PoolID:            pool,
+		InputAmount:       inputAmount,
+		OutputAmount:      outputAmount,
+		InputVaultBefore:  inputVaultBefore,
+		OutputVaultBefore: outputVaultBefore,
+		InputTransferFee:  inputTransferFee,
+		OutputTransferFee: outputTransferFee,
+		BaseInput:         baseInput,
+	}}
+}
+
 func parseCpmmSwapInFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+8+8+8+1 {
 		return DexEvent{}
@@ -894,6 +923,27 @@ func parseMeteoraPoolCreatedFromData(data []byte, meta EventMetadata) DexEvent {
 }
 
 // Raydium AMM V4
+func parseAmmRayLogSwap(data []byte, meta EventMetadata) DexEvent {
+	// Official bincode format: one u8 log type followed by seven u64 values.
+	if len(data) != 57 || (data[0] != 3 && data[0] != 4) {
+		return DexEvent{}
+	}
+	first, _ := readU64LE(data, 1)
+	second, _ := readU64LE(data, 9)
+	actual, _ := readU64LE(data, 49)
+	event := &RaydiumAmmV4SwapEvent{Metadata: meta, Amm: zeroPubkey, UserSourceOwner: zeroPubkey}
+	if data[0] == 3 {
+		event.AmountIn = first
+		event.MinimumAmountOut = second
+		event.AmountOut = actual
+	} else {
+		event.MaxAmountIn = first
+		event.AmountOut = second
+		event.AmountIn = actual
+	}
+	return DexEvent{Type: EventTypeRaydiumAmmV4Swap, Data: event}
+}
+
 func parseAmmSwapInFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 8+8+8 {
 		return DexEvent{}

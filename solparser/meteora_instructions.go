@@ -1,13 +1,6 @@
 package solparser
 
-var (
-	instrMeteoraPoolsSwap            = disc8(248, 198, 158, 145, 225, 117, 135, 200)
-	instrMeteoraPoolsAddLiquidity    = disc8(181, 157, 89, 67, 143, 182, 52, 72)
-	instrMeteoraPoolsRemoveLiquidity = disc8(80, 85, 209, 72, 24, 206, 177, 108)
-	instrMeteoraPoolsCreatePool      = disc8(95, 180, 10, 172, 84, 174, 232, 40)
-)
-
-// ParseMeteoraPoolsInstruction 对齐 Rust `meteora_amm::parse_instruction` 的外层指令路径。
+// ParseMeteoraPoolsInstruction mirrors the Rust outer-instruction parser.
 func ParseMeteoraPoolsInstruction(
 	data []byte,
 	accounts []string,
@@ -17,10 +10,10 @@ func ParseMeteoraPoolsInstruction(
 	blockTimeUs *int64,
 	grpcRecvUs int64,
 ) DexEvent {
-	disc, ok := readDiscU64(data)
-	if !ok {
+	if len(data) < 8 {
 		return DexEvent{}
 	}
+	disc, _ := readDiscU64(data)
 	payload := data[8:]
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 	pool := getAccountSafe(accounts, 0)
@@ -34,13 +27,13 @@ func ParseMeteoraPoolsInstruction(
 			return DexEvent{}
 		}
 		inAmount, _ := readU64LE(payload, 0)
-		minOut, _ := readU64LE(payload, 8)
+		outAmount, _ := readU64LE(payload, 8)
 		return DexEvent{
 			Type: EventTypeMeteoraPoolsSwap,
 			Data: &MeteoraPoolsSwapEvent{
 				Metadata:  meta,
 				InAmount:  inAmount,
-				OutAmount: minOut,
+				OutAmount: outAmount,
 				TradeFee:  0,
 				AdminFee:  0,
 				HostFee:   0,
@@ -50,14 +43,14 @@ func ParseMeteoraPoolsInstruction(
 		if len(payload) < 24 {
 			return DexEvent{}
 		}
-		lp, _ := readU64LE(payload, 0)
+		lpAmount, _ := readU64LE(payload, 0)
 		tokenA, _ := readU64LE(payload, 8)
 		tokenB, _ := readU64LE(payload, 16)
 		return DexEvent{
 			Type: EventTypeMeteoraPoolsAddLiquidity,
 			Data: &MeteoraPoolsAddLiquidityEvent{
 				Metadata:     meta,
-				LpMintAmount: lp,
+				LpMintAmount: lpAmount,
 				TokenAAmount: tokenA,
 				TokenBAmount: tokenB,
 			},
@@ -66,14 +59,14 @@ func ParseMeteoraPoolsInstruction(
 		if len(payload) < 24 {
 			return DexEvent{}
 		}
-		lp, _ := readU64LE(payload, 0)
+		lpAmount, _ := readU64LE(payload, 0)
 		tokenA, _ := readU64LE(payload, 8)
 		tokenB, _ := readU64LE(payload, 16)
 		return DexEvent{
 			Type: EventTypeMeteoraPoolsRemoveLiquidity,
 			Data: &MeteoraPoolsRemoveLiquidityEvent{
 				Metadata:        meta,
-				LpUnmintAmount:  lp,
+				LpUnmintAmount:  lpAmount,
 				TokenAOutAmount: tokenA,
 				TokenBOutAmount: tokenB,
 			},
@@ -98,7 +91,7 @@ func ParseMeteoraPoolsInstruction(
 	}
 }
 
-// ParseMeteoraDlmmInstruction 对齐 Rust `meteora_dlmm::parse_instruction` 的外层指令路径。
+// ParseMeteoraDlmmInstruction follows the current DLMM Anchor IDL layout.
 func ParseMeteoraDlmmInstruction(
 	data []byte,
 	accounts []string,
@@ -108,139 +101,189 @@ func ParseMeteoraDlmmInstruction(
 	blockTimeUs *int64,
 	grpcRecvUs int64,
 ) DexEvent {
-	if len(data) == 0 {
+	if len(data) < 8 {
 		return DexEvent{}
 	}
+	disc, _ := readDiscU64(data)
+	payload := data[8:]
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
-	pool := getAccountSafe(accounts, 0)
-	if pool == zeroPubkey {
-		return DexEvent{}
-	}
-	payload := data[1:]
 
-	switch data[0] {
-	case 0:
+	switch disc {
+	case instrDlmmInitializeLbPair:
 		if len(payload) < 6 {
 			return DexEvent{}
 		}
 		activeID, _ := readI32LE(payload, 0)
 		binStep, _ := readU16LE(payload, 4)
+		pool := getAccountSafe(accounts, 0)
 		return DexEvent{
 			Type: EventTypeMeteoraDlmmInitializePool,
 			Data: &MeteoraDlmmInitializePoolEvent{
 				Metadata:    meta,
 				Pool:        pool,
-				Creator:     getAccountSafe(accounts, 1),
+				Creator:     getAccountSafe(accounts, 8),
 				ActiveBinID: activeID,
 				BinStep:     binStep,
 			},
 		}
-	case 1:
+	case instrDlmmInitializeLbPair2:
+		if len(payload) < 4 {
+			return DexEvent{}
+		}
+		activeID, _ := readI32LE(payload, 0)
+		pool := getAccountSafe(accounts, 0)
+		return DexEvent{
+			Type: EventTypeMeteoraDlmmInitializePool,
+			Data: &MeteoraDlmmInitializePoolEvent{
+				Metadata:    meta,
+				Pool:        pool,
+				Creator:     getAccountSafe(accounts, 8),
+				ActiveBinID: activeID,
+				BinStep:     0,
+			},
+		}
+	case instrDlmmInitializeBinArray:
 		if len(payload) < 8 {
 			return DexEvent{}
 		}
-		index, _ := readU64LE(payload, 0)
+		index, _ := readI64LE(payload, 0)
 		return DexEvent{
 			Type: EventTypeMeteoraDlmmInitializeBinArray,
 			Data: &MeteoraDlmmInitializeBinArrayEvent{
 				Metadata: meta,
-				Pool:     pool,
+				Pool:     getAccountSafe(accounts, 0),
 				BinArray: getAccountSafe(accounts, 1),
 				Index:    index,
 			},
 		}
-	case 2:
-		if len(payload) < 32 {
-			return DexEvent{}
+	case instrDlmmAddLiquidity, instrDlmmAddLiquidity2:
+		senderIndex := 11
+		if disc == instrDlmmAddLiquidity2 {
+			senderIndex = 9
 		}
 		return DexEvent{
 			Type: EventTypeMeteoraDlmmAddLiquidity,
 			Data: &MeteoraDlmmAddLiquidityEvent{
 				Metadata:    meta,
-				Pool:        pool,
-				From:        getAccountSafe(accounts, 1),
-				Position:    getAccountSafe(accounts, 2),
+				Pool:        getAccountSafe(accounts, 1),
+				From:        getAccountSafe(accounts, senderIndex),
+				Position:    getAccountSafe(accounts, 0),
 				Amounts:     []uint64{0, 0},
 				ActiveBinID: 0,
 			},
 		}
-	case 7:
-		if len(payload) < 32 {
-			return DexEvent{}
+	case instrDlmmRemoveLiquidity, instrDlmmRemoveLiquidity2:
+		senderIndex := 11
+		if disc == instrDlmmRemoveLiquidity2 {
+			senderIndex = 9
 		}
 		return DexEvent{
 			Type: EventTypeMeteoraDlmmRemoveLiquidity,
 			Data: &MeteoraDlmmRemoveLiquidityEvent{
 				Metadata:    meta,
-				Pool:        pool,
-				From:        getAccountSafe(accounts, 1),
-				Position:    getAccountSafe(accounts, 2),
+				Pool:        getAccountSafe(accounts, 1),
+				From:        getAccountSafe(accounts, senderIndex),
+				Position:    getAccountSafe(accounts, 0),
 				Amounts:     []uint64{0, 0},
 				ActiveBinID: 0,
 			},
 		}
-	case 8:
+	case instrDlmmInitializePosition, instrDlmmInitializePosition2, instrDlmmInitializePositionPda:
 		if len(payload) < 8 {
 			return DexEvent{}
 		}
 		lowerBinID, _ := readI32LE(payload, 0)
-		width, _ := readU32LE(payload, 4)
+		widthSigned, _ := readI32LE(payload, 4)
+		if widthSigned < 0 {
+			return DexEvent{}
+		}
+		positionIndex, poolIndex, ownerIndex := 1, 2, 3
+		if disc == instrDlmmInitializePositionPda {
+			positionIndex, poolIndex, ownerIndex = 2, 3, 4
+		}
 		return DexEvent{
 			Type: EventTypeMeteoraDlmmCreatePosition,
 			Data: &MeteoraDlmmCreatePositionEvent{
 				Metadata:   meta,
-				Pool:       pool,
-				Position:   getAccountSafe(accounts, 1),
-				Owner:      getAccountSafe(accounts, 2),
+				Pool:       getAccountSafe(accounts, poolIndex),
+				Position:   getAccountSafe(accounts, positionIndex),
+				Owner:      getAccountSafe(accounts, ownerIndex),
 				LowerBinID: lowerBinID,
-				Width:      width,
+				Width:      uint32(widthSigned),
 			},
 		}
-	case 11:
+	case instrDlmmSwap, instrDlmmSwap2:
+		if len(payload) < 8 {
+			return DexEvent{}
+		}
+		amountIn, _ := readU64LE(payload, 0)
+		return dlmmSwapInstructionEvent(meta, accounts, amountIn, 0)
+	case instrDlmmSwapExactOut, instrDlmmSwapExactOut2:
 		if len(payload) < 16 {
 			return DexEvent{}
 		}
 		amountIn, _ := readU64LE(payload, 0)
-		return DexEvent{
-			Type: EventTypeMeteoraDlmmSwap,
-			Data: &MeteoraDlmmSwapEvent{
-				Metadata:    meta,
-				Pool:        pool,
-				From:        getAccountSafe(accounts, 1),
-				StartBinID:  0,
-				EndBinID:    0,
-				AmountIn:    amountIn,
-				AmountOut:   0,
-				SwapForY:    false,
-				Fee:         0,
-				ProtocolFee: 0,
-				FeeBps:      "0",
-				HostFee:     0,
-			},
+		amountOut, _ := readU64LE(payload, 8)
+		return dlmmSwapInstructionEvent(meta, accounts, amountIn, amountOut)
+	case instrDlmmSwapWithPriceImpact, instrDlmmSwapWithPriceImpact2:
+		if len(payload) < 8 {
+			return DexEvent{}
 		}
-	case 13:
+		amountIn, _ := readU64LE(payload, 0)
+		return dlmmSwapInstructionEvent(meta, accounts, amountIn, 0)
+	case instrDlmmClaimFee, instrDlmmClaimFee2:
+		ownerIndex := 4
+		if disc == instrDlmmClaimFee2 {
+			ownerIndex = 2
+		}
 		return DexEvent{
 			Type: EventTypeMeteoraDlmmClaimFee,
 			Data: &MeteoraDlmmClaimFeeEvent{
 				Metadata: meta,
-				Pool:     pool,
+				Pool:     getAccountSafe(accounts, 0),
 				Position: getAccountSafe(accounts, 1),
-				Owner:    getAccountSafe(accounts, 2),
+				Owner:    getAccountSafe(accounts, ownerIndex),
 				FeeX:     0,
 				FeeY:     0,
 			},
 		}
-	case 14:
+	case instrDlmmClosePosition, instrDlmmClosePosition2:
+		pool := getAccountSafe(accounts, 1)
+		ownerIndex := 4
+		if disc == instrDlmmClosePosition2 {
+			pool = zeroPubkey
+			ownerIndex = 1
+		}
 		return DexEvent{
 			Type: EventTypeMeteoraDlmmClosePosition,
 			Data: &MeteoraDlmmClosePositionEvent{
 				Metadata: meta,
 				Pool:     pool,
-				Position: getAccountSafe(accounts, 1),
-				Owner:    getAccountSafe(accounts, 2),
+				Position: getAccountSafe(accounts, 0),
+				Owner:    getAccountSafe(accounts, ownerIndex),
 			},
 		}
 	default:
 		return DexEvent{}
+	}
+}
+
+func dlmmSwapInstructionEvent(meta EventMetadata, accounts []string, amountIn, amountOut uint64) DexEvent {
+	return DexEvent{
+		Type: EventTypeMeteoraDlmmSwap,
+		Data: &MeteoraDlmmSwapEvent{
+			Metadata:    meta,
+			Pool:        getAccountSafe(accounts, 0),
+			From:        getAccountSafe(accounts, 10),
+			StartBinID:  0,
+			EndBinID:    0,
+			AmountIn:    amountIn,
+			AmountOut:   amountOut,
+			SwapForY:    false,
+			Fee:         0,
+			ProtocolFee: 0,
+			FeeBps:      "0",
+			HostFee:     0,
+		},
 	}
 }

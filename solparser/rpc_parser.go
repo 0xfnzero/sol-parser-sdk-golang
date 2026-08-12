@@ -73,6 +73,7 @@ type RpcCompiledInstruction struct {
 	ProgramIDIndex uint32
 	Accounts       []byte
 	Data           []byte
+	StackHeight    *uint32
 }
 
 // RpcTokenBalance Token 余额
@@ -198,7 +199,9 @@ func parseRpcTransactionImpl(
 			false,
 			isCreatedBuyFromLogs,
 		); ev.Type != "" {
-			ixEvents = append(ixEvents, rpcIndexedEvent{OuterIdx: i, InnerIdx: nil, Event: ev})
+			ixEvents = append(ixEvents, rpcIndexedEvent{
+				OuterIdx: i, InnerIdx: nil, StackHeight: uint32Ptr(1), Event: ev,
+			})
 		}
 	}
 
@@ -217,7 +220,17 @@ func parseRpcTransactionImpl(
 				true,
 				isCreatedBuyFromLogs,
 			); ev.Type != "" {
-				ixEvents = append(ixEvents, rpcIndexedEvent{OuterIdx: int(group.Index), InnerIdx: &jj, Event: ev})
+				programID := ""
+				if int(ix.ProgramIDIndex) < len(fullKeys) {
+					programID = fullKeys[ix.ProgramIDIndex]
+				}
+				ixEvents = append(ixEvents, rpcIndexedEvent{
+					OuterIdx:       int(group.Index),
+					InnerIdx:       &jj,
+					StackHeight:    ix.StackHeight,
+					IsDlmmEventCPI: programID == METEORA_DLMM_PROGRAM_ID && isEventCPI(ix.Data),
+					Event:          ev,
+				})
 			}
 		}
 	}
@@ -356,6 +369,7 @@ func ConvertRpcToGrpc(
 				ProgramIdIndex: ix.ProgramIDIndex,
 				Accounts:       ix.Accounts,
 				Data:           ix.Data,
+				StackHeight:    ix.StackHeight,
 			}
 		}
 		grpcMeta.InnerInstructions[i] = grpcGroup
