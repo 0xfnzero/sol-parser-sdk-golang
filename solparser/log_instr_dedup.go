@@ -5,6 +5,7 @@ type logInstrDedupKey struct {
 	a          string
 	b          string
 	c          string
+	amount     uint64
 	flag       bool
 	lane       uint8
 	occurrence uint16
@@ -23,16 +24,11 @@ const (
 	dedupPumpSwapLiquidityAdded
 	dedupPumpSwapLiquidityRemoved
 	dedupRaydiumClmmSwap
+	dedupRaydiumCpmmSwap
 	dedupRaydiumAmmV4Swap
+	dedupOrcaWhirlpoolSwap
 	dedupMeteoraDlmmSwap
 )
-
-type pumpfunLaneBase struct {
-	mint  string
-	user  string
-	isBuy bool
-	lane  uint8
-}
 
 func pumpfunIxLane(ixName string) uint8 {
 	switch ixName {
@@ -45,31 +41,29 @@ func pumpfunIxLane(ixName string) uint8 {
 	}
 }
 
-func nextPumpfunOccurrence(base pumpfunLaneBase, counts map[pumpfunLaneBase]uint16) uint16 {
+func nextOccurrence(base logInstrDedupKey, counts map[logInstrDedupKey]uint16) uint16 {
 	occ := counts[base]
 	counts[base] = occ + 1
 	return occ
 }
 
-func dedupeKey(ev DexEvent, pumpfunLaneCounts map[pumpfunLaneBase]uint16) (logInstrDedupKey, bool) {
+func dedupeKey(ev DexEvent, occurrenceCounts map[logInstrDedupKey]uint16) (logInstrDedupKey, bool) {
 	switch ev.Type {
 	case EventTypePumpFunTrade, EventTypePumpFunBuy, EventTypePumpFunSell, EventTypePumpFunBuyExactSolIn:
 		t, ok := ev.Data.(*PumpFunTradeEvent)
 		if !ok || t == nil {
 			return logInstrDedupKey{}, false
 		}
-		base := pumpfunLaneBase{
-			mint:  t.Mint,
-			user:  t.User,
-			isBuy: t.IsBuy,
-			lane:  pumpfunIxLane(t.IxName),
+		base := logInstrDedupKey{
+			kind: dedupPumpFunTrade,
+			a:    t.Mint, b: t.User, flag: t.IsBuy, lane: pumpfunIxLane(t.IxName),
 		}
-		occ := nextPumpfunOccurrence(base, pumpfunLaneCounts)
+		occ := nextOccurrence(base, occurrenceCounts)
 		return logInstrDedupKey{
 			kind:       dedupPumpFunTrade,
-			a:          base.mint,
-			b:          base.user,
-			flag:       base.isBuy,
+			a:          base.a,
+			b:          base.b,
+			flag:       base.flag,
 			lane:       base.lane,
 			occurrence: occ,
 		}, true
@@ -119,15 +113,45 @@ func dedupeKey(ev DexEvent, pumpfunLaneCounts map[pumpfunLaneBase]uint16) (logIn
 		}
 	case EventTypeRaydiumClmmSwap:
 		if s, ok := ev.Data.(*RaydiumClmmSwapEvent); ok && s != nil {
-			return logInstrDedupKey{kind: dedupRaydiumClmmSwap, a: s.PoolState, flag: s.ZeroForOne}, true
+			base := logInstrDedupKey{kind: dedupRaydiumClmmSwap, a: s.PoolState}
+			occ := nextOccurrence(base, occurrenceCounts)
+			return logInstrDedupKey{kind: dedupRaydiumClmmSwap, a: s.PoolState, occurrence: occ}, true
+		}
+	case EventTypeRaydiumCpmmSwap:
+		if s, ok := ev.Data.(*RaydiumCpmmSwapEvent); ok && s != nil {
+			base := logInstrDedupKey{kind: dedupRaydiumCpmmSwap, a: s.PoolID}
+			occ := nextOccurrence(base, occurrenceCounts)
+			return logInstrDedupKey{kind: dedupRaydiumCpmmSwap, a: s.PoolID, occurrence: occ}, true
 		}
 	case EventTypeRaydiumAmmV4Swap:
 		if s, ok := ev.Data.(*RaydiumAmmV4SwapEvent); ok && s != nil {
-			return logInstrDedupKey{kind: dedupRaydiumAmmV4Swap, a: s.Amm}, true
+			baseOut := s.MaxAmountIn != 0
+			amount := s.AmountIn
+			if baseOut {
+				amount = s.AmountOut
+			}
+			base := logInstrDedupKey{kind: dedupRaydiumAmmV4Swap, amount: amount, flag: baseOut}
+			occ := nextOccurrence(base, occurrenceCounts)
+			return logInstrDedupKey{
+				kind: dedupRaydiumAmmV4Swap, amount: amount, flag: baseOut, occurrence: occ,
+			}, true
+		}
+	case EventTypeOrcaWhirlpoolSwap:
+		if s, ok := ev.Data.(*OrcaWhirlpoolSwapEvent); ok && s != nil {
+			base := logInstrDedupKey{kind: dedupOrcaWhirlpoolSwap, a: s.Whirlpool}
+			occ := nextOccurrence(base, occurrenceCounts)
+			return logInstrDedupKey{kind: dedupOrcaWhirlpoolSwap, a: s.Whirlpool, occurrence: occ}, true
 		}
 	case EventTypeMeteoraDlmmSwap:
 		if s, ok := ev.Data.(*MeteoraDlmmSwapEvent); ok && s != nil {
-			return logInstrDedupKey{kind: dedupMeteoraDlmmSwap, a: s.Pool, b: s.From, flag: s.SwapForY}, true
+			base := logInstrDedupKey{
+				kind: dedupMeteoraDlmmSwap, a: s.Pool, b: s.From, flag: s.SwapForY,
+			}
+			occ := nextOccurrence(base, occurrenceCounts)
+			return logInstrDedupKey{
+				kind: dedupMeteoraDlmmSwap, a: s.Pool, b: s.From,
+				flag: s.SwapForY, occurrence: occ,
+			}, true
 		}
 	}
 	return logInstrDedupKey{}, false
@@ -420,10 +444,18 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillStringIfDefault(&l.TokenAccount1, i.TokenAccount1)
 			fillStringIfDefault(&l.Sender, i.Sender)
 		}
+	case EventTypeRaydiumCpmmSwap:
+		l, ok1 := log.Data.(*RaydiumCpmmSwapEvent)
+		i, ok2 := ix.Data.(*RaydiumCpmmSwapEvent)
+		if ok1 && ok2 && l != nil && i != nil {
+			fillStringIfDefault(&l.PoolID, i.PoolID)
+		}
 	case EventTypeRaydiumAmmV4Swap:
 		l, ok1 := log.Data.(*RaydiumAmmV4SwapEvent)
 		i, ok2 := ix.Data.(*RaydiumAmmV4SwapEvent)
 		if ok1 && ok2 && l != nil && i != nil {
+			fillStringIfDefault(&l.Amm, i.Amm)
+			fillStringIfDefault(&l.UserSourceOwner, i.UserSourceOwner)
 			fillStringIfDefault(&l.TokenProgram, i.TokenProgram)
 			fillStringIfDefault(&l.AmmAuthority, i.AmmAuthority)
 			fillStringIfDefault(&l.AmmOpenOrders, i.AmmOpenOrders)
@@ -507,18 +539,18 @@ func mergePumpSwapSellLogPreferred(log, ix *PumpSwapSellEvent) {
 func DedupeLogInstructionEvents(logEvents []DexEvent, instrEvents []DexEvent) []DexEvent {
 	out := make([]DexEvent, 0, len(logEvents)+len(instrEvents))
 	idxByKey := make(map[logInstrDedupKey]int, len(logEvents))
-	logPumpfunCounts := make(map[pumpfunLaneBase]uint16)
-	ixPumpfunCounts := make(map[pumpfunLaneBase]uint16)
+	logOccurrences := make(map[logInstrDedupKey]uint16)
+	ixOccurrences := make(map[logInstrDedupKey]uint16)
 
 	for _, ev := range logEvents {
-		if k, ok := dedupeKey(ev, logPumpfunCounts); ok {
+		if k, ok := dedupeKey(ev, logOccurrences); ok {
 			idxByKey[k] = len(out)
 		}
 		out = append(out, ev)
 	}
 
 	for _, ev := range instrEvents {
-		k, ok := dedupeKey(ev, ixPumpfunCounts)
+		k, ok := dedupeKey(ev, ixOccurrences)
 		if !ok {
 			out = append(out, ev)
 			continue

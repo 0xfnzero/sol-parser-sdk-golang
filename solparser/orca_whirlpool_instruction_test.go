@@ -66,7 +66,7 @@ func TestParseOrcaWhirlpoolSwapAndSwapV2InstructionFields(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected OrcaWhirlpoolSwapEvent, got %T", ev.Data)
 	}
-	if swap.Whirlpool != "account_1" || swap.AToB ||
+	if swap.Whirlpool != "account_2" || swap.AToB ||
 		swap.PreSqrtPrice != u128LEDecimalString(sqrt) || swap.PostSqrtPrice != "" ||
 		swap.InputAmount != 111 || swap.OutputAmount != 222 {
 		t.Fatalf("unexpected swap fields: %+v", swap)
@@ -75,7 +75,7 @@ func TestParseOrcaWhirlpoolSwapAndSwapV2InstructionFields(t *testing.T) {
 	sqrtV2 := u128ForTest(80, 124)
 	unified := ParseInstructionUnified(
 		orcaSwapInstruction(swapV2Disc, 333, 444, sqrtV2, false, true),
-		orcaInstructionAccounts(4),
+		orcaInstructionAccounts(5),
 		"sig",
 		1,
 		0,
@@ -88,7 +88,7 @@ func TestParseOrcaWhirlpoolSwapAndSwapV2InstructionFields(t *testing.T) {
 	if unified.Type != EventTypeOrcaWhirlpoolSwap || !ok {
 		t.Fatalf("expected unified OrcaWhirlpoolSwap, got %q %+v", unified.Type, unified.Data)
 	}
-	if swapV2.Whirlpool != "account_1" || !swapV2.AToB ||
+	if swapV2.Whirlpool != "account_4" || !swapV2.AToB ||
 		swapV2.PreSqrtPrice != u128LEDecimalString(sqrtV2) ||
 		swapV2.InputAmount != 0 || swapV2.OutputAmount != 333 {
 		t.Fatalf("unexpected swap_v2 fields: %+v", swapV2)

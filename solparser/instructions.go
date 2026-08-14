@@ -212,6 +212,10 @@ func disc16HasSuffix(disc []byte) bool {
 	return len(disc) >= 16 && bytes.Equal(disc[8:16], eventCPISuffix)
 }
 
+func isEventCPI(data []byte) bool {
+	return disc16HasPrefix(data) || disc16HasSuffix(data)
+}
+
 func eventCPIDisc8(disc []byte) (uint64, bool) {
 	if len(disc) < 16 {
 		return 0, false
@@ -258,7 +262,28 @@ func normalInstructionDataMayParse(programID string, data []byte) bool {
 	case RAYDIUM_AMM_V4_PROGRAM_ID:
 		return firstByteIn(data, 1, 3, 4, 7, 9, 11)
 	case METEORA_DLMM_PROGRAM_ID:
-		return firstByteIn(data, 0, 1, 2, 7, 8, 11, 13, 14)
+		return headInDiscs(data,
+			instrDlmmInitializeLbPair,
+			instrDlmmInitializeLbPair2,
+			instrDlmmInitializeBinArray,
+			instrDlmmAddLiquidity,
+			instrDlmmAddLiquidity2,
+			instrDlmmRemoveLiquidity,
+			instrDlmmRemoveLiquidity2,
+			instrDlmmInitializePosition,
+			instrDlmmInitializePosition2,
+			instrDlmmInitializePositionPda,
+			instrDlmmSwap,
+			instrDlmmSwap2,
+			instrDlmmSwapExactOut,
+			instrDlmmSwapExactOut2,
+			instrDlmmSwapWithPriceImpact,
+			instrDlmmSwapWithPriceImpact2,
+			instrDlmmClaimFee,
+			instrDlmmClaimFee2,
+			instrDlmmClosePosition,
+			instrDlmmClosePosition2,
+		)
 	case METEORA_DAMM_V2_PROGRAM_ID:
 		return headInDiscs(data, discDammInit)
 	case PUMPFUN_PROGRAM_ID:
@@ -391,13 +416,6 @@ func parsePumpFeesInner(disc []byte, data []byte, meta EventMetadata) DexEvent {
 	default:
 		return DexEvent{}
 	}
-}
-
-func dlmmInnerBuffer(disc []byte, inner []byte) []byte {
-	buf := make([]byte, 8+len(inner))
-	copy(buf[:8], disc[:8])
-	copy(buf[8:], inner)
-	return buf
 }
 
 // ParseInnerInstructionUnified 与 Rust `parse_inner_instruction` 对齐：16 字节 discriminator，data[16..] 为 payload。
@@ -616,10 +634,11 @@ func ParseInnerInstructionUnified(
 		if filter != nil && !EventTypeFilterIncludesMeteoraDlmm(filter) {
 			return DexEvent{}
 		}
-		if !disc16HasSuffix(disc) {
+		eventDisc, ok := eventCPIDisc8(disc)
+		if !ok {
 			return DexEvent{}
 		}
-		return applyActualEventTypeFilter(parseDlmmFromProgramData(dlmmInnerBuffer(disc, inner), meta), filter)
+		return applyActualEventTypeFilter(parseDlmmEventData(eventDisc, inner, meta), filter)
 	case RAYDIUM_LAUNCHLAB_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesRaydiumLaunchlab(filter) {
 			return DexEvent{}
@@ -1523,7 +1542,7 @@ func ParseRaydiumCpmmInstruction(
 			Type: EventTypeRaydiumCpmmSwap,
 			Data: &RaydiumCpmmSwapEvent{
 				Metadata:     meta,
-				PoolID:       getAccountSafe(accounts, 0),
+				PoolID:       getAccountSafe(accounts, 3),
 				InputAmount:  input,
 				OutputAmount: output,
 				BaseInput:    discriminator == discCpmmSwapIn,
@@ -1617,31 +1636,41 @@ func ParseRaydiumAmmV4Instruction(
 			maxIn, _ = readU64LE(data, 1)
 			amountOut, _ = readU64LE(data, 9)
 		}
+		shift := 0
+		if len(accounts) == 17 {
+			shift = 1
+		}
+		getSwapAccount := func(index int) string {
+			if index >= 5 {
+				index -= shift
+			}
+			return getAccountSafe(accounts, index)
+		}
 		return DexEvent{
 			Type: EventTypeRaydiumAmmV4Swap,
 			Data: &RaydiumAmmV4SwapEvent{
 				Metadata:                    meta,
 				Amm:                         getAccountSafe(accounts, 1),
-				UserSourceOwner:             getAccountSafe(accounts, 17),
+				UserSourceOwner:             getSwapAccount(17),
 				AmountIn:                    amountIn,
 				MinimumAmountOut:            minOut,
 				MaxAmountIn:                 maxIn,
 				AmountOut:                   amountOut,
-				TokenProgram:                getAccountSafe(accounts, 0),
-				AmmAuthority:                getAccountSafe(accounts, 2),
-				AmmOpenOrders:               getAccountSafe(accounts, 3),
-				PoolCoinTokenAccount:        getAccountSafe(accounts, 5),
-				PoolPcTokenAccount:          getAccountSafe(accounts, 6),
-				SerumProgram:                getAccountSafe(accounts, 7),
-				SerumMarket:                 getAccountSafe(accounts, 8),
-				SerumBids:                   getAccountSafe(accounts, 9),
-				SerumAsks:                   getAccountSafe(accounts, 10),
-				SerumEventQueue:             getAccountSafe(accounts, 11),
-				SerumCoinVaultAccount:       getAccountSafe(accounts, 12),
-				SerumPcVaultAccount:         getAccountSafe(accounts, 13),
-				SerumVaultSigner:            getAccountSafe(accounts, 14),
-				UserSourceTokenAccount:      getAccountSafe(accounts, 15),
-				UserDestinationTokenAccount: getAccountSafe(accounts, 16),
+				TokenProgram:                getSwapAccount(0),
+				AmmAuthority:                getSwapAccount(2),
+				AmmOpenOrders:               getSwapAccount(3),
+				PoolCoinTokenAccount:        getSwapAccount(5),
+				PoolPcTokenAccount:          getSwapAccount(6),
+				SerumProgram:                getSwapAccount(7),
+				SerumMarket:                 getSwapAccount(8),
+				SerumBids:                   getSwapAccount(9),
+				SerumAsks:                   getSwapAccount(10),
+				SerumEventQueue:             getSwapAccount(11),
+				SerumCoinVaultAccount:       getSwapAccount(12),
+				SerumPcVaultAccount:         getSwapAccount(13),
+				SerumVaultSigner:            getSwapAccount(14),
+				UserSourceTokenAccount:      getSwapAccount(15),
+				UserDestinationTokenAccount: getSwapAccount(16),
 			},
 		}
 	case 3:
@@ -1774,11 +1803,15 @@ func ParseOrcaWhirlpoolInstruction(
 		} else {
 			outputAmount = amount
 		}
+		whirlpoolIndex := 2
+		if discriminator == disc8(43, 4, 237, 11, 26, 201, 30, 98) {
+			whirlpoolIndex = 4
+		}
 		return DexEvent{
 			Type: EventTypeOrcaWhirlpoolSwap,
 			Data: &OrcaWhirlpoolSwapEvent{
 				Metadata:     meta,
-				Whirlpool:    getAccountSafe(accounts, 1),
+				Whirlpool:    getAccountSafe(accounts, whirlpoolIndex),
 				AToB:         aToB,
 				PreSqrtPrice: u128LEDecimalString(sqrt),
 				InputAmount:  inputAmount,

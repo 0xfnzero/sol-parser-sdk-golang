@@ -266,13 +266,10 @@ func TestParseMeteoraPoolsAndDlmmOuterInstructionsAreRouted(t *testing.T) {
 	if !EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeMeteoraDlmmSwap}) {
 		t.Fatalf("include_only prefilter should allow Meteora DLMM instructions")
 	}
-	dlmmIx := make([]byte, 17)
-	dlmmIx[0] = 11
-	binary.LittleEndian.PutUint64(dlmmIx[1:9], 333)
-	binary.LittleEndian.PutUint64(dlmmIx[9:17], 444)
+	dlmmIx := clmmU64Instruction(instrDlmmSwap, 333, 444)
 	dlmm := ParseInstructionUnified(
 		dlmmIx,
-		raydiumClmmTestAccounts(3),
+		raydiumClmmTestAccounts(11),
 		"sig",
 		1,
 		0,
@@ -288,8 +285,30 @@ func TestParseMeteoraPoolsAndDlmmOuterInstructionsAreRouted(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected MeteoraDlmmSwapEvent, got %T", dlmm.Data)
 	}
-	if dlmmSwap.Pool != "account_0" || dlmmSwap.From != "account_1" || dlmmSwap.AmountIn != 333 {
+	if dlmmSwap.Pool != "account_0" || dlmmSwap.From != "account_10" || dlmmSwap.AmountIn != 333 {
 		t.Fatalf("unexpected Meteora DLMM swap values: %+v", dlmmSwap)
+	}
+}
+
+func TestMeteoraDlmmVersionedAccountLayoutsUseCurrentIDL(t *testing.T) {
+	add := ParseMeteoraDlmmInstruction(
+		clmmU64Instruction(instrDlmmAddLiquidity2),
+		raydiumClmmTestAccounts(14),
+		"sig", 1, 0, nil, 10,
+	)
+	liquidity, ok := add.Data.(*MeteoraDlmmAddLiquidityEvent)
+	if !ok || liquidity.From != "account_9" {
+		t.Fatalf("unexpected add_liquidity2 accounts: %+v", add.Data)
+	}
+
+	closeEvent := ParseMeteoraDlmmInstruction(
+		clmmU64Instruction(instrDlmmClosePosition2),
+		raydiumClmmTestAccounts(5),
+		"sig", 1, 0, nil, 10,
+	)
+	closePosition, ok := closeEvent.Data.(*MeteoraDlmmClosePositionEvent)
+	if !ok || closePosition.Owner != "account_1" || closePosition.Pool != zeroPubkey {
+		t.Fatalf("unexpected close_position2 accounts: %+v", closeEvent.Data)
 	}
 }
 

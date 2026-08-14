@@ -103,6 +103,7 @@ func pbMetaToRpc(meta *pb.TransactionStatusMeta) *RpcTransactionMeta {
 				ProgramIDIndex: ix.ProgramIdIndex,
 				Accounts:       ix.Accounts,
 				Data:           ix.Data,
+				StackHeight:    ix.StackHeight,
 			})
 		}
 		out.InnerInstructions[i] = grp
