@@ -229,12 +229,20 @@ var (
 	discDammSwap2  = disc8(189, 66, 51, 168, 38, 80, 117, 153)
 	discDammAdd    = disc8(175, 242, 8, 157, 30, 247, 185, 169)
 	discDammRem    = disc8(87, 46, 88, 98, 175, 96, 34, 91)
+	discDammLiqChange = disc8(197, 171, 78, 127, 224, 211, 87, 13)
 	discDammInit   = disc8(228, 50, 246, 85, 203, 66, 134, 37)
 	discDammCreate = disc8(156, 15, 119, 198, 29, 181, 221, 55)
 	discDammClose  = disc8(20, 145, 144, 68, 143, 142, 214, 178)
+	discDammUpdateDelegatePermission   = disc8(66, 188, 75, 151, 150, 232, 87, 93)
+	discDammWithdrawDeadLiquidityReward = disc8(228, 66, 150, 195, 42, 62, 163, 13)
+	discDammCreateConfig               = disc8(131, 207, 180, 174, 180, 73, 165, 54)
+	discDammCreateDynamicConfig        = disc8(231, 197, 13, 164, 248, 213, 133, 152)
 	discDbcSwap    = discDammSwap
 	discDbcInit    = discDammInit
 	discDbcCurve   = disc8(229, 231, 86, 84, 156, 134, 75, 24)
+
+	// Mainnet upgrade: EvtSwap2 trading_fee/partner_fee → claiming_fee/compounding_fee.
+	compoundingFeeLayoutActivationSlot uint64 = 406_048_752
 
 	// 别名（用于 meteora_extra.go）
 	discDammCreatePosition = discDammCreate
@@ -242,6 +250,7 @@ var (
 	discDammAddLiquidity   = discDammAdd
 	discDammRemoveLiq      = discDammRem
 	discDammInitPool       = discDammInit
+	discDammLiquidityChange = discDammLiqChange
 
 	// RaydiumLaunchlab (Raydium LaunchLab)
 	discRaydiumLaunchlabTrade      = disc8(189, 219, 127, 211, 78, 230, 97, 238)

@@ -10,6 +10,8 @@ type pumpSwapTradeTail struct {
 	VirtualQuoteReserves   string
 	CanBoost               bool
 	BaseSupply             uint64
+	HolderRewardsBps       uint64
+	HolderRewards          uint64
 }
 
 func parsePumpSwapTradeTail(data []byte) (pumpSwapTradeTail, bool) {
@@ -50,6 +52,13 @@ func parsePumpSwapTradeTail(data []byte) (pumpSwapTradeTail, bool) {
 		return tail, false
 	}
 	tail.BaseSupply, _ = readU64LE(data, 49)
+	if len(data) != 57 && len(data) < 73 {
+		return tail, false
+	}
+	if len(data) >= 73 {
+		tail.HolderRewardsBps, _ = readU64LE(data, 57)
+		tail.HolderRewards, _ = readU64LE(data, 65)
+	}
 	return tail, true
 }
 
@@ -121,6 +130,8 @@ func parsePSBuyFromData(data []byte, meta EventMetadata) DexEvent {
 	ev.VirtualQuoteReserves = tail.VirtualQuoteReserves
 	ev.CanBoost = tail.CanBoost
 	ev.BaseSupply = tail.BaseSupply
+	ev.HolderRewardsBps = tail.HolderRewardsBps
+	ev.HolderRewards = tail.HolderRewards
 	ev.IsCashbackCoin = tail.CashbackFeeBasisPoints > 0
 	return DexEvent{Type: EventTypePumpSwapBuy, Data: ev}
 }
@@ -171,12 +182,17 @@ func parsePSSellFromData(data []byte, meta EventMetadata) DexEvent {
 	ev.VirtualQuoteReserves = tail.VirtualQuoteReserves
 	ev.CanBoost = tail.CanBoost
 	ev.BaseSupply = tail.BaseSupply
+	ev.HolderRewardsBps = tail.HolderRewardsBps
+	ev.HolderRewards = tail.HolderRewards
 	return DexEvent{Type: EventTypePumpSwapSell, Data: ev}
 }
 
 func parsePSCreatePoolFromData(data []byte, meta EventMetadata) DexEvent {
-	const req = 8 + 2 + 32*6 + 2 + 8*7 + 1
+	const req = 326
 	if len(data) < req {
+		return DexEvent{}
+	}
+	if len(data) != req && len(data) < 335 {
 		return DexEvent{}
 	}
 	o := 0
@@ -232,6 +248,15 @@ func parsePSCreatePoolFromData(data []byte, meta EventMetadata) DexEvent {
 	if len(data) > 325 {
 		mayhemVal, _ := readBool(data, 325)
 		ev.IsMayhemMode = mayhemVal
+	}
+	if len(data) >= 334 {
+		ev.CreatorFeeBps, _ = readU64LE(data, 326)
+	}
+	if len(data) > 334 {
+		ev.CanEditCreatorFee, _ = readBool(data, 334)
+	}
+	if len(data) > 335 {
+		ev.IsHolderReward, _ = readBool(data, 335)
 	}
 	return DexEvent{Type: EventTypePumpSwapCreatePool, Data: ev}
 }

@@ -52,6 +52,8 @@ type PumpFunTradeEvent struct {
 	QuoteAmount                        uint64                `json:"quote_amount"`
 	VirtualQuoteReserves               uint64                `json:"virtual_quote_reserves"`
 	RealQuoteReserves                  uint64                `json:"real_quote_reserves"`
+	HolderRewardsBps                   uint64                `json:"holder_rewards_bps"`
+	HolderRewards                      uint64                `json:"holder_rewards"`
 	IsCashbackCoin                     bool                  `json:"is_cashback_coin"`
 	Amount                             uint64                `json:"amount"`
 	MaxSolCost                         uint64                `json:"max_sol_cost"`
@@ -84,6 +86,10 @@ type PumpFunTradeEvent struct {
 	FeeConfig                          string                `json:"fee_config"`
 	FeeProgram                         string                `json:"fee_program"`
 	Account                            string                `json:"account,omitempty"`
+	PreTokenBalance                    *uint64               `json:"pre_token_balance,omitempty"`
+	PostTokenBalance                   *uint64               `json:"post_token_balance,omitempty"`
+	PreSolBalance                      *uint64               `json:"pre_sol_balance,omitempty"`
+	PostSolBalance                     *uint64               `json:"post_sol_balance,omitempty"`
 }
 
 func (e *PumpFunTradeEvent) EventType() EventType       { return EventTypePumpFunTrade }
@@ -111,6 +117,8 @@ type PumpFunCreateEvent struct {
 	QuoteVault             string        `json:"quote_vault"`
 	QuoteTokenProgram      string        `json:"quote_token_program"`
 	VirtualQuoteReserves   uint64        `json:"virtual_quote_reserves"`
+	CreatorFeeBps          uint64        `json:"creator_fee_bps"`
+	IsHolderReward         bool          `json:"is_holder_reward"`
 	IxName                 string        `json:"ix_name"`
 	MintAuthority          string        `json:"mint_authority"`
 	AssociatedBondingCurve string        `json:"associated_bonding_curve"`
@@ -152,6 +160,8 @@ type PumpFunCreateV2TokenEvent struct {
 	QuoteVault             string        `json:"quote_vault"`
 	QuoteTokenProgram      string        `json:"quote_token_program"`
 	VirtualQuoteReserves   uint64        `json:"virtual_quote_reserves"`
+	CreatorFeeBps          uint64        `json:"creator_fee_bps"`
+	IsHolderReward         bool          `json:"is_holder_reward"`
 	IxName                 string        `json:"ix_name"`
 	MintAuthority          string        `json:"mint_authority"`
 	AssociatedBondingCurve string        `json:"associated_bonding_curve"`
@@ -220,6 +230,9 @@ type PumpFunBondingCurve struct {
 	IsMayhemMode         bool   `json:"is_mayhem_mode"`
 	IsCashbackCoin       bool   `json:"is_cashback_coin"`
 	QuoteMint            string `json:"quote_mint"`
+	CreatorFeeBps        uint64 `json:"creator_fee_bps"`
+	CanEditCreatorFee    bool   `json:"can_edit_creator_fee"`
+	IsHolderReward       bool   `json:"is_holder_reward"`
 }
 
 type PumpFunGlobal struct {
@@ -548,6 +561,8 @@ type PumpSwapBuyEvent struct {
 	VirtualQuoteReserves             string        `json:"virtual_quote_reserves"`
 	CanBoost                         bool          `json:"can_boost"`
 	BaseSupply                       uint64        `json:"base_supply"`
+	HolderRewardsBps                 uint64        `json:"holder_rewards_bps"`
+	HolderRewards                    uint64        `json:"holder_rewards"`
 	IsCashbackCoin                   bool          `json:"is_cashback_coin"`
 	BaseMint                         string        `json:"base_mint"`
 	QuoteMint                        string        `json:"quote_mint"`
@@ -599,6 +614,8 @@ type PumpSwapSellEvent struct {
 	VirtualQuoteReserves             string        `json:"virtual_quote_reserves"`
 	CanBoost                         bool          `json:"can_boost"`
 	BaseSupply                       uint64        `json:"base_supply"`
+	HolderRewardsBps                 uint64        `json:"holder_rewards_bps"`
+	HolderRewards                    uint64        `json:"holder_rewards"`
 	BaseMint                         string        `json:"base_mint"`
 	QuoteMint                        string        `json:"quote_mint"`
 	PoolBaseTokenAccount             string        `json:"pool_base_token_account"`
@@ -640,6 +657,10 @@ type PumpSwapCreatePoolEvent struct {
 	UserQuoteTokenAccount string        `json:"user_quote_token_account"`
 	CoinCreator           string        `json:"coin_creator"`
 	IsMayhemMode          bool          `json:"is_mayhem_mode"`
+	IsCashbackCoin        bool          `json:"is_cashback_coin"`
+	CreatorFeeBps         uint64        `json:"creator_fee_bps"`
+	CanEditCreatorFee     bool          `json:"can_edit_creator_fee"`
+	IsHolderReward        bool          `json:"is_holder_reward"`
 }
 
 func (e *PumpSwapCreatePoolEvent) EventType() EventType       { return EventTypePumpSwapCreatePool }
@@ -1217,18 +1238,23 @@ func (e *OrcaWhirlpoolPoolInitializedEvent) GetMetadata() EventMetadata { return
 
 // MeteoraDlmmSwapEvent Meteora DLMM 交换事件
 type MeteoraDlmmSwapEvent struct {
-	Metadata    EventMetadata `json:"metadata"`
-	Pool        string        `json:"pool"`
-	From        string        `json:"from"`
-	StartBinID  int32         `json:"start_bin_id"`
-	EndBinID    int32         `json:"end_bin_id"`
-	AmountIn    uint64        `json:"amount_in"`
-	AmountOut   uint64        `json:"amount_out"`
-	SwapForY    bool          `json:"swap_for_y"`
-	Fee         uint64        `json:"fee"`
-	ProtocolFee uint64        `json:"protocol_fee"`
-	FeeBps      string        `json:"fee_bps"`
-	HostFee     uint64        `json:"host_fee"`
+	Metadata     EventMetadata `json:"metadata"`
+	TokenXMint   string        `json:"token_x_mint"`
+	TokenYMint   string        `json:"token_y_mint"`
+	UserTokenIn  string        `json:"user_token_in"`
+	UserTokenOut string        `json:"user_token_out"`
+	MinAmountOut uint64        `json:"min_amount_out"`
+	Pool         string        `json:"pool"`
+	From         string        `json:"from"`
+	StartBinID   int32         `json:"start_bin_id"`
+	EndBinID     int32         `json:"end_bin_id"`
+	AmountIn     uint64        `json:"amount_in"`
+	AmountOut    uint64        `json:"amount_out"`
+	SwapForY     bool          `json:"swap_for_y"`
+	Fee          uint64        `json:"fee"`
+	ProtocolFee  uint64        `json:"protocol_fee"`
+	FeeBps       string        `json:"fee_bps"`
+	HostFee      uint64        `json:"host_fee"`
 }
 
 func (e *MeteoraDlmmSwapEvent) EventType() EventType       { return EventTypeMeteoraDlmmSwap }
@@ -1419,26 +1445,39 @@ func (e *MeteoraPoolsSetPoolFeesEvent) GetMetadata() EventMetadata { return e.Me
 
 // MeteoraDammV2SwapEvent Meteora DAMM v2 交换事件
 type MeteoraDammV2SwapEvent struct {
-	Metadata         EventMetadata `json:"metadata"`
-	Pool             string        `json:"pool"`
-	TradeDirection   uint8         `json:"trade_direction"`
-	HasReferral      bool          `json:"has_referral"`
-	AmountIn         uint64        `json:"amount_in"`
-	MinimumAmountOut uint64        `json:"minimum_amount_out"`
-	OutputAmount     uint64        `json:"output_amount"`
-	NextSqrtPrice    string        `json:"next_sqrt_price"`
-	LpFee            uint64        `json:"lp_fee"`
-	ProtocolFee      uint64        `json:"protocol_fee"`
-	PartnerFee       uint64        `json:"partner_fee"`
-	ReferralFee      uint64        `json:"referral_fee"`
-	ActualAmountIn   uint64        `json:"actual_amount_in"`
-	CurrentTimestamp uint64        `json:"current_timestamp"`
-	TokenAVault      string        `json:"token_a_vault"`
-	TokenBVault      string        `json:"token_b_vault"`
-	TokenAMint       string        `json:"token_a_mint"`
-	TokenBMint       string        `json:"token_b_mint"`
-	TokenAProgram    string        `json:"token_a_program"`
-	TokenBProgram    string        `json:"token_b_program"`
+	Metadata                     EventMetadata `json:"metadata"`
+	Pool                         string        `json:"pool"`
+	TradeDirection               uint8         `json:"trade_direction"`
+	CollectFeeMode               uint8         `json:"collect_fee_mode"`
+	HasReferral                  bool          `json:"has_referral"`
+	Amount0                      uint64        `json:"amount_0"`
+	Amount1                      uint64        `json:"amount_1"`
+	SwapMode                     uint8         `json:"swap_mode"`
+	AmountIn                     uint64        `json:"amount_in"`
+	MinimumAmountOut             uint64        `json:"minimum_amount_out"`
+	OutputAmount                 uint64        `json:"output_amount"`
+	NextSqrtPrice                string        `json:"next_sqrt_price"`
+	LpFee                        uint64        `json:"lp_fee"`
+	ProtocolFee                  uint64        `json:"protocol_fee"`
+	PartnerFee                   uint64        `json:"partner_fee"`
+	ReferralFee                  uint64        `json:"referral_fee"`
+	ActualAmountIn               uint64        `json:"actual_amount_in"`
+	ExcludedFeeInputAmount       uint64        `json:"excluded_fee_input_amount"`
+	AmountLeft                   uint64        `json:"amount_left"`
+	ClaimingFee                  uint64        `json:"claiming_fee"`
+	CompoundingFee               uint64        `json:"compounding_fee"`
+	IncludedTransferFeeAmountIn  uint64        `json:"included_transfer_fee_amount_in"`
+	IncludedTransferFeeAmountOut uint64        `json:"included_transfer_fee_amount_out"`
+	ExcludedTransferFeeAmountOut uint64        `json:"excluded_transfer_fee_amount_out"`
+	CurrentTimestamp             uint64        `json:"current_timestamp"`
+	ReserveAAmount               uint64        `json:"reserve_a_amount"`
+	ReserveBAmount               uint64        `json:"reserve_b_amount"`
+	TokenAVault                  string        `json:"token_a_vault"`
+	TokenBVault                  string        `json:"token_b_vault"`
+	TokenAMint                   string        `json:"token_a_mint"`
+	TokenBMint                   string        `json:"token_b_mint"`
+	TokenAProgram                string        `json:"token_a_program"`
+	TokenBProgram                string        `json:"token_b_program"`
 }
 
 func (e *MeteoraDammV2SwapEvent) EventType() EventType       { return EventTypeMeteoraDammV2Swap }
@@ -1485,6 +1524,8 @@ type MeteoraDammV2AddLiquidityEvent struct {
 	TokenBAmount          uint64        `json:"token_b_amount"`
 	TotalAmountA          uint64        `json:"total_amount_a"`
 	TotalAmountB          uint64        `json:"total_amount_b"`
+	ReserveAAmount        uint64        `json:"reserve_a_amount"`
+	ReserveBAmount        uint64        `json:"reserve_b_amount"`
 }
 
 func (e *MeteoraDammV2AddLiquidityEvent) EventType() EventType {
@@ -1503,6 +1544,10 @@ type MeteoraDammV2RemoveLiquidityEvent struct {
 	TokenBAmountThreshold uint64        `json:"token_b_amount_threshold"`
 	TokenAAmount          uint64        `json:"token_a_amount"`
 	TokenBAmount          uint64        `json:"token_b_amount"`
+	TotalAmountA          uint64        `json:"total_amount_a"`
+	TotalAmountB          uint64        `json:"total_amount_b"`
+	ReserveAAmount        uint64        `json:"reserve_a_amount"`
+	ReserveBAmount        uint64        `json:"reserve_b_amount"`
 }
 
 func (e *MeteoraDammV2RemoveLiquidityEvent) EventType() EventType {
@@ -1542,6 +1587,83 @@ func (e *MeteoraDammV2InitializePoolEvent) EventType() EventType {
 	return EventTypeMeteoraDammV2InitializePool
 }
 func (e *MeteoraDammV2InitializePoolEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// MeteoraDammV2DynamicFeeParameters nested dynamic fee from DAMM v2 PoolFeeParameters.
+type MeteoraDammV2DynamicFeeParameters struct {
+	BinStep                  uint16 `json:"bin_step"`
+	BinStepU128              string `json:"bin_step_u128"`
+	FilterPeriod             uint16 `json:"filter_period"`
+	DecayPeriod              uint16 `json:"decay_period"`
+	ReductionFactor          uint16 `json:"reduction_factor"`
+	MaxVolatilityAccumulator uint32 `json:"max_volatility_accumulator"`
+	VariableFeeControl       uint32 `json:"variable_fee_control"`
+}
+
+// MeteoraDammV2UpdateDelegatePermissionEvent IDL EvtUpdateDelegatePermission
+type MeteoraDammV2UpdateDelegatePermissionEvent struct {
+	Metadata   EventMetadata `json:"metadata"`
+	Position   string        `json:"position"`
+	Owner      string        `json:"owner"`
+	Permission uint32        `json:"permission"`
+	Delegate   *string       `json:"delegate,omitempty"`
+}
+
+func (e *MeteoraDammV2UpdateDelegatePermissionEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2UpdateDelegatePermission
+}
+func (e *MeteoraDammV2UpdateDelegatePermissionEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// MeteoraDammV2WithdrawDeadLiquidityRewardEvent IDL EvtWithdrawDeadLiquidityReward
+type MeteoraDammV2WithdrawDeadLiquidityRewardEvent struct {
+	Metadata   EventMetadata `json:"metadata"`
+	Pool       string        `json:"pool"`
+	RewardMint string        `json:"reward_mint"`
+	Amount     uint64        `json:"amount"`
+}
+
+func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward
+}
+func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+
+// MeteoraDammV2CreateConfigEvent IDL EvtCreateConfig (includes 0.2.4 permission)
+type MeteoraDammV2CreateConfigEvent struct {
+	Metadata             EventMetadata                      `json:"metadata"`
+	BaseFeeData          [27]byte                           `json:"base_fee_data"`
+	CompoundingFeeBps    uint16                             `json:"compounding_fee_bps"`
+	Padding              uint8                              `json:"padding"`
+	DynamicFee           *MeteoraDammV2DynamicFeeParameters `json:"dynamic_fee,omitempty"`
+	VaultConfigKey       string                             `json:"vault_config_key"`
+	PoolCreatorAuthority string                             `json:"pool_creator_authority"`
+	ActivationType       uint8                              `json:"activation_type"`
+	SqrtMinPrice         string                             `json:"sqrt_min_price"`
+	SqrtMaxPrice         string                             `json:"sqrt_max_price"`
+	CollectFeeMode       uint8                              `json:"collect_fee_mode"`
+	Index                uint64                             `json:"index"`
+	Config               string                             `json:"config"`
+	Permission           string                             `json:"permission"`
+}
+
+func (e *MeteoraDammV2CreateConfigEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2CreateConfig
+}
+func (e *MeteoraDammV2CreateConfigEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// MeteoraDammV2CreateDynamicConfigEvent IDL EvtCreateDynamicConfig
+type MeteoraDammV2CreateDynamicConfigEvent struct {
+	Metadata             EventMetadata `json:"metadata"`
+	Config               string        `json:"config"`
+	PoolCreatorAuthority string        `json:"pool_creator_authority"`
+	Index                uint64        `json:"index"`
+	Permission           string        `json:"permission"`
+}
+
+func (e *MeteoraDammV2CreateDynamicConfigEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2CreateDynamicConfig
+}
+func (e *MeteoraDammV2CreateDynamicConfigEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // MeteoraDbcSwapEvent Meteora DBC 交易事件
 type MeteoraDbcSwapEvent struct {
@@ -1600,14 +1722,24 @@ func (e *MeteoraDbcCurveCompleteEvent) GetMetadata() EventMetadata { return e.Me
 
 // RaydiumLaunchlabTradeEvent RaydiumLaunchlab 交易事件
 type RaydiumLaunchlabTradeEvent struct {
-	Metadata       EventMetadata `json:"metadata"`
-	PoolState      string        `json:"pool_state"`
-	User           string        `json:"user"`
-	AmountIn       uint64        `json:"amount_in"`
-	AmountOut      uint64        `json:"amount_out"`
-	IsBuy          bool          `json:"is_buy"`
-	TradeDirection string        `json:"trade_direction"`
-	ExactIn        bool          `json:"exact_in"`
+	Metadata          EventMetadata `json:"metadata"`
+	PoolState         string        `json:"pool_state"`
+	User              string        `json:"user"`
+	AmountIn          uint64        `json:"amount_in"`
+	AmountOut         uint64        `json:"amount_out"`
+	IsBuy             bool          `json:"is_buy"`
+	TradeDirection    string        `json:"trade_direction"`
+	ExactIn           bool          `json:"exact_in"`
+	GlobalConfig      string        `json:"global_config"`
+	PlatformConfig    string        `json:"platform_config"`
+	UserBaseToken     string        `json:"user_base_token"`
+	UserQuoteToken    string        `json:"user_quote_token"`
+	BaseVault         string        `json:"base_vault"`
+	QuoteVault        string        `json:"quote_vault"`
+	BaseMint          string        `json:"base_mint"`
+	QuoteMint         string        `json:"quote_mint"`
+	BaseTokenProgram  string        `json:"base_token_program"`
+	QuoteTokenProgram string        `json:"quote_token_program"`
 }
 
 func (e *RaydiumLaunchlabTradeEvent) EventType() EventType       { return EventTypeRaydiumLaunchlabTrade }
@@ -2068,6 +2200,9 @@ type PumpSwapPoolAccountData struct {
 	IsMayhemMode          bool   `json:"is_mayhem_mode"`
 	IsCashbackCoin        bool   `json:"is_cashback_coin"`
 	VirtualQuoteReserves  string `json:"virtual_quote_reserves"`
+	CreatorFeeBps         uint64 `json:"creator_fee_bps"`
+	CanEditCreatorFee     bool   `json:"can_edit_creator_fee"`
+	IsHolderReward        bool   `json:"is_holder_reward"`
 }
 
 func (e *PumpSwapPoolAccountEvent) EventType() EventType       { return EventTypeAccountPumpSwapPool }

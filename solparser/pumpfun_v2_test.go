@@ -21,7 +21,7 @@ func pumpfunV2Instruction(disc uint64, first, second uint64) []byte {
 	return data
 }
 
-func pumpfunCreateV2Instruction(mayhem, cashback bool) []byte {
+func pumpfunCreateV2Instruction(mayhem, cashback bool, creatorFeeBps uint64, holderReward bool) []byte {
 	data := make([]byte, 8)
 	binary.LittleEndian.PutUint64(data[:8], instrPumpOuterCreateV2)
 	data = appendPumpfunString(data, "name")
@@ -34,6 +34,12 @@ func pumpfunCreateV2Instruction(mayhem, cashback bool) []byte {
 		data = append(data, 0)
 	}
 	if cashback {
+		data = append(data, 1)
+	} else {
+		data = append(data, 0)
+	}
+	data = appendPumpfunU64(data, creatorFeeBps)
+	if holderReward {
 		data = append(data, 1)
 	} else {
 		data = append(data, 0)
@@ -148,6 +154,8 @@ func pumpfunBondingCurveAccountData(creator, quoteMint []byte) []byte {
 	data = append(data, 1)
 	data = append(data, 0)
 	data = append(data, quoteMint...)
+	data = appendPumpfunU64(data, 250)
+	data = append(data, 1, 1)
 	return data
 }
 
@@ -176,14 +184,40 @@ func TestParsePumpfunBondingCurveReadsQuoteFields(t *testing.T) {
 		!curve.Complete || !curve.IsMayhemMode || curve.IsCashbackCoin {
 		t.Fatalf("unexpected bonding curve account: %+v", curve)
 	}
+	if curve.CreatorFeeBps != 250 || !curve.CanEditCreatorFee || !curve.IsHolderReward {
+		t.Fatalf("unexpected bonding curve creator fee fields: %+v", curve)
+	}
+
+	legacy := &AccountData{
+		Pubkey: "bonding_curve",
+		Owner:  PUMPFUN_PROGRAM_ID,
+		Data:   account.Data[:8+107],
+	}
+	legacyEvent := ParsePumpfunBondingCurve(legacy, EventMetadata{})
+	legacyCurve := legacyEvent.Data.(*PumpFunBondingCurveAccountEvent).BondingCurve
+	if legacyEvent.Type != EventTypeAccountPumpFunBondingCurve || legacyCurve.CreatorFeeBps != 0 ||
+		legacyCurve.CanEditCreatorFee || legacyCurve.IsHolderReward {
+		t.Fatalf("legacy bonding curve should default creator fee fields: %+v", legacyEvent)
+	}
 
 	truncated := &AccountData{
 		Pubkey: "bonding_curve",
 		Owner:  PUMPFUN_PROGRAM_ID,
-		Data:   account.Data[:len(account.Data)-1],
+		Data:   account.Data[:8+106],
 	}
 	if ev := ParsePumpfunBondingCurve(truncated, EventMetadata{}); ev.Type != "" {
 		t.Fatalf("truncated bonding curve should not parse: %+v", ev)
+	}
+	for bodyLen := 108; bodyLen < 116; bodyLen++ {
+		partial := &AccountData{Data: account.Data[:8+bodyLen]}
+		if ev := ParsePumpfunBondingCurve(partial, EventMetadata{}); ev.Type != "" {
+			t.Fatalf("partial bonding curve body %d parsed: %+v", bodyLen, ev)
+		}
+	}
+	if ev := ParsePumpfunBondingCurve(
+		&AccountData{Data: account.Data[:8+116]}, EventMetadata{},
+	); ev.Type == "" {
+		t.Fatal("creator-fee bonding curve layout should parse")
 	}
 
 	if ev := ParseAccountUnified(
@@ -322,7 +356,7 @@ func TestParsePumpfunV2BestEffortShortAccountsForShred(t *testing.T) {
 
 func TestParsePumpfunCreateV2ReadsOfficialArgsAndAccounts(t *testing.T) {
 	ev := ParsePumpfunInstruction(
-		pumpfunCreateV2Instruction(true, true),
+		pumpfunCreateV2Instruction(true, true, 250, true),
 		pumpfunV2TestAccounts(16),
 		"sig",
 		1,
@@ -339,7 +373,8 @@ func TestParsePumpfunCreateV2ReadsOfficialArgsAndAccounts(t *testing.T) {
 	}
 	if create.Mint != "account_A" || create.BondingCurve != "account_C" ||
 		create.User != "account_F" || create.Creator != ReadPubkey(pumpfunTestPubkey(120), 0) ||
-		!create.IsMayhemMode || !create.IsCashbackEnabled {
+		!create.IsMayhemMode || !create.IsCashbackEnabled ||
+		create.CreatorFeeBps != 250 || !create.IsHolderReward {
 		t.Fatalf("unexpected create_v2 fields: %+v", create)
 	}
 }
@@ -607,6 +642,8 @@ func TestParsePumpfunCreateFromDataKeepsQuoteTailFields(t *testing.T) {
 	data = append(data, 1)
 	data = append(data, quoteMintBytes...)
 	data = appendPumpfunU64(data, 4_292_000_000)
+	data = appendPumpfunU64(data, 250)
+	data = append(data, 1)
 
 	ev := parseCreateFromData(data, EventMetadata{Signature: "sig", Slot: 1})
 	if ev.Type != EventTypePumpFunCreate {
@@ -618,7 +655,7 @@ func TestParsePumpfunCreateFromDataKeepsQuoteTailFields(t *testing.T) {
 	}
 	if create.QuoteMint != ReadPubkey(quoteMintBytes, 0) ||
 		create.VirtualQuoteReserves != 4_292_000_000 ||
-		!create.IsCashbackEnabled {
+		!create.IsCashbackEnabled || create.CreatorFeeBps != 250 || !create.IsHolderReward {
 		t.Fatalf("create quote tail fields not preserved: %+v", create)
 	}
 }
@@ -661,6 +698,8 @@ func TestParsePumpfunTradeFromDataKeepsQuoteTailFields(t *testing.T) {
 	data = appendPumpfunU64(data, 700)
 	data = appendPumpfunU64(data, 800)
 	data = appendPumpfunU64(data, 900)
+	data = appendPumpfunU64(data, 250)
+	data = appendPumpfunU64(data, 42)
 
 	ev := parseTradeFromData(data, EventMetadata{Signature: "sig", Slot: 1}, false)
 	if ev.Type != EventTypePumpFunBuy {
@@ -676,6 +715,9 @@ func TestParsePumpfunTradeFromDataKeepsQuoteTailFields(t *testing.T) {
 	}
 	if tr.BuybackFeeBasisPoints != 500 || tr.BuybackFee != 600 {
 		t.Fatalf("buyback fields not preserved: %+v", tr)
+	}
+	if tr.HolderRewardsBps != 250 || tr.HolderRewards != 42 {
+		t.Fatalf("holder reward fields not preserved: %+v", tr)
 	}
 	if len(tr.Shareholders) != 1 || tr.Shareholders[0].Address != ReadPubkey(shareholderBytes, 0) ||
 		tr.Shareholders[0].ShareBps != 2500 {

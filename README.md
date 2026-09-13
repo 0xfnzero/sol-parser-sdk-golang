@@ -40,6 +40,15 @@ This is the Go implementation of the FnZero Solana DEX parser SDK for bots, inde
 
 ## Release notes
 
+### v0.5.8
+
+- Syncs with Rust sol-parser-sdk **0.7.3**, including the current PumpFun, PumpSwap, and Pump Fees protocol definitions.
+- Adds Meteora DAMM v2 events: UpdateDelegatePermission, WithdrawDeadLiquidityReward, CreateConfig, CreateDynamicConfig.
+- Aligns EvtSwap2 180-byte layout with slot-gated claiming/compounding fees and swap modes; routes EvtLiquidityChange to Add/Remove.
+- Adds DLMM swap account context fields, PumpFun pre/post balance snapshots, and LaunchLab trade quote context.
+- Adds current PumpFun/PumpSwap creator-fee and holder-reward fields across instruction, log, account, gRPC, and JSON event paths.
+- Rejects truncated known PumpSwap trade and CreatePool tails while retaining complete historical layouts.
+
 ### v0.5.6
 
 - Adds Meteora DBC log parsing with program-context routing and filter parity.
@@ -75,7 +84,7 @@ go mod tidy
 **Use in another module**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.7
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.8
 ```
 
 (Or use `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` for local development.)

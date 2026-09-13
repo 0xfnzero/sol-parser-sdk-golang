@@ -113,6 +113,7 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 		o += 8
 	}
 	var buybackFeeBps, buybackFee, quoteAmount, virtualQuoteReserves, realQuoteReserves uint64
+	var holderRewardsBps, holderRewards uint64
 	if o+8 <= len(data) {
 		buybackFeeBps, _ = readU64LE(data, o)
 		o += 8
@@ -159,6 +160,14 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	}
 	if o+8 <= len(data) {
 		realQuoteReserves, _ = readU64LE(data, o)
+		o += 8
+	}
+	if o+8 <= len(data) {
+		holderRewardsBps, _ = readU64LE(data, o)
+		o += 8
+	}
+	if o+8 <= len(data) {
+		holderRewards, _ = readU64LE(data, o)
 	}
 
 	ev := &PumpFunTradeEvent{
@@ -196,6 +205,8 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 		QuoteAmount:            quoteAmount,
 		VirtualQuoteReserves:   virtualQuoteReserves,
 		RealQuoteReserves:      realQuoteReserves,
+		HolderRewardsBps:       holderRewardsBps,
+		HolderRewards:          holderRewards,
 		IsCashbackCoin:         cbBps > 0,
 		BondingCurve:           "",
 		AssociatedBondingCurve: "",
@@ -275,6 +286,16 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 	var virtualQuoteReserves uint64
 	if o+8 <= len(data) {
 		virtualQuoteReserves, _ = readU64LE(data, o)
+		o += 8
+	}
+	var creatorFeeBps uint64
+	if o+8 <= len(data) {
+		creatorFeeBps, _ = readU64LE(data, o)
+		o += 8
+	}
+	isHolderReward := false
+	if o < len(data) {
+		isHolderReward, _ = readBool(data, o)
 	}
 
 	return DexEvent{
@@ -298,6 +319,8 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 			IsCashbackEnabled:    ice,
 			QuoteMint:            quoteMint,
 			VirtualQuoteReserves: virtualQuoteReserves,
+			CreatorFeeBps:        creatorFeeBps,
+			IsHolderReward:       isHolderReward,
 		},
 	}
 }

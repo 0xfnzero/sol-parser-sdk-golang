@@ -76,8 +76,10 @@ func enrichCreateV2FromCreateEvents(events []DexEvent) {
 		fillUint64IfZero(&c2.RealTokenReserves, c.RealTokenReserves)
 		fillUint64IfZero(&c2.TokenTotalSupply, c.TokenTotalSupply)
 		fillUint64IfZero(&c2.VirtualQuoteReserves, c.VirtualQuoteReserves)
+		fillUint64IfZero(&c2.CreatorFeeBps, c.CreatorFeeBps)
 		c2.IsCashbackEnabled = c2.IsCashbackEnabled || c.IsCashbackEnabled
 		c2.IsMayhemMode = c2.IsMayhemMode || c.IsMayhemMode
+		c2.IsHolderReward = c2.IsHolderReward || c.IsHolderReward
 	}
 }
 

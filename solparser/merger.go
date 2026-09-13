@@ -244,7 +244,32 @@ func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 		if inner.Type != base.Type || !ok1 || !ok2 {
 			return false
 		}
+		meta := b.Metadata
+		minOut := i.MinAmountOut
+		if minOut == 0 {
+			minOut = b.MinAmountOut
+		}
+		tokenX, tokenY := i.TokenXMint, i.TokenYMint
+		userIn, userOut := i.UserTokenIn, i.UserTokenOut
+		if isDefaultPubkeyString(tokenX) {
+			tokenX = b.TokenXMint
+		}
+		if isDefaultPubkeyString(tokenY) {
+			tokenY = b.TokenYMint
+		}
+		if isDefaultPubkeyString(userIn) {
+			userIn = b.UserTokenIn
+		}
+		if isDefaultPubkeyString(userOut) {
+			userOut = b.UserTokenOut
+		}
 		*b = *i
+		b.Metadata = meta
+		b.MinAmountOut = minOut
+		b.TokenXMint = tokenX
+		b.TokenYMint = tokenY
+		b.UserTokenIn = userIn
+		b.UserTokenOut = userOut
 		return true
 	case EventTypeMeteoraDlmmAddLiquidity:
 		b, ok1 := base.Data.(*MeteoraDlmmAddLiquidityEvent)
@@ -351,6 +376,8 @@ func mergePumpfunTrade(base, inner *PumpFunTradeEvent) {
 		putUint64IfNonzero(&base.QuoteAmount, inner.QuoteAmount)
 		putUint64IfNonzero(&base.VirtualQuoteReserves, inner.VirtualQuoteReserves)
 		putUint64IfNonzero(&base.RealQuoteReserves, inner.RealQuoteReserves)
+		putUint64IfNonzero(&base.HolderRewardsBps, inner.HolderRewardsBps)
+		putUint64IfNonzero(&base.HolderRewards, inner.HolderRewards)
 		base.IsCashbackCoin = inner.IsCashbackCoin
 	} else {
 		putUint64IfNonzero(&base.Fee, inner.Fee)
@@ -375,6 +402,8 @@ func mergePumpfunTrade(base, inner *PumpFunTradeEvent) {
 		putUint64IfNonzero(&base.QuoteAmount, inner.QuoteAmount)
 		putUint64IfNonzero(&base.VirtualQuoteReserves, inner.VirtualQuoteReserves)
 		putUint64IfNonzero(&base.RealQuoteReserves, inner.RealQuoteReserves)
+		putUint64IfNonzero(&base.HolderRewardsBps, inner.HolderRewardsBps)
+		putUint64IfNonzero(&base.HolderRewards, inner.HolderRewards)
 		putInt64IfNonzero(&base.Timestamp, inner.Timestamp)
 		putInt64IfNonzero(&base.LastUpdateTimestamp, inner.LastUpdateTimestamp)
 		putStringIfSet(&base.IxName, inner.IxName)
@@ -473,6 +502,8 @@ func mergePumpfunCreate(base, inner *PumpFunCreateEvent) {
 	base.QuoteVault = inner.QuoteVault
 	base.QuoteTokenProgram = inner.QuoteTokenProgram
 	base.VirtualQuoteReserves = inner.VirtualQuoteReserves
+	base.CreatorFeeBps = inner.CreatorFeeBps
+	base.IsHolderReward = base.IsHolderReward || inner.IsHolderReward
 }
 
 func mergePumpfunCreateV2(base, inner *PumpFunCreateV2TokenEvent) {
@@ -495,6 +526,8 @@ func mergePumpfunCreateV2(base, inner *PumpFunCreateV2TokenEvent) {
 	base.QuoteVault = inner.QuoteVault
 	base.QuoteTokenProgram = inner.QuoteTokenProgram
 	base.VirtualQuoteReserves = inner.VirtualQuoteReserves
+	base.CreatorFeeBps = inner.CreatorFeeBps
+	base.IsHolderReward = base.IsHolderReward || inner.IsHolderReward
 	base.MintAuthority = inner.MintAuthority
 	base.AssociatedBondingCurve = inner.AssociatedBondingCurve
 	base.Global = inner.Global

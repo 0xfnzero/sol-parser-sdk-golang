@@ -213,24 +213,25 @@ func ParseMeteoraDlmmInstruction(
 			},
 		}
 	case instrDlmmSwap, instrDlmmSwap2:
-		if len(payload) < 8 {
+		if len(payload) < 16 {
 			return DexEvent{}
 		}
 		amountIn, _ := readU64LE(payload, 0)
-		return dlmmSwapInstructionEvent(meta, accounts, amountIn, 0)
+		minOut, _ := readU64LE(payload, 8)
+		return dlmmSwapInstructionEvent(meta, accounts, amountIn, 0, minOut)
 	case instrDlmmSwapExactOut, instrDlmmSwapExactOut2:
 		if len(payload) < 16 {
 			return DexEvent{}
 		}
 		amountIn, _ := readU64LE(payload, 0)
 		amountOut, _ := readU64LE(payload, 8)
-		return dlmmSwapInstructionEvent(meta, accounts, amountIn, amountOut)
+		return dlmmSwapInstructionEvent(meta, accounts, amountIn, amountOut, 0)
 	case instrDlmmSwapWithPriceImpact, instrDlmmSwapWithPriceImpact2:
 		if len(payload) < 8 {
 			return DexEvent{}
 		}
 		amountIn, _ := readU64LE(payload, 0)
-		return dlmmSwapInstructionEvent(meta, accounts, amountIn, 0)
+		return dlmmSwapInstructionEvent(meta, accounts, amountIn, 0, 0)
 	case instrDlmmClaimFee, instrDlmmClaimFee2:
 		ownerIndex := 4
 		if disc == instrDlmmClaimFee2 {
@@ -268,22 +269,27 @@ func ParseMeteoraDlmmInstruction(
 	}
 }
 
-func dlmmSwapInstructionEvent(meta EventMetadata, accounts []string, amountIn, amountOut uint64) DexEvent {
+func dlmmSwapInstructionEvent(meta EventMetadata, accounts []string, amountIn, amountOut, minAmountOut uint64) DexEvent {
 	return DexEvent{
 		Type: EventTypeMeteoraDlmmSwap,
 		Data: &MeteoraDlmmSwapEvent{
-			Metadata:    meta,
-			Pool:        getAccountSafe(accounts, 0),
-			From:        getAccountSafe(accounts, 10),
-			StartBinID:  0,
-			EndBinID:    0,
-			AmountIn:    amountIn,
-			AmountOut:   amountOut,
-			SwapForY:    false,
-			Fee:         0,
-			ProtocolFee: 0,
-			FeeBps:      "0",
-			HostFee:     0,
+			Metadata:     meta,
+			TokenXMint:   getAccountSafe(accounts, 6),
+			TokenYMint:   getAccountSafe(accounts, 7),
+			UserTokenIn:  getAccountSafe(accounts, 4),
+			UserTokenOut: getAccountSafe(accounts, 5),
+			MinAmountOut: minAmountOut,
+			Pool:         getAccountSafe(accounts, 0),
+			From:         getAccountSafe(accounts, 10),
+			StartBinID:   0,
+			EndBinID:     0,
+			AmountIn:     amountIn,
+			AmountOut:    amountOut,
+			SwapForY:     false,
+			Fee:          0,
+			ProtocolFee:  0,
+			FeeBps:       "0",
+			HostFee:      0,
 		},
 	}
 }

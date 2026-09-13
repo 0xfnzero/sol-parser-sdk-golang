@@ -1047,6 +1047,18 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 	if v, ok := readBool(data, off); ok {
 		isCashbackEnabled = v
 	}
+	if off < len(data) {
+		off++
+	}
+	var creatorFeeBps uint64
+	if v, ok := readU64LE(data, off); ok {
+		creatorFeeBps = v
+		off += 8
+	}
+	isHolderReward := false
+	if v, ok := readBool(data, off); ok {
+		isHolderReward = v
+	}
 	acc := accounts[:minAcc]
 	return DexEvent{
 		Type: EventTypePumpFunCreateV2,
@@ -1062,6 +1074,8 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 			TokenProgram:           acc[7],
 			IsMayhemMode:           isMayhemMode,
 			IsCashbackEnabled:      isCashbackEnabled,
+			CreatorFeeBps:          creatorFeeBps,
+			IsHolderReward:         isHolderReward,
 			QuoteMint:              getAccountSafe(accounts, 16),
 			QuoteVault:             getAccountSafe(accounts, 17),
 			QuoteTokenProgram:      getAccountSafe(accounts, 18),
@@ -1144,7 +1158,7 @@ func ParsePumpswapInstruction(
 	case instrPumpSwapSell:
 		return parsePumpSwapSellInstr(data, accounts, meta)
 	case instrPumpSwapCreatePool:
-		return parsePumpSwapCreatePoolInstr(accounts, meta)
+		return parsePumpSwapCreatePoolInstr(data, accounts, meta)
 	case instrPumpSwapDeposit:
 		return parsePumpSwapDepositInstr(accounts, meta)
 	case instrPumpSwapWithdraw:
@@ -1265,17 +1279,54 @@ func parsePumpSwapSellInstr(data []byte, accounts []string, meta EventMetadata) 
 	return DexEvent{Type: EventTypePumpSwapSell, Data: ev}
 }
 
-func parsePumpSwapCreatePoolInstr(accounts []string, meta EventMetadata) DexEvent {
-	if len(accounts) < 5 {
+func parsePumpSwapCreatePoolInstr(data []byte, accounts []string, meta EventMetadata) DexEvent {
+	if len(accounts) < 8 || len(data) < 8 {
 		return DexEvent{}
 	}
+	payload := data[8:]
+	var index uint16
+	if len(payload) >= 2 {
+		index = binary.LittleEndian.Uint16(payload[:2])
+	}
+	var baseAmountIn, quoteAmountIn uint64
+	if len(payload) >= 10 {
+		baseAmountIn = binary.LittleEndian.Uint64(payload[2:10])
+	}
+	if len(payload) >= 18 {
+		quoteAmountIn = binary.LittleEndian.Uint64(payload[10:18])
+	}
+	coinCreator := zeroPubkey
+	if len(payload) >= 50 {
+		coinCreator = ReadPubkey(payload, 18)
+	}
+	isMayhemMode := len(payload) > 50 && payload[50] == 1
+	isCashbackCoin := len(payload) > 51 && payload[51] == 1
+	var creatorFeeBps uint64
+	if len(payload) >= 60 {
+		creatorFeeBps = binary.LittleEndian.Uint64(payload[52:60])
+	}
+	canEditCreatorFee := len(payload) > 60 && payload[60] == 1
+	isHolderReward := len(payload) > 61 && payload[61] == 1
 	return DexEvent{
 		Type: EventTypePumpSwapCreatePool,
 		Data: &PumpSwapCreatePoolEvent{
-			Metadata:  meta,
-			Creator:   getAccountSafe(accounts, 0),
-			BaseMint:  getAccountSafe(accounts, 2),
-			QuoteMint: getAccountSafe(accounts, 3),
+			Metadata:              meta,
+			Index:                 index,
+			Pool:                  getAccountSafe(accounts, 0),
+			Creator:               getAccountSafe(accounts, 2),
+			BaseMint:              getAccountSafe(accounts, 3),
+			QuoteMint:             getAccountSafe(accounts, 4),
+			BaseAmountIn:          baseAmountIn,
+			QuoteAmountIn:         quoteAmountIn,
+			LpMint:                getAccountSafe(accounts, 5),
+			UserBaseTokenAccount:  getAccountSafe(accounts, 6),
+			UserQuoteTokenAccount: getAccountSafe(accounts, 7),
+			CoinCreator:           coinCreator,
+			IsMayhemMode:          isMayhemMode,
+			IsCashbackCoin:        isCashbackCoin,
+			CreatorFeeBps:         creatorFeeBps,
+			CanEditCreatorFee:     canEditCreatorFee,
+			IsHolderReward:        isHolderReward,
 		},
 	}
 }
@@ -1921,14 +1972,24 @@ func ParseRaydiumLaunchlabInstruction(
 		return DexEvent{
 			Type: EventTypeRaydiumLaunchlabTrade,
 			Data: &RaydiumLaunchlabTradeEvent{
-				Metadata:       meta,
-				PoolState:      getAccountSafe(accounts, 4),
-				User:           getAccountSafe(accounts, 0),
-				AmountIn:       amountIn,
-				AmountOut:      amountOut,
-				IsBuy:          isBuy,
-				TradeDirection: dir,
-				ExactIn:        exactIn,
+				Metadata:          meta,
+				PoolState:         getAccountSafe(accounts, 4),
+				User:              getAccountSafe(accounts, 0),
+				AmountIn:          amountIn,
+				AmountOut:         amountOut,
+				IsBuy:             isBuy,
+				TradeDirection:    dir,
+				ExactIn:           exactIn,
+				GlobalConfig:      getAccountSafe(accounts, 2),
+				PlatformConfig:    getAccountSafe(accounts, 3),
+				UserBaseToken:     getAccountSafe(accounts, 5),
+				UserQuoteToken:    getAccountSafe(accounts, 6),
+				BaseVault:         getAccountSafe(accounts, 7),
+				QuoteVault:        getAccountSafe(accounts, 8),
+				BaseMint:          getAccountSafe(accounts, 9),
+				QuoteMint:         getAccountSafe(accounts, 10),
+				BaseTokenProgram:  getAccountSafe(accounts, 11),
+				QuoteTokenProgram: getAccountSafe(accounts, 12),
 			},
 		}
 	case instrRaydiumLaunchlabInitialize, instrRaydiumLaunchlabInitializeV2,

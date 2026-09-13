@@ -384,7 +384,13 @@ func ParsePumpfunGlobal(account *AccountData, metadata EventMetadata) DexEvent {
 // ParsePumpfunBondingCurve 解析 PumpFun BondingCurve 账户。
 func ParsePumpfunBondingCurve(account *AccountData, metadata EventMetadata) DexEvent {
 	const bondingCurveBody = 107
+	const creatorFeeBody = 116
+	const holderRewardBody = 117
 	if len(account.Data) < 8+bondingCurveBody {
+		return DexEvent{}
+	}
+	bodyLen := len(account.Data) - 8
+	if bodyLen != bondingCurveBody && bodyLen != creatorFeeBody && bodyLen < holderRewardBody {
 		return DexEvent{}
 	}
 	bondingCurveDisc := []byte{23, 183, 248, 55, 96, 216, 172, 96}
@@ -413,6 +419,15 @@ func ParsePumpfunBondingCurve(account *AccountData, metadata EventMetadata) DexE
 	isCashbackCoin := data[offset] != 0
 	offset++
 	quoteMint := ReadPubkey(data, offset)
+	offset += 32
+	var creatorFeeBps uint64
+	if offset+8 <= len(data) {
+		creatorFeeBps = binary.LittleEndian.Uint64(data[offset : offset+8])
+		offset += 8
+	}
+	canEditCreatorFee := offset < len(data) && data[offset] != 0
+	offset++
+	isHolderReward := offset < len(data) && data[offset] != 0
 
 	return DexEvent{
 		Type: EventTypeAccountPumpFunBondingCurve,
@@ -430,6 +445,9 @@ func ParsePumpfunBondingCurve(account *AccountData, metadata EventMetadata) DexE
 				IsMayhemMode:         isMayhemMode,
 				IsCashbackCoin:       isCashbackCoin,
 				QuoteMint:            quoteMint,
+				CreatorFeeBps:        creatorFeeBps,
+				CanEditCreatorFee:    canEditCreatorFee,
+				IsHolderReward:       isHolderReward,
 			},
 		},
 	}
@@ -776,15 +794,19 @@ func ParsePumpswapGlobalConfig(account *AccountData, metadata EventMetadata) Dex
 // - coin_creator: pubkey (32 bytes)
 // - is_mayhem_mode: bool (1 byte)
 // - is_cashback_coin: bool (1 byte)
-// - virtual_quote_reserves: i128 (16 bytes, current layout only)
+// - virtual_quote_reserves: i128 (16 bytes, boost layout and later)
+// - creator_fee_bps: u64, can_edit_creator_fee/is_holder_reward: bool (current layout)
 func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 	const legacyPoolBody = 244
-	const poolBody = 253
+	const boostPoolBody = 253
+	const creatorFeePoolBody = 262
+	const holderRewardPoolBody = 263
 
 	if len(account.Data) < 8+legacyPoolBody {
 		return DexEvent{}
 	}
-	if len(account.Data) != 8+legacyPoolBody && len(account.Data) < 8+poolBody {
+	bodyLen := len(account.Data) - 8
+	if bodyLen != legacyPoolBody && bodyLen != boostPoolBody && bodyLen != creatorFeePoolBody && bodyLen < holderRewardPoolBody {
 		return DexEvent{}
 	}
 
@@ -831,10 +853,19 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 	offset++
 
 	virtualQuoteReserves := "0"
-	if len(data) >= poolBody {
+	if len(data) >= boostPoolBody {
 		raw, _ := readU128LE(data, offset)
 		virtualQuoteReserves = i128LEDecimalString(raw[:])
 	}
+	offset += 16
+	var creatorFeeBps uint64
+	if offset+8 <= len(data) {
+		creatorFeeBps = binary.LittleEndian.Uint64(data[offset : offset+8])
+		offset += 8
+	}
+	canEditCreatorFee := offset < len(data) && data[offset] != 0
+	offset++
+	isHolderReward := offset < len(data) && data[offset] != 0
 
 	return DexEvent{
 		Type: EventTypeAccountPumpSwapPool,
@@ -855,6 +886,9 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 				IsMayhemMode:          isMayhemMode,
 				IsCashbackCoin:        isCashbackCoin,
 				VirtualQuoteReserves:  virtualQuoteReserves,
+				CreatorFeeBps:         creatorFeeBps,
+				CanEditCreatorFee:     canEditCreatorFee,
+				IsHolderReward:        isHolderReward,
 			},
 		},
 	}

@@ -7,6 +7,10 @@ import (
 
 // DAMM discriminators 已在 binary.go 中定义
 
+func usesCompoundingFeeLayout(slot uint64) bool {
+	return slot == 0 || slot >= compoundingFeeLayoutActivationSlot
+}
+
 // ParseMeteoraDammLog 与 TS `parseMeteoraDammLog` 对齐（Program data 载荷与 `meteora_damm_ix` CPI 内层一致）
 func ParseMeteoraDammLog(log, sig string, slot, tx uint64, blockUs *int64, grpcUs int64) DexEvent {
 	buf := decodeProgramDataLine(log)
@@ -16,6 +20,10 @@ func ParseMeteoraDammLog(log, sig string, slot, tx uint64, blockUs *int64, grpcU
 	d := binary.LittleEndian.Uint64(buf[:8])
 	data := buf[8:]
 	meta := makeMetadata(sig, slot, tx, blockUs, grpcUs, "")
+	return parseMeteoraDammFromDiscriminator(d, data, meta)
+}
+
+func parseMeteoraDammFromDiscriminator(d uint64, data []byte, meta EventMetadata) DexEvent {
 	switch d {
 	case discDammSwap:
 		return parseDammSwap(data, meta)
@@ -29,8 +37,18 @@ func ParseMeteoraDammLog(log, sig string, slot, tx uint64, blockUs *int64, grpcU
 		return parseDammAddLiquidity(data, meta)
 	case discDammRemoveLiq:
 		return parseDammRemoveLiquidity(data, meta)
+	case discDammLiquidityChange:
+		return parseDammLiquidityChange(data, meta)
 	case discDammInitPool:
 		return parseDammInitializePool(data, meta)
+	case discDammUpdateDelegatePermission:
+		return parseDammUpdateDelegatePermission(data, meta)
+	case discDammWithdrawDeadLiquidityReward:
+		return parseDammWithdrawDeadLiquidityReward(data, meta)
+	case discDammCreateConfig:
+		return parseDammCreateConfig(data, meta)
+	case discDammCreateDynamicConfig:
+		return parseDammCreateDynamicConfig(data, meta)
 	default:
 		return DexEvent{}
 	}
@@ -43,24 +61,7 @@ func ParseMeteoraDammCpiInstruction(ixData []byte, meta EventMetadata) DexEvent 
 	}
 	cpi := binary.LittleEndian.Uint64(ixData[8:16])
 	payload := ixData[16:]
-	switch cpi {
-	case discDammSwap:
-		return parseDammSwap(payload, meta)
-	case discDammSwap2:
-		return parseDammSwap2(payload, meta)
-	case discDammCreatePosition:
-		return parseDammCreatePosition(payload, meta)
-	case discDammClosePosition:
-		return parseDammClosePosition(payload, meta)
-	case discDammAddLiquidity:
-		return parseDammAddLiquidity(payload, meta)
-	case discDammRemoveLiq:
-		return parseDammRemoveLiquidity(payload, meta)
-	case discDammInit:
-		return parseDammInitializePool(payload, meta)
-	default:
-		return DexEvent{}
-	}
+	return parseMeteoraDammFromDiscriminator(cpi, payload, meta)
 }
 
 func parseDammSwap(data []byte, meta EventMetadata) DexEvent {
@@ -106,8 +107,10 @@ func parseDammSwap(data []byte, meta EventMetadata) DexEvent {
 	}
 }
 
+// parseDammSwap2 aligns with Rust/Node parse_swap2_from_data (full 180-byte EvtSwap2).
 func parseDammSwap2(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 32+1+1+1+8*2+1+8*6+16+8*4+8*3 {
+	const swap2Len = 180
+	if len(data) < swap2Len {
 		return DexEvent{}
 	}
 	o := 0
@@ -115,7 +118,7 @@ func parseDammSwap2(data []byte, meta EventMetadata) DexEvent {
 	o += 32
 	td, _ := readU8(data, o)
 	o++
-	_, _ = readU8(data, o)
+	cfm, _ := readU8(data, o)
 	o++
 	hr, _ := readBool(data, o)
 	o++
@@ -127,32 +130,70 @@ func parseDammSwap2(data []byte, meta EventMetadata) DexEvent {
 	o++
 	ifi, _ := readU64LE(data, o)
 	o += 8
-	o += 16
+	efi, _ := readU64LE(data, o)
+	o += 8
+	left, _ := readU64LE(data, o)
+	o += 8
 	oa, _ := readU64LE(data, o)
 	o += 8
 	nsp, _ := readU128LE(data, o)
 	o += 16
-	lpf, _ := readU64LE(data, o)
+	claimOrTrade, _ := readU64LE(data, o)
 	o += 8
 	pf, _ := readU64LE(data, o)
 	o += 8
+	compOrPartner, _ := readU64LE(data, o)
+	o += 8
 	rf, _ := readU64LE(data, o)
 	o += 8
+	incIn, _ := readU64LE(data, o)
 	o += 8
+	incOut, _ := readU64LE(data, o)
 	o += 8
+	excOut, _ := readU64LE(data, o)
 	o += 8
 	ct, _ := readU64LE(data, o)
-	ai, mo := a0, a1
-	if sm != 0 {
+	o += 8
+	ra, _ := readU64LE(data, o)
+	o += 8
+	rb, _ := readU64LE(data, o)
+
+	var ai, mo uint64
+	switch sm {
+	case 0, 1:
+		ai, mo = a0, a1
+	case 2:
 		ai, mo = a1, a0
+	default:
+		return DexEvent{}
 	}
+
+	var lpFee, partnerFee, claimingFee, compoundingFee uint64
+	if usesCompoundingFeeLayout(meta.Slot) {
+		lpFee = claimOrTrade + compOrPartner
+		partnerFee = compOrPartner
+		claimingFee = claimOrTrade
+		compoundingFee = compOrPartner
+	} else {
+		lpFee = claimOrTrade
+		partnerFee = compOrPartner
+		claimingFee = 0
+		compoundingFee = 0
+	}
+
 	return DexEvent{
 		Type: EventTypeMeteoraDammV2Swap,
 		Data: &MeteoraDammV2SwapEvent{
-			Metadata: meta, Pool: pool, TradeDirection: td, HasReferral: hr,
+			Metadata: meta, Pool: pool, TradeDirection: td, CollectFeeMode: cfm, HasReferral: hr,
+			Amount0: a0, Amount1: a1, SwapMode: sm,
 			AmountIn: ai, MinimumAmountOut: mo, OutputAmount: oa,
-			NextSqrtPrice: u128LEDecimalString(nsp), LpFee: lpf, ProtocolFee: pf,
-			PartnerFee: 0, ReferralFee: rf, ActualAmountIn: ifi, CurrentTimestamp: ct,
+			NextSqrtPrice: u128LEDecimalString(nsp), LpFee: lpFee, ProtocolFee: pf,
+			PartnerFee: partnerFee, ReferralFee: rf, ActualAmountIn: ifi,
+			ExcludedFeeInputAmount: efi, AmountLeft: left,
+			ClaimingFee: claimingFee, CompoundingFee: compoundingFee,
+			IncludedTransferFeeAmountIn: incIn, IncludedTransferFeeAmountOut: incOut,
+			ExcludedTransferFeeAmountOut: excOut, CurrentTimestamp: ct,
+			ReserveAAmount: ra, ReserveBAmount: rb,
 			TokenAVault: zeroPubkey, TokenBVault: zeroPubkey, TokenAMint: zeroPubkey,
 			TokenBMint: zeroPubkey, TokenAProgram: zeroPubkey, TokenBProgram: zeroPubkey,
 		},
@@ -285,9 +326,134 @@ func parseDammRemoveLiquidity(data []byte, meta EventMetadata) DexEvent {
 	}
 }
 
-func parseDammDynamicFee(data []byte, o int) map[string]any {
-	if o+32 > len(data) {
-		return nil
+// parseDammLiquidityChange: EvtLiquidityChange; change_type 0=add, 1=remove.
+func parseDammLiquidityChange(data []byte, meta EventMetadata) DexEvent {
+	const lenChange = 177
+	if len(data) < lenChange {
+		return DexEvent{}
+	}
+	pool, ok := readPubkey(data, 0)
+	if !ok {
+		return DexEvent{}
+	}
+	pos, ok := readPubkey(data, 32)
+	if !ok {
+		return DexEvent{}
+	}
+	owner, ok := readPubkey(data, 64)
+	if !ok {
+		return DexEvent{}
+	}
+	ta, _ := readU64LE(data, 96)
+	tb, _ := readU64LE(data, 104)
+	tota, _ := readU64LE(data, 112)
+	totb, _ := readU64LE(data, 120)
+	ra, _ := readU64LE(data, 128)
+	rb, _ := readU64LE(data, 136)
+	ld, ok := readU128LE(data, 144)
+	if !ok {
+		return DexEvent{}
+	}
+	tat, _ := readU64LE(data, 160)
+	tbt, _ := readU64LE(data, 168)
+	ct, _ := readU8(data, 176)
+	switch ct {
+	case 0:
+		return DexEvent{
+			Type: EventTypeMeteoraDammV2AddLiquidity,
+			Data: &MeteoraDammV2AddLiquidityEvent{
+				Metadata: meta, Pool: pool, Position: pos, Owner: owner,
+				TokenAAmount: ta, TokenBAmount: tb, LiquidityDelta: u128LEDecimalString(ld),
+				TokenAAmountThreshold: tat, TokenBAmountThreshold: tbt,
+				TotalAmountA: tota, TotalAmountB: totb, ReserveAAmount: ra, ReserveBAmount: rb,
+			},
+		}
+	case 1:
+		return DexEvent{
+			Type: EventTypeMeteoraDammV2RemoveLiquidity,
+			Data: &MeteoraDammV2RemoveLiquidityEvent{
+				Metadata: meta, Pool: pool, Position: pos, Owner: owner,
+				TokenAAmount: ta, TokenBAmount: tb, LiquidityDelta: u128LEDecimalString(ld),
+				TokenAAmountThreshold: tat, TokenBAmountThreshold: tbt,
+				TotalAmountA: tota, TotalAmountB: totb, ReserveAAmount: ra, ReserveBAmount: rb,
+			},
+		}
+	default:
+		return DexEvent{}
+	}
+}
+
+func parseDammUpdateDelegatePermission(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+4+1 {
+		return DexEvent{}
+	}
+	o := 0
+	pos, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	owner, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	perm, ok := readU32LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 4
+	hasDel, ok := readBool(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o++
+	var delegate *string
+	if hasDel {
+		d, ok := readPubkey(data, o)
+		if !ok {
+			return DexEvent{}
+		}
+		delegate = &d
+	}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2UpdateDelegatePermission,
+		Data: &MeteoraDammV2UpdateDelegatePermissionEvent{
+			Metadata: meta, Position: pos, Owner: owner, Permission: perm, Delegate: delegate,
+		},
+	}
+}
+
+func parseDammWithdrawDeadLiquidityReward(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+8 {
+		return DexEvent{}
+	}
+	o := 0
+	pool, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	mint, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	amt, ok := readU64LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,
+		Data: &MeteoraDammV2WithdrawDeadLiquidityRewardEvent{
+			Metadata: meta, Pool: pool, RewardMint: mint, Amount: amt,
+		},
+	}
+}
+
+func parseDammDynamicFeeParams(data []byte, o int) (*MeteoraDammV2DynamicFeeParameters, int, bool) {
+	if o+2+16+2+2+2+4+4 > len(data) {
+		return nil, o, false
 	}
 	bs, _ := readU16LE(data, o)
 	o += 2
@@ -302,10 +468,146 @@ func parseDammDynamicFee(data []byte, o int) map[string]any {
 	mva, _ := readU32LE(data, o)
 	o += 4
 	vfc, _ := readU32LE(data, o)
+	o += 4
+	return &MeteoraDammV2DynamicFeeParameters{
+		BinStep: bs, BinStepU128: u128LEDecimalString(bu),
+		FilterPeriod: fp, DecayPeriod: dp, ReductionFactor: rf,
+		MaxVolatilityAccumulator: mva, VariableFeeControl: vfc,
+	}, o, true
+}
+
+func parseDammCreateConfig(data []byte, meta EventMetadata) DexEvent {
+	o := 0
+	if len(data) < o+27 {
+		return DexEvent{}
+	}
+	var baseFee [27]byte
+	copy(baseFee[:], data[o:o+27])
+	o += 27
+	cfb, ok := readU16LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 2
+	pad, ok := readU8(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o++
+	hasDyn, ok := readBool(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o++
+	var dyn *MeteoraDammV2DynamicFeeParameters
+	if hasDyn {
+		params, next, ok := parseDammDynamicFeeParams(data, o)
+		if !ok {
+			return DexEvent{}
+		}
+		dyn = params
+		o = next
+	}
+	vault, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	auth, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	act, ok := readU8(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o++
+	smin, ok := readU128LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 16
+	smax, ok := readU128LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 16
+	cfm, ok := readU8(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o++
+	idx, ok := readU64LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 8
+	cfg, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	perm, ok := readU128LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2CreateConfig,
+		Data: &MeteoraDammV2CreateConfigEvent{
+			Metadata: meta, BaseFeeData: baseFee, CompoundingFeeBps: cfb, Padding: pad,
+			DynamicFee: dyn, VaultConfigKey: vault, PoolCreatorAuthority: auth,
+			ActivationType: act, SqrtMinPrice: u128LEDecimalString(smin),
+			SqrtMaxPrice: u128LEDecimalString(smax), CollectFeeMode: cfm,
+			Index: idx, Config: cfg, Permission: u128LEDecimalString(perm),
+		},
+	}
+}
+
+func parseDammCreateDynamicConfig(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+8+16 {
+		return DexEvent{}
+	}
+	o := 0
+	cfg, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	auth, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	idx, ok := readU64LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 8
+	perm, ok := readU128LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2CreateDynamicConfig,
+		Data: &MeteoraDammV2CreateDynamicConfigEvent{
+			Metadata: meta, Config: cfg, PoolCreatorAuthority: auth,
+			Index: idx, Permission: u128LEDecimalString(perm),
+		},
+	}
+}
+
+func parseDammDynamicFee(data []byte, o int) map[string]any {
+	params, _, ok := parseDammDynamicFeeParams(data, o)
+	if !ok {
+		return nil
+	}
 	return map[string]any{
-		"bin_step": bs, "bin_step_u128": u128LEDecimalString(bu),
-		"filter_period": fp, "decay_period": dp, "reduction_factor": rf,
-		"max_volatility_accumulator": mva, "variable_fee_control": vfc,
+		"bin_step": params.BinStep, "bin_step_u128": params.BinStepU128,
+		"filter_period": params.FilterPeriod, "decay_period": params.DecayPeriod,
+		"reduction_factor":           params.ReductionFactor,
+		"max_volatility_accumulator": params.MaxVolatilityAccumulator,
+		"variable_fee_control":       params.VariableFeeControl,
 	}
 }
 

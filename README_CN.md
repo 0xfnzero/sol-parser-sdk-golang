@@ -40,6 +40,15 @@
 
 ## 发布说明
 
+### v0.5.8
+
+- 与 Rust sol-parser-sdk **0.7.3** 对齐，覆盖当前 PumpFun、PumpSwap 与 Pump Fees 协议定义。
+- 新增 Meteora DAMM v2 事件：UpdateDelegatePermission、WithdrawDeadLiquidityReward、CreateConfig、CreateDynamicConfig。
+- 对齐 EvtSwap2 180 字节布局、slot 门控 claiming/compounding fee 与 swap mode；EvtLiquidityChange 路由到 Add/Remove。
+- 补充 DLMM swap 账户上下文字段、PumpFun pre/post 余额快照、LaunchLab trade quote 上下文。
+- 在 PumpFun/PumpSwap instruction、log、account、gRPC 与 JSON 事件链路中补齐 creator fee 和 holder reward 字段。
+- 拒绝 PumpSwap trade 与 CreatePool 已知字段的截断尾部，同时兼容完整历史布局。
+
 ### v0.5.6
 
 - 新增 Meteora DBC 日志解析，并按当前 program context 做路由与过滤。
@@ -75,7 +84,7 @@ go mod tidy
 **在其他 Go 工程引用**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.7
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.8
 ```
 
 （本地开发可用 `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` 指向克隆目录。）

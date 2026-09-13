@@ -142,12 +142,16 @@ const (
 	EventTypePumpSwapCreatePool                    EventType = "PumpSwapCreatePool"
 	EventTypePumpSwapLiquidityAdded                EventType = "PumpSwapLiquidityAdded"
 	EventTypePumpSwapLiquidityRemoved              EventType = "PumpSwapLiquidityRemoved"
-	EventTypeMeteoraDammV2Swap                     EventType = "MeteoraDammV2Swap"
-	EventTypeMeteoraDammV2AddLiquidity             EventType = "MeteoraDammV2AddLiquidity"
-	EventTypeMeteoraDammV2RemoveLiquidity          EventType = "MeteoraDammV2RemoveLiquidity"
-	EventTypeMeteoraDammV2CreatePosition           EventType = "MeteoraDammV2CreatePosition"
-	EventTypeMeteoraDammV2ClosePosition            EventType = "MeteoraDammV2ClosePosition"
-	EventTypeMeteoraDammV2InitializePool           EventType = "MeteoraDammV2InitializePool"
+	EventTypeMeteoraDammV2Swap                          EventType = "MeteoraDammV2Swap"
+	EventTypeMeteoraDammV2AddLiquidity                  EventType = "MeteoraDammV2AddLiquidity"
+	EventTypeMeteoraDammV2RemoveLiquidity               EventType = "MeteoraDammV2RemoveLiquidity"
+	EventTypeMeteoraDammV2CreatePosition                EventType = "MeteoraDammV2CreatePosition"
+	EventTypeMeteoraDammV2ClosePosition                 EventType = "MeteoraDammV2ClosePosition"
+	EventTypeMeteoraDammV2InitializePool                EventType = "MeteoraDammV2InitializePool"
+	EventTypeMeteoraDammV2UpdateDelegatePermission      EventType = "MeteoraDammV2UpdateDelegatePermission"
+	EventTypeMeteoraDammV2WithdrawDeadLiquidityReward   EventType = "MeteoraDammV2WithdrawDeadLiquidityReward"
+	EventTypeMeteoraDammV2CreateConfig                  EventType = "MeteoraDammV2CreateConfig"
+	EventTypeMeteoraDammV2CreateDynamicConfig           EventType = "MeteoraDammV2CreateDynamicConfig"
 	EventTypeMeteoraDbcSwap                        EventType = "MeteoraDbcSwap"
 	EventTypeMeteoraDbcInitializePool              EventType = "MeteoraDbcInitializePool"
 	EventTypeMeteoraDbcCurveComplete               EventType = "MeteoraDbcCurveComplete"
@@ -274,6 +278,10 @@ var (
 		EventTypeMeteoraDammV2ClosePosition,
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2RemoveLiquidity,
+		EventTypeMeteoraDammV2UpdateDelegatePermission,
+		EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,
+		EventTypeMeteoraDammV2CreateConfig,
+		EventTypeMeteoraDammV2CreateDynamicConfig,
 	}
 	meteoraDbcFilterTypes = []EventType{
 		EventTypeMeteoraDbcSwap,
@@ -916,6 +924,10 @@ func AllEventTypes() []EventType {
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2CreatePosition,
 		EventTypeMeteoraDammV2ClosePosition,
+		EventTypeMeteoraDammV2UpdateDelegatePermission,
+		EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,
+		EventTypeMeteoraDammV2CreateConfig,
+		EventTypeMeteoraDammV2CreateDynamicConfig,
 		EventTypeMeteoraDbcSwap,
 		EventTypeMeteoraDbcInitializePool,
 		EventTypeMeteoraDbcCurveComplete,

@@ -139,6 +139,14 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDammV2CreatePosition, true
 	case discDammClose:
 		return EventTypeMeteoraDammV2ClosePosition, true
+	case discDammUpdateDelegatePermission:
+		return EventTypeMeteoraDammV2UpdateDelegatePermission, true
+	case discDammWithdrawDeadLiquidityReward:
+		return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward, true
+	case discDammCreateConfig:
+		return EventTypeMeteoraDammV2CreateConfig, true
+	case discDammCreateDynamicConfig:
+		return EventTypeMeteoraDammV2CreateDynamicConfig, true
 	case discRaydiumLaunchlabPoolCreate:
 		return EventTypeRaydiumLaunchlabPoolCreate, true
 	case dlmmSwap, dlmmSwap2, dlmmLegacySwap:
@@ -323,12 +331,23 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 			return EventTypeMeteoraDammV2AddLiquidity, true
 		case discDammRem:
 			return EventTypeMeteoraDammV2RemoveLiquidity, true
+		// EvtLiquidityChange: change_type in payload selects Add/Remove after decode.
+		case discDammLiquidityChange:
+			return "", false
 		case discDammInit:
 			return EventTypeMeteoraDammV2InitializePool, true
 		case discDammCreate:
 			return EventTypeMeteoraDammV2CreatePosition, true
 		case discDammClose:
 			return EventTypeMeteoraDammV2ClosePosition, true
+		case discDammUpdateDelegatePermission:
+			return EventTypeMeteoraDammV2UpdateDelegatePermission, true
+		case discDammWithdrawDeadLiquidityReward:
+			return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward, true
+		case discDammCreateConfig:
+			return EventTypeMeteoraDammV2CreateConfig, true
+		case discDammCreateDynamicConfig:
+			return EventTypeMeteoraDammV2CreateDynamicConfig, true
 		default:
 			return "", false
 		}
@@ -894,7 +913,10 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 		return applyActualEventTypeFilter(parseMeteoraPoolsSetPoolFeesFromData(data, meta), eventFilter)
 
 	// Meteora DAMM v2
-	case discDammSwap, discDammSwap2, discDammAdd, discDammRem, discDammInit, discDammCreate, discDammClose:
+	case discDammSwap, discDammSwap2, discDammAdd, discDammRem, discDammLiquidityChange,
+		discDammInit, discDammCreate, discDammClose,
+		discDammUpdateDelegatePermission, discDammWithdrawDeadLiquidityReward,
+		discDammCreateConfig, discDammCreateDynamicConfig:
 		return applyActualEventTypeFilter(ParseMeteoraDammLog(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs), eventFilter)
 
 	default:

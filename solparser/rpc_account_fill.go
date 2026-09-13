@@ -75,6 +75,7 @@ func fillRpcOneEvent(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, in
 			return
 		}
 		fillRpcPumpFunTrade(tr, get)
+		fillPumpFunBalances(tr, msg, meta)
 	case EventTypePumpFunCreate:
 		pumpInv := invokes[PUMPFUN_PROGRAM_ID]
 		get, isCreateV2 := rpcPumpFunCreateAccountGetter(msg, meta, pumpInv, ev)
@@ -151,6 +152,8 @@ func fillRpcOneEvent(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, in
 		fillRpcOrcaWhirlpoolLiquidityDecreased(ev, msg, meta, invokes)
 	case EventTypeMeteoraDammV2InitializePool:
 		fillRpcMeteoraDammV2InitializePool(ev, msg, meta, invokes)
+	case EventTypeMeteoraDlmmSwap:
+		fillRpcMeteoraDlmmSwap(ev, msg, meta, invokes)
 	case EventTypeRaydiumLaunchlabTrade:
 		fillRpcRaydiumLaunchlabTrade(ev, msg, meta, invokes)
 	case EventTypeRaydiumLaunchlabPoolCreate:
@@ -660,6 +663,81 @@ func fillRpcMeteoraDammV2InitializePool(ev *DexEvent, msg *RpcMessage, meta *Rpc
 	}
 }
 
+func fillRpcMeteoraDlmmSwap(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
+	get := rpcGetterForProgram(msg, meta, invokes, METEORA_DLMM_PROGRAM_ID)
+	if get == nil {
+		return
+	}
+	if e, ok := ev.Data.(*MeteoraDlmmSwapEvent); ok {
+		fillStringFromAccount(&e.UserTokenIn, get, 4)
+		fillStringFromAccount(&e.UserTokenOut, get, 5)
+		fillStringFromAccount(&e.TokenXMint, get, 6)
+		fillStringFromAccount(&e.TokenYMint, get, 7)
+	}
+}
+
+func fillPumpFunBalances(tr *PumpFunTradeEvent, msg *RpcMessage, meta *RpcTransactionMeta) {
+	if tr == nil || msg == nil || meta == nil {
+		return
+	}
+	fullKeys := mergeRpcFullAccountKeys(msg.AccountKeys, meta)
+	if idx := indexOfAccountKey(fullKeys, tr.User); idx >= 0 {
+		if idx < len(meta.PreBalances) {
+			v := meta.PreBalances[idx]
+			tr.PreSolBalance = &v
+		}
+		if idx < len(meta.PostBalances) {
+			v := meta.PostBalances[idx]
+			tr.PostSolBalance = &v
+		}
+	}
+	tokenIdx := indexOfAccountKey(fullKeys, tr.AssociatedUser)
+	if tokenIdx < 0 || isDefaultPubkeyString(tr.AssociatedUser) {
+		return
+	}
+	pre, preOK := findTokenBalanceAmount(meta.PreTokenBalances, uint32(tokenIdx))
+	post, postOK := findTokenBalanceAmount(meta.PostTokenBalances, uint32(tokenIdx))
+	if !preOK && !postOK {
+		return
+	}
+	if !preOK {
+		pre = 0
+	}
+	if !postOK {
+		post = 0
+	}
+	tr.PreTokenBalance = &pre
+	tr.PostTokenBalance = &post
+}
+
+func indexOfAccountKey(keys []string, key string) int {
+	if isDefaultPubkeyString(key) {
+		return -1
+	}
+	for i, k := range keys {
+		if k == key {
+			return i
+		}
+	}
+	return -1
+}
+
+func findTokenBalanceAmount(balances []RpcTokenBalance, accountIndex uint32) (uint64, bool) {
+	for _, b := range balances {
+		if b.AccountIndex == accountIndex {
+			var amt uint64
+			for _, c := range b.UiTokenAmount.Amount {
+				if c < '0' || c > '9' {
+					return 0, false
+				}
+				amt = amt*10 + uint64(c-'0')
+			}
+			return amt, true
+		}
+	}
+	return 0, false
+}
+
 func fillRpcRaydiumLaunchlabTrade(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
 	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_LAUNCHLAB_PROGRAM_ID)
 	if get == nil {
@@ -667,7 +745,17 @@ func fillRpcRaydiumLaunchlabTrade(ev *DexEvent, msg *RpcMessage, meta *RpcTransa
 	}
 	if e, ok := ev.Data.(*RaydiumLaunchlabTradeEvent); ok {
 		fillStringFromAccount(&e.User, get, 0)
+		fillStringFromAccount(&e.GlobalConfig, get, 2)
+		fillStringFromAccount(&e.PlatformConfig, get, 3)
 		fillStringFromAccount(&e.PoolState, get, 4)
+		fillStringFromAccount(&e.UserBaseToken, get, 5)
+		fillStringFromAccount(&e.UserQuoteToken, get, 6)
+		fillStringFromAccount(&e.BaseVault, get, 7)
+		fillStringFromAccount(&e.QuoteVault, get, 8)
+		fillStringFromAccount(&e.BaseMint, get, 9)
+		fillStringFromAccount(&e.QuoteMint, get, 10)
+		fillStringFromAccount(&e.BaseTokenProgram, get, 11)
+		fillStringFromAccount(&e.QuoteTokenProgram, get, 12)
 	}
 }
 

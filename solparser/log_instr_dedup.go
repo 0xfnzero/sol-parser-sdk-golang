@@ -227,8 +227,10 @@ func mergePumpFunCreateFields(log *PumpFunCreateEvent, ix *PumpFunCreateEvent) {
 	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
 	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
 	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	fillUint64IfDefault(&log.CreatorFeeBps, ix.CreatorFeeBps)
 	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
 	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	log.IsHolderReward = log.IsHolderReward || ix.IsHolderReward
 	mergePumpFunCreateAccountFields(log, ix)
 }
 
@@ -252,8 +254,10 @@ func mergePumpFunCreateV2IntoCreate(log *PumpFunCreateEvent, ix *PumpFunCreateV2
 	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
 	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
 	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	fillUint64IfDefault(&log.CreatorFeeBps, ix.CreatorFeeBps)
 	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
 	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	log.IsHolderReward = log.IsHolderReward || ix.IsHolderReward
 	mergePumpFunCreateV2AccountFieldsIntoCreate(log, ix)
 }
 
@@ -277,8 +281,10 @@ func mergePumpFunCreateIntoCreateV2(log *PumpFunCreateV2TokenEvent, ix *PumpFunC
 	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
 	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
 	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	fillUint64IfDefault(&log.CreatorFeeBps, ix.CreatorFeeBps)
 	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
 	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	log.IsHolderReward = log.IsHolderReward || ix.IsHolderReward
 	if log.IxName == "" && ix.IxName != "" {
 		log.IxName = ix.IxName
 	}
@@ -317,8 +323,10 @@ func mergePumpFunCreateV2Fields(log *PumpFunCreateV2TokenEvent, ix *PumpFunCreat
 	fillStringIfDefault(&log.QuoteVault, ix.QuoteVault)
 	fillStringIfDefault(&log.QuoteTokenProgram, ix.QuoteTokenProgram)
 	fillUint64IfDefault(&log.VirtualQuoteReserves, ix.VirtualQuoteReserves)
+	fillUint64IfDefault(&log.CreatorFeeBps, ix.CreatorFeeBps)
 	log.IsMayhemMode = log.IsMayhemMode || ix.IsMayhemMode
 	log.IsCashbackEnabled = log.IsCashbackEnabled || ix.IsCashbackEnabled
+	log.IsHolderReward = log.IsHolderReward || ix.IsHolderReward
 	fillStringIfDefault(&log.MintAuthority, ix.MintAuthority)
 	fillStringIfDefault(&log.AssociatedBondingCurve, ix.AssociatedBondingCurve)
 	fillStringIfDefault(&log.Global, ix.Global)
@@ -356,6 +364,8 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillUint64IfDefault(&l.QuoteAmount, i.QuoteAmount)
 			fillUint64IfDefault(&l.VirtualQuoteReserves, i.VirtualQuoteReserves)
 			fillUint64IfDefault(&l.RealQuoteReserves, i.RealQuoteReserves)
+			fillUint64IfDefault(&l.HolderRewardsBps, i.HolderRewardsBps)
+			fillUint64IfDefault(&l.HolderRewards, i.HolderRewards)
 			if l.IxName == "" && i.IxName != "" {
 				l.IxName = i.IxName
 			}
@@ -419,6 +429,11 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillStringIfDefault(&l.UserBaseTokenAccount, i.UserBaseTokenAccount)
 			fillStringIfDefault(&l.UserQuoteTokenAccount, i.UserQuoteTokenAccount)
 			fillStringIfDefault(&l.CoinCreator, i.CoinCreator)
+			fillUint64IfDefault(&l.CreatorFeeBps, i.CreatorFeeBps)
+			l.IsMayhemMode = l.IsMayhemMode || i.IsMayhemMode
+			l.IsCashbackCoin = l.IsCashbackCoin || i.IsCashbackCoin
+			l.CanEditCreatorFee = l.CanEditCreatorFee || i.CanEditCreatorFee
+			l.IsHolderReward = l.IsHolderReward || i.IsHolderReward
 		}
 	case EventTypePumpSwapLiquidityAdded:
 		l, ok1 := log.Data.(*PumpSwapLiquidityAddedEvent)

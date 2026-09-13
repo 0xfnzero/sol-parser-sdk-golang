@@ -179,6 +179,8 @@ func supplementPumpSwapBuy(dst, src *PumpSwapBuyEvent) {
 	supplementU64(&dst.BuybackFee, src.BuybackFee)
 	supplementDecimalString(&dst.VirtualQuoteReserves, src.VirtualQuoteReserves)
 	supplementU64(&dst.BaseSupply, src.BaseSupply)
+	supplementU64(&dst.HolderRewardsBps, src.HolderRewardsBps)
+	supplementU64(&dst.HolderRewards, src.HolderRewards)
 
 	if dst.IxName == "" {
 		dst.IxName = src.IxName
@@ -233,6 +235,8 @@ func supplementPumpSwapSell(dst, src *PumpSwapSellEvent) {
 	supplementU64(&dst.BuybackFee, src.BuybackFee)
 	supplementDecimalString(&dst.VirtualQuoteReserves, src.VirtualQuoteReserves)
 	supplementU64(&dst.BaseSupply, src.BaseSupply)
+	supplementU64(&dst.HolderRewardsBps, src.HolderRewardsBps)
+	supplementU64(&dst.HolderRewards, src.HolderRewards)
 	dst.CanBoost = dst.CanBoost || src.CanBoost
 
 	supplementString(&dst.Pool, src.Pool)
