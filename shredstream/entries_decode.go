@@ -7,6 +7,7 @@ package shredstream
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/0xfnzero/sol-parser-sdk-golang/solparser"
 
 	"github.com/mr-tron/base58"
 
@@ -154,150 +155,18 @@ func (d *batchDecoder) tryDecodeEntry() ([]DecodedTransaction, error) {
 }
 
 func parseTransaction(buf []byte, pos int) (int, [][]byte) {
-	start := pos
-
-	if pos >= len(buf) {
+	tx, n, err := solparser.DecodeWireTransaction(buf, pos, false)
+	if err != nil {
 		return -1, nil
 	}
-	sigCount, n := decodeCompactU16(buf, pos)
-	if n < 0 {
-		return -1, nil
-	}
-	pos += n
-
-	sigsEnd := pos + sigCount*64
-	if sigsEnd > len(buf) {
-		return -1, nil
-	}
-
-	sigs := make([][]byte, sigCount)
-	for i := 0; i < sigCount; i++ {
-		sig := make([]byte, 64)
-		copy(sig, buf[pos:pos+64])
-		sigs[i] = sig
-		pos += 64
-	}
-
-	if pos >= len(buf) {
-		return -1, nil
-	}
-	msgFirst := buf[pos]
-	isV0 := msgFirst >= 0x80
-
-	if isV0 {
-		pos++
-	}
-
-	pos += 3
-	if pos > len(buf) {
-		return -1, nil
-	}
-
-	if pos >= len(buf) {
-		return -1, nil
-	}
-	acctCount, n := decodeCompactU16(buf, pos)
-	if n < 0 {
-		return -1, nil
-	}
-	pos += n
-	pos += acctCount * 32
-	if pos > len(buf) {
-		return -1, nil
-	}
-
-	pos += 32
-	if pos > len(buf) {
-		return -1, nil
-	}
-
-	if pos >= len(buf) {
-		return -1, nil
-	}
-	ixCount, n := decodeCompactU16(buf, pos)
-	if n < 0 {
-		return -1, nil
-	}
-	pos += n
-
-	for ix := 0; ix < ixCount; ix++ {
-		pos++
-		if pos > len(buf) {
-			return -1, nil
-		}
-
-		if pos >= len(buf) {
-			return -1, nil
-		}
-		acctLen, n := decodeCompactU16(buf, pos)
-		if n < 0 {
-			return -1, nil
-		}
-		pos += n
-		pos += acctLen
-		if pos > len(buf) {
-			return -1, nil
-		}
-
-		if pos >= len(buf) {
-			return -1, nil
-		}
-		dataLen, n := decodeCompactU16(buf, pos)
-		if n < 0 {
-			return -1, nil
-		}
-		pos += n
-		pos += dataLen
-		if pos > len(buf) {
+	sigs := make([][]byte, len(tx.Signatures))
+	for i, s := range tx.Signatures {
+		sigs[i], err = base58.Decode(s)
+		if err != nil {
 			return -1, nil
 		}
 	}
-
-	if isV0 {
-		if pos >= len(buf) {
-			return -1, nil
-		}
-		atlCount, n := decodeCompactU16(buf, pos)
-		if n < 0 {
-			return -1, nil
-		}
-		pos += n
-
-		for atl := 0; atl < atlCount; atl++ {
-			pos += 32
-			if pos > len(buf) {
-				return -1, nil
-			}
-
-			if pos >= len(buf) {
-				return -1, nil
-			}
-			wLen, n := decodeCompactU16(buf, pos)
-			if n < 0 {
-				return -1, nil
-			}
-			pos += n
-			pos += wLen
-			if pos > len(buf) {
-				return -1, nil
-			}
-
-			if pos >= len(buf) {
-				return -1, nil
-			}
-			rLen, n := decodeCompactU16(buf, pos)
-			if n < 0 {
-				return -1, nil
-			}
-			pos += n
-			pos += rLen
-			if pos > len(buf) {
-				return -1, nil
-			}
-		}
-	}
-
-	return pos - start, sigs
+	return n, sigs
 }
 
 func decodeCompactU16(buf []byte, pos int) (int, int) {

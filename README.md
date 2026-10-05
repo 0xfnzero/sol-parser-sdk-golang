@@ -40,6 +40,12 @@ This is the Go implementation of the FnZero Solana DEX parser SDK for bots, inde
 
 ## Release notes
 
+### v0.5.9
+
+- Adds native gRPC lifecycle and block metadata support, instruction-level route analysis and StonkFun registry/snapshot examples.
+- Improves exact metadata serialization, account matching and wire transaction bounds validation.
+- Includes native alignment evidence and simulation route fixtures. These language releases do not yet implement the new CPMM creator-fee collection event API.
+
 ### v0.5.8
 
 - Syncs with Rust sol-parser-sdk **0.7.3**, including the current PumpFun, PumpSwap, and Pump Fees protocol definitions.
@@ -84,7 +90,7 @@ go mod tidy
 **Use in another module**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.8
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.9
 ```
 
 (Or use `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` for local development.)
@@ -201,3 +207,17 @@ go vet ./...
 ## License
 
 MIT — https://github.com/0xfnzero/sol-parser-sdk-golang
+
+## Native alignment status
+
+See [NATIVE_ALIGNMENT.md](NATIVE_ALIGNMENT.md) for implemented native APIs, Rust golden tests, mainnet simulation evidence, examples, and remaining parity gaps. Full cross-language parity is still in progress.
+
+### Offline simulation route evidence
+
+`solparser.AnalyzeSimulationRoutes(wire, simulationResponseJSON, graduatedPools)` accepts original transaction bytes and a complete `simulateTransaction` JSON response. It makes no RPC calls. Parsed SPL transfers, compiled CPI, execution failure, and unknown Token-2022 net credits are preserved. See [examples/SIMULATION_ROUTES.md](examples/SIMULATION_ROUTES.md) and `go run ./examples/simulation_routes solparser/testdata/cached_tip_routes_20261002.json route-buy`.
+
+
+实时 parser → trade 接入使用 Yellowstone **gRPC**；见 [gRPC 缓存接入与三语言示例](examples/GRPC_CACHE.md)。此路径不使用 WebSocket，报价和构建热路径不调用 RPC。
+
+
+[本轮原生对齐 API 迁移](NATIVE_MIGRATION.md)（实施中，尚未发布）。

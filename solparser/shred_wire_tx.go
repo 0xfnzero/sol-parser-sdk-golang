@@ -1,7 +1,7 @@
 package solparser
 
 import (
-	solana "github.com/gagliardetto/solana-go"
+	"github.com/mr-tron/base58"
 )
 
 var shredUnknownProgramCandidates = []string{
@@ -22,8 +22,8 @@ var shredUnknownProgramCandidates = []string{
 // ParseInstructionUnified（与 sol-parser-sdk-ts `dexEventsFromShredWasmTx` 一致）。
 //
 // 限制：仅使用消息中的**静态**账户表。V0 交易若指令账户索引指向 ALT 加载地址，
-// 会以默认 pubkey 占位继续 best-effort 解析；若 program id 也来自 ALT，则按候选 program id
-// discriminator 尝试解析（与 Rust ShredStream 静态路径一致）。
+// 会以默认 pubkey 占位继续 best-effort 解析。program id 必须属于静态账户表；
+// 非法 program/account 索引在 wire 解码阶段拒绝，不使用 discriminator 猜测程序身份。
 func DexEventsFromShredTransactionWire(
 	raw []byte,
 	signature string,
@@ -37,7 +37,7 @@ func DexEventsFromShredTransactionWire(
 		return nil
 	}
 
-	tx, err := solana.TransactionFromBytes(raw)
+	tx, _, err := DecodeWireTransaction(raw, 0, true)
 	if err != nil {
 		return nil
 	}
@@ -51,7 +51,7 @@ func DexEventsFromShredTransactionWire(
 	for _, ix := range msg.Instructions {
 		pid := ""
 		if int(ix.ProgramIDIndex) < len(keys) {
-			pid = keys[ix.ProgramIDIndex].String()
+			pid = keys[ix.ProgramIDIndex]
 		}
 
 		accStrs := make([]string, 0, len(ix.Accounts))
@@ -60,10 +60,13 @@ func DexEventsFromShredTransactionWire(
 				accStrs = append(accStrs, zeroPubkey)
 				continue
 			}
-			accStrs = append(accStrs, keys[ai].String())
+			accStrs = append(accStrs, keys[ai])
 		}
 
-		data := []byte(ix.Data)
+		data, err := base58.Decode(ix.Data)
+		if err != nil {
+			continue
+		}
 		if pid == "" {
 			for _, candidate := range shredUnknownProgramCandidates {
 				ev := ParseInstructionUnified(data, accStrs, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, candidate)

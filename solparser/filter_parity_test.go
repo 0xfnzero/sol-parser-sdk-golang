@@ -534,6 +534,7 @@ func TestAllEventTypesMatchesRustInventory(t *testing.T) {
 		EventTypeAccountOrcaTickArray,
 		EventTypeAccountOrcaFeeTier,
 		EventTypeAccountOrcaWhirlpoolsConfig,
+		EventTypeAccountLiquiditySnapshot, EventTypeAccountRawSnapshot,
 	}
 	got := AllEventTypes()
 	if len(got) != len(want) {

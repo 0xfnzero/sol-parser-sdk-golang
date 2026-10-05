@@ -33,6 +33,8 @@ const (
 	ProtocolPumpSwap         Protocol = "PumpSwap"
 	ProtocolPumpFees         Protocol = "PumpFees"
 	ProtocolPumpSwapFees     Protocol = "PumpSwapFees" // backward-compatible alias
+	ProtocolLaunchLab        Protocol = "LaunchLab"
+	ProtocolStonkFun         Protocol = "StonkFun"
 	ProtocolRaydiumLaunchlab Protocol = "RaydiumLaunchlab"
 	ProtocolRaydiumClmm      Protocol = "RaydiumClmm"
 	ProtocolRaydiumCpmm      Protocol = "RaydiumCpmm"
@@ -101,7 +103,7 @@ func programIDsForProtocol(p Protocol) []string {
 		return []string{METEORA_DLMM_PROGRAM_ID}
 	case ProtocolMeteoraDbc:
 		return []string{METEORA_DBC_PROGRAM_ID}
-	case ProtocolRaydiumLaunchlab:
+	case ProtocolLaunchLab, ProtocolStonkFun, ProtocolRaydiumLaunchlab:
 		return []string{RAYDIUM_LAUNCHLAB_PROGRAM_ID}
 	default:
 		return nil

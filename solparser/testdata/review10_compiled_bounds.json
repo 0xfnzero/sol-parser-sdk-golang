@@ -1,0 +1,329 @@
+[
+  {
+    "name": "valid",
+    "transaction": {
+      "transaction": {
+        "signatures": [
+          "1111111111111111111111111111111111111111111111111111111111111111"
+        ],
+        "message": {
+          "header": {
+            "numRequiredSignatures": 1,
+            "numReadonlySignedAccounts": 0,
+            "numReadonlyUnsignedAccounts": 1
+          },
+          "accountKeys": [
+            "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          ],
+          "recentBlockhash": "11111111111111111111111111111111",
+          "instructions": [
+            {
+              "programIdIndex": 1,
+              "accounts": [
+                0
+              ],
+              "data": "J"
+            }
+          ],
+          "addressTableLookups": []
+        },
+        "version": "legacy"
+      },
+      "meta": {
+        "err": null,
+        "innerInstructions": []
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "program",
+    "transaction": {
+      "transaction": {
+        "signatures": [
+          "1111111111111111111111111111111111111111111111111111111111111111"
+        ],
+        "message": {
+          "header": {
+            "numRequiredSignatures": 1,
+            "numReadonlySignedAccounts": 0,
+            "numReadonlyUnsignedAccounts": 1
+          },
+          "accountKeys": [
+            "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          ],
+          "recentBlockhash": "11111111111111111111111111111111",
+          "instructions": [
+            {
+              "programIdIndex": 999,
+              "accounts": [
+                0
+              ],
+              "data": "J"
+            }
+          ],
+          "addressTableLookups": []
+        },
+        "version": "legacy"
+      },
+      "meta": {
+        "err": null,
+        "innerInstructions": []
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "account",
+    "transaction": {
+      "transaction": {
+        "signatures": [
+          "1111111111111111111111111111111111111111111111111111111111111111"
+        ],
+        "message": {
+          "header": {
+            "numRequiredSignatures": 1,
+            "numReadonlySignedAccounts": 0,
+            "numReadonlyUnsignedAccounts": 1
+          },
+          "accountKeys": [
+            "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          ],
+          "recentBlockhash": "11111111111111111111111111111111",
+          "instructions": [
+            {
+              "programIdIndex": 1,
+              "accounts": [
+                -1
+              ],
+              "data": "J"
+            }
+          ],
+          "addressTableLookups": []
+        },
+        "version": "legacy"
+      },
+      "meta": {
+        "err": null,
+        "innerInstructions": []
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "group",
+    "transaction": {
+      "transaction": {
+        "signatures": [
+          "1111111111111111111111111111111111111111111111111111111111111111"
+        ],
+        "message": {
+          "header": {
+            "numRequiredSignatures": 1,
+            "numReadonlySignedAccounts": 0,
+            "numReadonlyUnsignedAccounts": 1
+          },
+          "accountKeys": [
+            "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          ],
+          "recentBlockhash": "11111111111111111111111111111111",
+          "instructions": [
+            {
+              "programIdIndex": 1,
+              "accounts": [
+                0
+              ],
+              "data": "J"
+            }
+          ],
+          "addressTableLookups": []
+        },
+        "version": "legacy"
+      },
+      "meta": {
+        "err": null,
+        "innerInstructions": [
+          {
+            "index": 1,
+            "instructions": [
+              {
+                "programIdIndex": 1,
+                "accounts": [
+                  0
+                ],
+                "data": "J",
+                "stackHeight": 2
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "duplicate",
+    "transaction": {
+      "transaction": {
+        "signatures": [
+          "1111111111111111111111111111111111111111111111111111111111111111"
+        ],
+        "message": {
+          "header": {
+            "numRequiredSignatures": 1,
+            "numReadonlySignedAccounts": 0,
+            "numReadonlyUnsignedAccounts": 1
+          },
+          "accountKeys": [
+            "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          ],
+          "recentBlockhash": "11111111111111111111111111111111",
+          "instructions": [
+            {
+              "programIdIndex": 1,
+              "accounts": [
+                0
+              ],
+              "data": "J"
+            }
+          ],
+          "addressTableLookups": []
+        },
+        "version": "legacy"
+      },
+      "meta": {
+        "err": null,
+        "innerInstructions": [
+          {
+            "index": 0,
+            "instructions": [
+              {
+                "programIdIndex": 1,
+                "accounts": [
+                  0
+                ],
+                "data": "J",
+                "stackHeight": 2
+              }
+            ]
+          },
+          {
+            "index": 0,
+            "instructions": [
+              {
+                "programIdIndex": 1,
+                "accounts": [
+                  0
+                ],
+                "data": "J",
+                "stackHeight": 2
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "height",
+    "transaction": {
+      "transaction": {
+        "signatures": [
+          "1111111111111111111111111111111111111111111111111111111111111111"
+        ],
+        "message": {
+          "header": {
+            "numRequiredSignatures": 1,
+            "numReadonlySignedAccounts": 0,
+            "numReadonlyUnsignedAccounts": 1
+          },
+          "accountKeys": [
+            "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          ],
+          "recentBlockhash": "11111111111111111111111111111111",
+          "instructions": [
+            {
+              "programIdIndex": 1,
+              "accounts": [
+                0
+              ],
+              "data": "J"
+            }
+          ],
+          "addressTableLookups": []
+        },
+        "version": "legacy"
+      },
+      "meta": {
+        "err": null,
+        "innerInstructions": [
+          {
+            "index": 0,
+            "instructions": [
+              {
+                "programIdIndex": 1,
+                "accounts": [
+                  0
+                ],
+                "data": "J",
+                "stackHeight": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "balance",
+    "transaction": {
+      "transaction": {
+        "signatures": [
+          "1111111111111111111111111111111111111111111111111111111111111111"
+        ],
+        "message": {
+          "header": {
+            "numRequiredSignatures": 1,
+            "numReadonlySignedAccounts": 0,
+            "numReadonlyUnsignedAccounts": 1
+          },
+          "accountKeys": [
+            "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          ],
+          "recentBlockhash": "11111111111111111111111111111111",
+          "instructions": [
+            {
+              "programIdIndex": 1,
+              "accounts": [
+                0
+              ],
+              "data": "J"
+            }
+          ],
+          "addressTableLookups": []
+        },
+        "version": "legacy"
+      },
+      "meta": {
+        "err": null,
+        "innerInstructions": [],
+        "preTokenBalances": [
+          {
+            "accountIndex": 9,
+            "mint": "8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR"
+          }
+        ]
+      }
+    },
+    "valid": false
+  }
+]

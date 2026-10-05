@@ -10,6 +10,9 @@ type DexEvent struct {
 
 // GetMetadata 返回事件元数据
 func (e DexEvent) GetMetadata() EventMetadata {
+	if data, ok := e.Data.(DexEventInterface); ok {
+		return data.GetMetadata()
+	}
 	switch d := e.Data.(type) {
 	case *PumpFunTradeEvent:
 		return d.Metadata

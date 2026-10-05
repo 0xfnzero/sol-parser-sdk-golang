@@ -23,6 +23,7 @@ const splTokenProgramID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 const splToken2022ProgramID = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 
 var accountEventTypes = []EventType{
+	EventTypeAccountLiquiditySnapshot,
 	EventTypeTokenAccount, EventTypeTokenInfo, EventTypeNonceAccount,
 	EventTypeAccountPumpFunGlobal, EventTypeAccountPumpFunBondingCurve,
 	EventTypeAccountPumpFunFeeConfig, EventTypeAccountPumpFunSharingConfig,
@@ -53,6 +54,12 @@ func ParseAccountUnified(account *AccountData, metadata EventMetadata, filter Ev
 		}
 		if !shouldParse {
 			return DexEvent{}
+		}
+	}
+
+	if filter == nil || filter.ShouldInclude(EventTypeAccountLiquiditySnapshot) {
+		if ev := ParseLiquidityAccount(account, metadata); ev.Type != "" {
+			return ev
 		}
 	}
 

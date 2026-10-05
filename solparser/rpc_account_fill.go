@@ -591,17 +591,42 @@ func fillRpcRaydiumCpmmInitialize(ev *DexEvent, msg *RpcMessage, meta *RpcTransa
 }
 
 func fillRpcRaydiumAmmV4Swap(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
-	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_AMM_V4_PROGRAM_ID)
+	e, ok := ev.Data.(*RaydiumAmmV4SwapEvent)
+	if !ok {
+		return
+	}
+	var get func(int) string
+	for _, inv := range invokes[RAYDIUM_AMM_V4_PROGRAM_ID] {
+		candidate := rpcAccountGetter(msg, meta, [][2]int32{inv})
+		if candidate == nil || (!isDefaultPubkeyString(e.Amm) && candidate(1) != e.Amm) {
+			continue
+		}
+		if get != nil {
+			for i := 0; i < 18; i++ {
+				if get(i) != candidate(i) {
+					return
+				}
+			}
+		}
+		get = candidate
+	}
 	if get == nil {
 		return
 	}
-	if e, ok := ev.Data.(*RaydiumAmmV4SwapEvent); ok {
-		fillStringFromAccount(&e.Amm, get, 1)
-		if owner := get(17); isDefaultPubkeyString(owner) {
-			fillStringFromAccount(&e.UserSourceOwner, get, 16)
-		} else if isDefaultPubkeyString(e.UserSourceOwner) {
-			e.UserSourceOwner = owner
-		}
+	fillStringFromAccount(&e.Amm, get, 1)
+	modern := isDefaultPubkeyString(get(8)) && !isDefaultPubkeyString(get(7))
+	if modern {
+		fillStringFromAccount(&e.TokenProgram, get, 0)
+		fillStringFromAccount(&e.AmmAuthority, get, 2)
+		fillStringFromAccount(&e.PoolCoinTokenAccount, get, 3)
+		fillStringFromAccount(&e.PoolPcTokenAccount, get, 4)
+		fillStringFromAccount(&e.UserSourceTokenAccount, get, 5)
+		fillStringFromAccount(&e.UserDestinationTokenAccount, get, 6)
+		fillStringFromAccount(&e.UserSourceOwner, get, 7)
+	} else if isDefaultPubkeyString(get(17)) {
+		fillStringFromAccount(&e.UserSourceOwner, get, 16)
+	} else {
+		fillStringFromAccount(&e.UserSourceOwner, get, 17)
 	}
 }
 
@@ -738,8 +763,36 @@ func findTokenBalanceAmount(balances []RpcTokenBalance, accountIndex uint32) (ui
 	return 0, false
 }
 
+// A shared program can appear for several pools/users in one transaction.
+// Only fill unambiguous account context anchored to the actual event's pool.
+func rpcLaunchlabPoolGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32, pool string, index int) func(int) string {
+	if isDefaultPubkeyString(pool) {
+		return nil
+	}
+	var selected func(int) string
+	for _, inv := range invokes[RAYDIUM_LAUNCHLAB_PROGRAM_ID] {
+		candidate := rpcAccountGetter(msg, meta, [][2]int32{inv})
+		if candidate == nil || candidate(index) != pool {
+			continue
+		}
+		if selected != nil {
+			for i := 0; i < 18; i++ {
+				if selected(i) != candidate(i) {
+					return nil
+				}
+			}
+		}
+		selected = candidate
+	}
+	return selected
+}
+
 func fillRpcRaydiumLaunchlabTrade(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
-	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_LAUNCHLAB_PROGRAM_ID)
+	trade, ok := ev.Data.(*RaydiumLaunchlabTradeEvent)
+	if !ok {
+		return
+	}
+	get := rpcLaunchlabPoolGetter(msg, meta, invokes, trade.PoolState, 4)
 	if get == nil {
 		return
 	}
@@ -756,17 +809,38 @@ func fillRpcRaydiumLaunchlabTrade(ev *DexEvent, msg *RpcMessage, meta *RpcTransa
 		fillStringFromAccount(&e.QuoteMint, get, 10)
 		fillStringFromAccount(&e.BaseTokenProgram, get, 11)
 		fillStringFromAccount(&e.QuoteTokenProgram, get, 12)
+		fillStringFromAccount(&e.SystemProgram, get, 15)
+		fillStringFromAccount(&e.PlatformAssociatedAccount, get, 16)
+		fillStringFromAccount(&e.CreatorAssociatedAccount, get, 17)
 	}
 }
 
 func fillRpcRaydiumLaunchlabPoolCreate(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
-	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_LAUNCHLAB_PROGRAM_ID)
+	created, ok := ev.Data.(*RaydiumLaunchlabPoolCreateEvent)
+	if !ok {
+		return
+	}
+	get := rpcLaunchlabPoolGetter(msg, meta, invokes, created.PoolState, 5)
 	if get == nil {
 		return
 	}
 	if e, ok := ev.Data.(*RaydiumLaunchlabPoolCreateEvent); ok {
 		fillStringFromAccount(&e.Creator, get, 1)
 		fillStringFromAccount(&e.PoolState, get, 5)
+		fillStringFromAccount(&e.Payer, get, 0)
+		fillStringFromAccount(&e.GlobalConfig, get, 2)
+		fillStringFromAccount(&e.PlatformConfig, get, 3)
+		fillStringFromAccount(&e.BaseMint, get, 6)
+		fillStringFromAccount(&e.QuoteMint, get, 7)
+		fillStringFromAccount(&e.BaseVault, get, 8)
+		fillStringFromAccount(&e.QuoteVault, get, 9)
+		if get(17) == RAYDIUM_LAUNCHLAB_PROGRAM_ID {
+			fillStringFromAccount(&e.BaseTokenProgram, get, 11)
+			fillStringFromAccount(&e.QuoteTokenProgram, get, 12)
+		} else if get(14) == RAYDIUM_LAUNCHLAB_PROGRAM_ID {
+			fillStringFromAccount(&e.BaseTokenProgram, get, 10)
+			fillStringFromAccount(&e.QuoteTokenProgram, get, 11)
+		}
 	}
 }
 

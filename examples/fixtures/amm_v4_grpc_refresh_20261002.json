@@ -1,0 +1,29 @@
+{
+  "python": {
+    "refresh": {
+      "slot": "452597661",
+      "epoch": "1047",
+      "blockhash_slot": 452597659,
+      "pool_updated": true
+    },
+    "offline_trade_rejected_stale": true
+  },
+  "node": {
+    "refresh": {
+      "slot": "452597664",
+      "epoch": "1047",
+      "blockhash_slot": 452597663,
+      "pool_updated": true
+    },
+    "offline_trade_rejected_stale": true
+  },
+  "go": {
+    "refresh": {
+      "slot": "452597664",
+      "epoch": "1047",
+      "blockhash_slot": 452597663,
+      "pool_updated": true
+    },
+    "offline_trade_rejected_stale": true
+  }
+}

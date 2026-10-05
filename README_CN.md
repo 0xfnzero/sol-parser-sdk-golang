@@ -40,6 +40,12 @@
 
 ## 发布说明
 
+### v0.5.9
+
+- Adds native gRPC lifecycle and block metadata support, instruction-level route analysis and StonkFun registry/snapshot examples.
+- Improves exact metadata serialization, account matching and wire transaction bounds validation.
+- Includes native alignment evidence and simulation route fixtures. These language releases do not yet implement the new CPMM creator-fee collection event API.
+
 ### v0.5.8
 
 - 与 Rust sol-parser-sdk **0.7.3** 对齐，覆盖当前 PumpFun、PumpSwap 与 Pump Fees 协议定义。
@@ -84,7 +90,7 @@ go mod tidy
 **在其他 Go 工程引用**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.8
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.5.9
 ```
 
 （本地开发可用 `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` 指向克隆目录。）
@@ -201,3 +207,14 @@ go vet ./...
 ## 许可证
 
 MIT — https://github.com/0xfnzero/sol-parser-sdk-golang
+
+## Native alignment status
+
+See [NATIVE_ALIGNMENT.md](NATIVE_ALIGNMENT.md) for implemented native APIs, Rust golden tests, mainnet simulation evidence, examples, and remaining parity gaps. Full cross-language parity is still in progress.
+
+### Offline simulation route evidence
+
+`solparser.AnalyzeSimulationRoutes(wire, simulationResponseJSON, graduatedPools)` accepts original transaction bytes and a complete `simulateTransaction` JSON response. It makes no RPC calls. Parsed SPL transfers, compiled CPI, execution failure, and unknown Token-2022 net credits are preserved. See [examples/SIMULATION_ROUTES.md](examples/SIMULATION_ROUTES.md) and `go run ./examples/simulation_routes solparser/testdata/cached_tip_routes_20261002.json route-buy`.
+
+
+[本轮原生对齐 API 迁移](NATIVE_MIGRATION.md)（实施中，尚未发布）。

@@ -1722,24 +1722,39 @@ func (e *MeteoraDbcCurveCompleteEvent) GetMetadata() EventMetadata { return e.Me
 
 // RaydiumLaunchlabTradeEvent RaydiumLaunchlab 交易事件
 type RaydiumLaunchlabTradeEvent struct {
-	Metadata          EventMetadata `json:"metadata"`
-	PoolState         string        `json:"pool_state"`
-	User              string        `json:"user"`
-	AmountIn          uint64        `json:"amount_in"`
-	AmountOut         uint64        `json:"amount_out"`
-	IsBuy             bool          `json:"is_buy"`
-	TradeDirection    string        `json:"trade_direction"`
-	ExactIn           bool          `json:"exact_in"`
-	GlobalConfig      string        `json:"global_config"`
-	PlatformConfig    string        `json:"platform_config"`
-	UserBaseToken     string        `json:"user_base_token"`
-	UserQuoteToken    string        `json:"user_quote_token"`
-	BaseVault         string        `json:"base_vault"`
-	QuoteVault        string        `json:"quote_vault"`
-	BaseMint          string        `json:"base_mint"`
-	QuoteMint         string        `json:"quote_mint"`
-	BaseTokenProgram  string        `json:"base_token_program"`
-	QuoteTokenProgram string        `json:"quote_token_program"`
+	Metadata                  EventMetadata `json:"metadata"`
+	PoolState                 string        `json:"pool_state"`
+	User                      string        `json:"user"`
+	AmountIn                  uint64        `json:"amount_in"`
+	AmountOut                 uint64        `json:"amount_out"`
+	IsBuy                     bool          `json:"is_buy"`
+	TradeDirection            string        `json:"trade_direction"`
+	ExactIn                   bool          `json:"exact_in"`
+	GlobalConfig              string        `json:"global_config"`
+	PlatformConfig            string        `json:"platform_config"`
+	UserBaseToken             string        `json:"user_base_token"`
+	UserQuoteToken            string        `json:"user_quote_token"`
+	BaseVault                 string        `json:"base_vault"`
+	QuoteVault                string        `json:"quote_vault"`
+	BaseMint                  string        `json:"base_mint"`
+	QuoteMint                 string        `json:"quote_mint"`
+	BaseTokenProgram          string        `json:"base_token_program"`
+	QuoteTokenProgram         string        `json:"quote_token_program"`
+	TotalBaseSell             uint64        `json:"total_base_sell"`
+	VirtualBase               uint64        `json:"virtual_base"`
+	VirtualQuote              uint64        `json:"virtual_quote"`
+	RealBaseBefore            uint64        `json:"real_base_before"`
+	RealQuoteBefore           uint64        `json:"real_quote_before"`
+	RealBaseAfter             uint64        `json:"real_base_after"`
+	RealQuoteAfter            uint64        `json:"real_quote_after"`
+	ProtocolFee               uint64        `json:"protocol_fee"`
+	PlatformFee               uint64        `json:"platform_fee"`
+	CreatorFee                uint64        `json:"creator_fee"`
+	ShareFee                  uint64        `json:"share_fee"`
+	PoolStatus                string        `json:"pool_status"`
+	SystemProgram             string        `json:"system_program"`
+	PlatformAssociatedAccount string        `json:"platform_associated_account"`
+	CreatorAssociatedAccount  string        `json:"creator_associated_account"`
 }
 
 func (e *RaydiumLaunchlabTradeEvent) EventType() EventType       { return EventTypeRaydiumLaunchlabTrade }
@@ -1747,10 +1762,19 @@ func (e *RaydiumLaunchlabTradeEvent) GetMetadata() EventMetadata { return e.Meta
 
 // RaydiumLaunchlabPoolCreateEvent RaydiumLaunchlab 创建池子事件
 type RaydiumLaunchlabPoolCreateEvent struct {
-	Metadata      EventMetadata             `json:"metadata"`
-	BaseMintParam RaydiumLaunchlabMintParam `json:"base_mint_param"`
-	PoolState     string                    `json:"pool_state"`
-	Creator       string                    `json:"creator"`
+	Metadata          EventMetadata             `json:"metadata"`
+	BaseMintParam     RaydiumLaunchlabMintParam `json:"base_mint_param"`
+	PoolState         string                    `json:"pool_state"`
+	Creator           string                    `json:"creator"`
+	Payer             string                    `json:"payer"`
+	GlobalConfig      string                    `json:"global_config"`
+	PlatformConfig    string                    `json:"platform_config"`
+	BaseMint          string                    `json:"base_mint"`
+	QuoteMint         string                    `json:"quote_mint"`
+	BaseVault         string                    `json:"base_vault"`
+	QuoteVault        string                    `json:"quote_vault"`
+	BaseTokenProgram  string                    `json:"base_token_program"`
+	QuoteTokenProgram string                    `json:"quote_token_program"`
 }
 
 // RaydiumLaunchlabMintParam RaydiumLaunchlab mint 参数
@@ -1768,11 +1792,16 @@ func (e *RaydiumLaunchlabPoolCreateEvent) GetMetadata() EventMetadata { return e
 
 // RaydiumLaunchlabMigrateAmmEvent RaydiumLaunchlab 迁移 AMM 事件
 type RaydiumLaunchlabMigrateAmmEvent struct {
-	Metadata        EventMetadata `json:"metadata"`
-	OldPool         string        `json:"old_pool"`
-	NewPool         string        `json:"new_pool"`
-	User            string        `json:"user"`
-	LiquidityAmount uint64        `json:"liquidity_amount"`
+	Metadata             EventMetadata `json:"metadata"`
+	OldPool              string        `json:"old_pool"`
+	NewPool              string        `json:"new_pool"`
+	User                 string        `json:"user"`
+	LiquidityAmount      uint64        `json:"liquidity_amount"`
+	LiquidityAmountKnown bool          `json:"liquidity_amount_known"`
+	BaseMint             string        `json:"base_mint"`
+	QuoteMint            string        `json:"quote_mint"`
+	PlatformConfig       string        `json:"platform_config"`
+	DestinationProgram   string        `json:"destination_program"`
 }
 
 func (e *RaydiumLaunchlabMigrateAmmEvent) EventType() EventType {
@@ -2207,3 +2236,19 @@ type PumpSwapPoolAccountData struct {
 
 func (e *PumpSwapPoolAccountEvent) EventType() EventType       { return EventTypeAccountPumpSwapPool }
 func (e *PumpSwapPoolAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+func (e *RaydiumLaunchlabTradeEvent) StonkFunMode() *string {
+	return StonkFunModeFromPlatformConfig(e.PlatformConfig)
+}
+func (e *RaydiumLaunchlabPoolCreateEvent) StonkFunMode() *string {
+	return StonkFunModeFromPlatformConfig(e.PlatformConfig)
+}
+func (e *RaydiumLaunchlabMigrateAmmEvent) StonkFunMode() *string {
+	return StonkFunModeFromPlatformConfig(e.PlatformConfig)
+}
+
+// Rust public aliases preserve the original event and its platform methods.
+type LaunchLabPoolCreateEvent = RaydiumLaunchlabPoolCreateEvent
+type StonkFunPoolCreateEvent = RaydiumLaunchlabPoolCreateEvent
+type LaunchLabTradeEvent = RaydiumLaunchlabTradeEvent
+type StonkFunTradeEvent = RaydiumLaunchlabTradeEvent

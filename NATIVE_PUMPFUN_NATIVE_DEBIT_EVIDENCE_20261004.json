@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-04",
+  "overall_alignment_complete": false,
+  "native_debit_rules": {
+    "scope": "PumpFun V2 WSOL-sentinel buy",
+    "input_account": "wallet",
+    "recipients": [
+      "curve",
+      "fee recipient",
+      "buyback recipient",
+      "creator vault"
+    ],
+    "requires": "direct pool payment, known payment recipients and immediate stack depth",
+    "on_ambiguity": "unknown",
+    "fee_rent_wrap_excluded": true,
+    "source": "successful execution System CPI, not specified amount"
+  },
+  "actual_buy_input_lamports": 10000,
+  "actual_output": "Token-2022 net output remains unknown without fee evidence",
+  "corpora": [
+    "pumpfun_current_mainnet_simulations_20261004.json",
+    "pumpfun_settlement_mainnet_simulations_20261004.json"
+  ],
+  "verification": {
+    "full_node_before_final_added_samples": 221,
+    "node_skipped": 8,
+    "full_python_before_final_added_samples": 207,
+    "final_node_simulation_tests": 57,
+    "final_python_simulation_tests": 59,
+    "go_test_vet_and_race": "passed",
+    "node_typecheck_build": "passed",
+    "installed_npm_public_api": "native debit verified",
+    "installed_python_wheel": "native debit verified"
+  },
+  "sell_attempt": {
+    "grpc_events": 5,
+    "canonical_atas": "no usable balance at cold validation",
+    "non_ata_buy_source": "no valid initialized account at later cold validation",
+    "other_buy_source": "zero balance",
+    "simulations_performed": 0,
+    "accepted_as_success": false
+  },
+  "broadcasts": 0,
+  "sell_verified_followup": {
+    "account_grpc_candidates": 9,
+    "successful_simulations": 16,
+    "selected_factory_wire_match": [
+      "go",
+      "nodejs",
+      "python"
+    ],
+    "actual_source_debit": "100000000",
+    "actual_minimum_wsol_credit": "7542",
+    "actual_native_residual": "397",
+    "parser_actual_output": "unknown; direct lamport changes not attributed"
+  }
+}

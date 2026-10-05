@@ -41,15 +41,16 @@ func shredWireClmmSwapInstruction() []byte {
 
 func TestDexEventsFromShredTransactionWireDefaultsAltLoadedAccounts(t *testing.T) {
 	pool := shredWireTestPubkey(1)
-	raw := shredWireTestRawTx(
-		t,
-		[]solana.PublicKey{solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), pool},
-		solana.CompiledInstruction{
-			ProgramIDIndex: 0,
-			Accounts:       []uint16{99, 99, 1},
-			Data:           solana.Base58(shredWireClmmSwapInstruction()),
-		},
-	)
+	tx := solana.Transaction{Message: solana.Message{
+		AccountKeys:         []solana.PublicKey{solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), pool},
+		Instructions:        []solana.CompiledInstruction{{ProgramIDIndex: 0, Accounts: []uint16{2, 2, 1}, Data: solana.Base58(shredWireClmmSwapInstruction())}},
+		AddressTableLookups: solana.MessageAddressTableLookupSlice{{AccountKey: shredWireTestPubkey(9), WritableIndexes: []uint8{0}}},
+	}}
+	tx.Message.SetVersion(solana.MessageVersionV0)
+	raw, err := tx.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	events := DexEventsFromShredTransactionWire(raw, "sig", 1, 0, nil, 10, nil)
 	if len(events) != 1 || events[0].Type != EventTypeRaydiumClmmSwap {
@@ -64,7 +65,7 @@ func TestDexEventsFromShredTransactionWireDefaultsAltLoadedAccounts(t *testing.T
 	}
 }
 
-func TestDexEventsFromShredTransactionWireFallbacksAltLoadedProgramID(t *testing.T) {
+func TestDexEventsFromShredTransactionWireRejectsInvalidProgramID(t *testing.T) {
 	global := shredWireTestPubkey(2)
 	mint := shredWireTestPubkey(3)
 	raw := shredWireTestRawTx(
@@ -78,16 +79,10 @@ func TestDexEventsFromShredTransactionWireFallbacksAltLoadedProgramID(t *testing
 	)
 
 	events := DexEventsFromShredTransactionWire(raw, "sig", 1, 0, nil, 10, &IncludeOnlyFilter{IncludeOnly: []EventType{EventTypePumpFunBuy}})
-	if len(events) != 1 || events[0].Type != EventTypePumpFunBuy {
-		t.Fatalf("expected one PumpFunBuy event, got %+v", events)
+	if len(events) != 0 {
+		t.Fatalf("invalid legacy program index must not produce events: %+v", events)
 	}
-	trade, ok := events[0].Data.(*PumpFunTradeEvent)
-	if !ok {
-		t.Fatalf("expected PumpFunTradeEvent, got %T", events[0].Data)
-	}
-	if trade.Mint != mint.String() || trade.TokenAmount != 123 || trade.SolAmount != 456 {
-		t.Fatalf("unexpected PumpFun ALT program fallback event: %+v", trade)
-	}
+
 }
 
 func TestDexEventsFromShredTransactionWireSkipsAccountOnlyFilter(t *testing.T) {

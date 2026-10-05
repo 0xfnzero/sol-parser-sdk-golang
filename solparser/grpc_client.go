@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +34,27 @@ func tlsConfigForGRPCEndpoint(endpoint string) *tls.Config {
 	return cfg
 }
 
+// normalizeGRPCEndpoint accepts the same http(s) GRPC_URL form as other languages.
+// Never include the original URL in errors: it can contain credentials.
+func normalizeGRPCEndpoint(endpoint string, configuredTLS bool) (string, bool, error) {
+	if !strings.Contains(endpoint, "://") {
+		return endpoint, configuredTLS, nil
+	}
+	parsed, err := url.Parse(endpoint)
+	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Hostname() == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
+		return "", false, fmt.Errorf("invalid gRPC endpoint; use host:port or http(s)://host:port")
+	}
+	port := parsed.Port()
+	if port == "" {
+		if parsed.Scheme == "https" {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
+	return net.JoinHostPort(parsed.Hostname(), port), parsed.Scheme == "https", nil
+}
+
 // SubscribeCallbacks 订阅回调函数
 type SubscribeCallbacks struct {
 	OnUpdate func(update *SubscribeUpdate)
@@ -47,6 +70,14 @@ type Subscription struct {
 	callbacks SubscribeCallbacks
 }
 
+// GrpcStreamStatus reports lifecycle and sticky loss of continuity.
+type GrpcStreamStatus struct {
+	State            string
+	ContinuityBroken bool
+	Reconnects       uint64
+	Dropped          uint64
+}
+
 // DexEventSubscription 直接产出解析后的 DexEvent。
 // Events/Errors 使用有界缓冲；缓冲满时丢弃新消息，避免阻塞 gRPC 读循环。
 type DexEventSubscription struct {
@@ -54,22 +85,29 @@ type DexEventSubscription struct {
 	Events <-chan DexEvent
 	Errors <-chan error
 	Cancel func()
+	States <-chan GrpcStreamStatus
+	Status func() GrpcStreamStatus
+	Join   func()
 }
 
 // YellowstoneGrpc Yellowstone gRPC 客户端
 type YellowstoneGrpc struct {
-	endpoint    string
-	config      ClientConfig
-	xToken      string
-	ctx         context.Context
-	cancel      context.CancelFunc
-	conn        *grpc.ClientConn
-	client      pb.GeyserClient
-	stream      pb.Geyser_SubscribeClient
-	dexControl  chan *pb.SubscribeRequest
-	mu          sync.RWMutex
-	connected   bool
-	subscribers map[string]*Subscription
+	endpoint     string
+	config       ClientConfig
+	xToken       string
+	ctx          context.Context
+	cancel       context.CancelFunc
+	conn         *grpc.ClientConn
+	client       pb.GeyserClient
+	stream       pb.Geyser_SubscribeClient
+	dexLifecycle sync.Mutex
+	dexCancel    context.CancelFunc
+	dexDone      chan struct{}
+	dexControl   chan *pb.SubscribeRequest
+	dexFilter    EventTypeFilter
+	mu           sync.RWMutex
+	connected    bool
+	subscribers  map[string]*Subscription
 }
 
 // NewYellowstoneGrpc 创建新的 Yellowstone gRPC 客户端
@@ -127,6 +165,14 @@ func (c *YellowstoneGrpc) Connect() error {
 	if c.connected {
 		return nil
 	}
+	if c.ctx == nil || c.ctx.Err() != nil {
+		c.ctx, c.cancel = context.WithCancel(context.Background())
+	}
+
+	endpoint, enableTLS, err := normalizeGRPCEndpoint(c.endpoint, c.config.EnableTLS)
+	if err != nil {
+		return err
+	}
 
 	// 配置 keepalive 参数
 	// 参考: yellowstone-grpc-golang 示例
@@ -143,8 +189,8 @@ func (c *YellowstoneGrpc) Connect() error {
 	}
 
 	// 配置 TLS（显式 SNI，避免 publicnode 等域名出现 handshake EOF）
-	if c.config.EnableTLS {
-		creds := credentials.NewTLS(tlsConfigForGRPCEndpoint(c.endpoint))
+	if enableTLS {
+		creds := credentials.NewTLS(tlsConfigForGRPCEndpoint(endpoint))
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -153,7 +199,7 @@ func (c *YellowstoneGrpc) Connect() error {
 	ctx, cancel := context.WithTimeout(c.ctx, time.Duration(c.config.ConnectionTimeoutMs)*time.Millisecond)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, c.endpoint, opts...)
+	conn, err := grpc.DialContext(ctx, endpoint, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
@@ -167,6 +213,9 @@ func (c *YellowstoneGrpc) Connect() error {
 
 // Disconnect 断开连接
 func (c *YellowstoneGrpc) Disconnect() error {
+	c.dexLifecycle.Lock()
+	defer c.dexLifecycle.Unlock()
+	c.stopDexUnlocked()
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -253,6 +302,9 @@ func (c *YellowstoneGrpc) SubscribeTransactions(filter TransactionFilter, callba
 // SubscribeDexEvents 订阅交易/账户更新并直接产出 DexEvent。
 // 解析路径与 Rust gRPC 订阅对齐：交易走指令 + 日志 + 字段填充，账户更新走 ParseAccountUnified。
 func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFilter, accountFilters []AccountFilter, filter EventTypeFilter) (*DexEventSubscription, error) {
+	c.dexLifecycle.Lock()
+	defer c.dexLifecycle.Unlock()
+	c.stopDexUnlocked()
 	if err := c.Connect(); err != nil {
 		return nil, err
 	}
@@ -264,11 +316,57 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 
 	eventCh := make(chan DexEvent, bufferSize)
 	errCh := make(chan error, bufferSize)
+	stateCh := make(chan GrpcStreamStatus, bufferSize)
+	statusMu := sync.RWMutex{}
+	status := GrpcStreamStatus{State: "connecting"}
+	stateCh <- status
+	statusClosed := false
+	transition := func(state string, broken bool, drop bool) {
+		statusMu.Lock()
+		defer statusMu.Unlock()
+		if statusClosed {
+			return
+		}
+		previous := status
+		if state != "" {
+			status.State = state
+		}
+		status.ContinuityBroken = status.ContinuityBroken || broken
+		if drop {
+			status.Dropped++
+		}
+		if state == "reconnecting" && previous.State != "reconnecting" {
+			status.Reconnects++
+		}
+		if status == previous {
+			return
+		}
+		select {
+		case stateCh <- status:
+		default:
+		}
+	}
+	getStatus := func() GrpcStreamStatus { statusMu.RLock(); defer statusMu.RUnlock(); return status }
+	closeStatus := func() {
+		transition("stopped", true, false)
+		statusMu.Lock()
+		defer statusMu.Unlock()
+		if !statusClosed {
+			statusClosed = true
+			close(stateCh)
+		}
+	}
 	ctx, cancelCtx := context.WithCancel(c.ctx)
+	done := make(chan struct{})
+	c.dexCancel = cancelCtx
+	c.dexDone = done
 	dexID := generateSubID()
 	controlCh := make(chan *pb.SubscribeRequest, 100)
 	reqMu := sync.RWMutex{}
 	currentReq := c.buildSubscribeRequestMulti(transactionFilters, accountFilters)
+	if filter != nil && filter.ShouldInclude(EventTypeBlockMeta) {
+		currentReq.BlocksMeta = map[string]*pb.SubscribeRequestFilterBlocksMeta{"block_meta": {}}
+	}
 
 	var closeOnce sync.Once
 	var sendMu sync.RWMutex
@@ -279,6 +377,7 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 			closed = true
 			close(eventCh)
 			close(errCh)
+			closeStatus()
 			sendMu.Unlock()
 		})
 	}
@@ -308,6 +407,7 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 		select {
 		case eventCh <- event:
 		default:
+			transition("", true, true)
 		}
 	}
 
@@ -327,6 +427,7 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 	c.mu.RUnlock()
 	if client == nil {
 		cancel()
+		close(done)
 		return nil, fmt.Errorf("client not connected")
 	}
 
@@ -336,9 +437,11 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 	c.mu.Lock()
 	c.subscribers[dexID] = &Subscription{ID: dexID, Cancel: cancelCtx}
 	c.dexControl = controlCh
+	c.dexFilter = filter
 	c.mu.Unlock()
 
 	go func() {
+		defer close(done)
 		defer func() {
 			orderDispatcher.stop()
 			orderDispatcher.flushAll(sendEvent)
@@ -375,8 +478,11 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 			}
 		drainedControl:
 
-			stream, err := client.Subscribe(ctx)
+			streamCtx, cancelStream := context.WithCancel(ctx)
+			stream, err := client.Subscribe(streamCtx)
 			if err != nil {
+				cancelStream()
+				transition("reconnecting", true, false)
 				if !sleepBeforeReconnect(ctx, backoff, sendError, err) {
 					return
 				}
@@ -392,6 +498,8 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 			err = stream.Send(req)
 			sendMu.Unlock()
 			if err != nil {
+				cancelStream()
+				transition("reconnecting", true, false)
 				if !sleepBeforeReconnect(ctx, backoff, sendError, err) {
 					return
 				}
@@ -403,12 +511,16 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 			if backoff <= 0 {
 				backoff = time.Second
 			}
+			transition("connected", false, false)
 			streamDone := make(chan struct{})
+			writerDone := make(chan struct{})
 			var streamDoneOnce sync.Once
 			closeStreamDone := func() {
-				streamDoneOnce.Do(func() { close(streamDone) })
+				streamDoneOnce.Do(func() { close(streamDone); cancelStream() })
+				<-writerDone
 			}
 			go func() {
+				defer close(writerDone)
 				for {
 					select {
 					case <-ctx.Done():
@@ -423,6 +535,7 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 						err := stream.Send(nextReq)
 						sendMu.Unlock()
 						if err != nil {
+							cancelStream()
 							sendError(err)
 							return
 						}
@@ -433,6 +546,9 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 			for {
 				resp, err := stream.Recv()
 				if err != nil {
+					if ctx.Err() == nil {
+						transition("reconnecting", true, false)
+					}
 					closeStreamDone()
 					if !sleepBeforeReconnect(ctx, backoff, sendError, err) {
 						return
@@ -449,6 +565,7 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 					sendMu.Unlock()
 					if err != nil {
 						sendError(err)
+						transition("reconnecting", true, false)
 						closeStreamDone()
 						break
 					}
@@ -471,7 +588,14 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 					}
 					orderDispatcher.pushTransactionEvents(events, update.Transaction.Slot, update.Transaction.Transaction.Index, sendEvent)
 				}
+				if update.BlockMeta != nil && (filter == nil || filter.ShouldInclude(EventTypeBlockMeta)) {
+					sendEvent(ParseBlockMetaUpdate(update.BlockMeta, grpcRecvUs, blockTimeUs))
+				}
 				if update.Account != nil {
+					if inc, ok := filter.(*IncludeOnlyFilter); ok && eventTypeSliceContains(inc.IncludeOnly, EventTypeAccountRawSnapshot) {
+						sendEvent(parseAccountDexEvent(update.Account, filter, grpcRecvUs, blockTimeUs, true))
+					}
+
 					sendEvent(parseAccountDexEvent(update.Account, filter, grpcRecvUs, blockTimeUs))
 				}
 
@@ -491,15 +615,22 @@ func (c *YellowstoneGrpc) SubscribeDexEvents(transactionFilters []TransactionFil
 		Events: eventCh,
 		Errors: errCh,
 		Cancel: cancel,
+		States: stateCh, Status: getStatus, Join: func() { <-done },
 	}, nil
 }
 
 // UpdateSubscription 动态更新当前 DEX 订阅过滤器（与 Rust update_subscription 对齐）。
 func (c *YellowstoneGrpc) UpdateSubscription(transactionFilters []TransactionFilter, accountFilters []AccountFilter) error {
+	c.dexLifecycle.Lock()
+	defer c.dexLifecycle.Unlock()
 	req := c.buildSubscribeRequestMulti(transactionFilters, accountFilters)
 	c.mu.RLock()
 	controlCh := c.dexControl
+	filter := c.dexFilter
 	c.mu.RUnlock()
+	if filter != nil && filter.ShouldInclude(EventTypeBlockMeta) {
+		req.BlocksMeta = map[string]*pb.SubscribeRequestFilterBlocksMeta{"block_meta": {}}
+	}
 	if controlCh == nil {
 		return fmt.Errorf("no active DEX subscription")
 	}
@@ -533,7 +664,7 @@ func minDuration(a, b time.Duration) time.Duration {
 	return b
 }
 
-func parseAccountDexEvent(update *SubscribeUpdateAccount, filter EventTypeFilter, grpcRecvUs int64, blockTimeUs *int64) DexEvent {
+func parseAccountDexEvent(update *SubscribeUpdateAccount, filter EventTypeFilter, grpcRecvUs int64, blockTimeUs *int64, rawSnapshot ...bool) DexEvent {
 	if update == nil || update.Account == nil {
 		return DexEvent{}
 	}
@@ -551,6 +682,11 @@ func parseAccountDexEvent(update *SubscribeUpdateAccount, filter EventTypeFilter
 		Data:       acc.Data,
 	}
 	meta := makeMetadata(signature, update.Slot, 0, blockTimeUs, grpcRecvUs, "")
+
+	if len(rawSnapshot) > 0 && rawSnapshot[0] {
+		account.Data = append([]byte{}, account.Data...)
+		return DexEvent{Type: EventTypeAccountRawSnapshot, Data: &RawAccountSnapshotEvent{meta, *account, acc.WriteVersion, update.IsStartup}}
+	}
 	return ParseAccountUnified(account, meta, filter)
 }
 
@@ -798,6 +934,11 @@ func (c *YellowstoneGrpc) convertSubscribeUpdate(pbUpdate *pb.SubscribeUpdate) *
 			ParentBlockhash:          meta.ParentBlockhash,
 			ExecutedTransactionCount: meta.ExecutedTransactionCount,
 		}
+	}
+
+	if meta := pbUpdate.GetBlockMeta(); meta != nil && meta.BlockTime != nil {
+		t := meta.BlockTime.Timestamp
+		update.BlockMeta.BlockTime = &t
 	}
 
 	// 转换 Ping
@@ -1052,4 +1193,21 @@ func ParseCommitmentLevel(s string) CommitmentLevel {
 	default:
 		return CommitmentLevelProcessed
 	}
+}
+
+// Stop waits for the active DEX stream and all associated workers to exit.
+func (c *YellowstoneGrpc) Stop() {
+	c.dexLifecycle.Lock()
+	defer c.dexLifecycle.Unlock()
+	c.stopDexUnlocked()
+}
+func (c *YellowstoneGrpc) stopDexUnlocked() {
+	if c.dexCancel != nil {
+		c.dexCancel()
+	}
+	if c.dexDone != nil {
+		<-c.dexDone
+	}
+	c.dexCancel = nil
+	c.dexDone = nil
 }

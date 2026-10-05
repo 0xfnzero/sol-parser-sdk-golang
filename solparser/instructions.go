@@ -260,7 +260,7 @@ func normalInstructionDataMayParse(programID string, data []byte) bool {
 	}
 	switch programID {
 	case RAYDIUM_AMM_V4_PROGRAM_ID:
-		return firstByteIn(data, 1, 3, 4, 7, 9, 11)
+		return firstByteIn(data, 1, 3, 4, 7, 9, 11, 16, 17)
 	case METEORA_DLMM_PROGRAM_ID:
 		return headInDiscs(data,
 			instrDlmmInitializeLbPair,
@@ -1675,12 +1675,16 @@ func ParseRaydiumAmmV4Instruction(
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 
 	switch instrType {
-	case 9, 11: // SwapBaseIn, SwapBaseOut
+	case 9, 11, 16, 17: // SwapBaseIn, SwapBaseOut
 		if len(data) < 17 {
 			return DexEvent{}
 		}
+		modern := instrType == 16 || instrType == 17
+		if modern && len(accounts) < 8 {
+			return DexEvent{}
+		}
 		var amountIn, minOut, maxIn, amountOut uint64
-		if instrType == 9 {
+		if instrType == 9 || instrType == 16 {
 			amountIn, _ = readU64LE(data, 1)
 			minOut, _ = readU64LE(data, 9)
 		} else {
@@ -1692,6 +1696,13 @@ func ParseRaydiumAmmV4Instruction(
 			shift = 1
 		}
 		getSwapAccount := func(index int) string {
+			if modern {
+				mapped, ok := map[int]int{0: 0, 1: 1, 2: 2, 5: 3, 6: 4, 15: 5, 16: 6, 17: 7}[index]
+				if !ok {
+					return "11111111111111111111111111111111"
+				}
+				return getAccountSafe(accounts, mapped)
+			}
 			if index >= 5 {
 				index -= shift
 			}
@@ -1955,6 +1966,9 @@ func ParseRaydiumLaunchlabInstruction(
 		return parseRaydiumLaunchlabPoolCreateFromData(payload, meta)
 	case instrRaydiumLaunchlabBuyExactIn, instrRaydiumLaunchlabBuyExactOut,
 		instrRaydiumLaunchlabSellExactIn, instrRaydiumLaunchlabSellExactOut:
+		if len(payload) < 16 || len(accounts) < 5 {
+			return DexEvent{}
+		}
 		first, _ := readU64LE(payload, 0)
 		second, _ := readU64LE(payload, 8)
 		exactIn := discriminator == instrRaydiumLaunchlabBuyExactIn ||
@@ -1980,6 +1994,7 @@ func ParseRaydiumLaunchlabInstruction(
 				IsBuy:             isBuy,
 				TradeDirection:    dir,
 				ExactIn:           exactIn,
+				PoolStatus:        "Fund",
 				GlobalConfig:      getAccountSafe(accounts, 2),
 				PlatformConfig:    getAccountSafe(accounts, 3),
 				UserBaseToken:     getAccountSafe(accounts, 5),
@@ -1990,11 +2005,12 @@ func ParseRaydiumLaunchlabInstruction(
 				QuoteMint:         getAccountSafe(accounts, 10),
 				BaseTokenProgram:  getAccountSafe(accounts, 11),
 				QuoteTokenProgram: getAccountSafe(accounts, 12),
+				SystemProgram:     getAccountSafe(accounts, 15), PlatformAssociatedAccount: getAccountSafe(accounts, 16), CreatorAssociatedAccount: getAccountSafe(accounts, 17),
 			},
 		}
 	case instrRaydiumLaunchlabInitialize, instrRaydiumLaunchlabInitializeV2,
 		instrRaydiumLaunchlabInitializeToken2022:
-		if len(payload) < 1 {
+		if len(payload) < 1 || len(accounts) < 6 {
 			return DexEvent{}
 		}
 		decimals := payload[0]
@@ -2013,6 +2029,11 @@ func ParseRaydiumLaunchlabInstruction(
 		if !ok {
 			return DexEvent{}
 		}
+		bi, qi := 11, 12
+		if discriminator == instrRaydiumLaunchlabInitializeToken2022 {
+			bi, qi = 10, 11
+		}
+
 		return DexEvent{
 			Type: EventTypeRaydiumLaunchlabPoolCreate,
 			Data: &RaydiumLaunchlabPoolCreateEvent{
@@ -2025,10 +2046,21 @@ func ParseRaydiumLaunchlabInstruction(
 				},
 				PoolState: getAccountSafe(accounts, 5),
 				Creator:   getAccountSafe(accounts, 1),
+				Payer:     getAccountSafe(accounts, 0), GlobalConfig: getAccountSafe(accounts, 2), PlatformConfig: getAccountSafe(accounts, 3), BaseMint: getAccountSafe(accounts, 6), QuoteMint: getAccountSafe(accounts, 7), BaseVault: getAccountSafe(accounts, 8), QuoteVault: getAccountSafe(accounts, 9), BaseTokenProgram: getAccountSafe(accounts, bi), QuoteTokenProgram: getAccountSafe(accounts, qi),
 			},
 		}
 	case instrRaydiumLaunchlabMigrateToAmm, instrRaydiumLaunchlabMigrateToCpswap:
-		return DexEvent{}
+		cp := discriminator == instrRaydiumLaunchlabMigrateToCpswap
+		oldIndex, newIndex, destinationIndex, count := 23, 13, 12, 32
+		platform := zeroPubkey
+		if cp {
+			oldIndex, newIndex, destinationIndex, count = 17, 5, 4, 28
+			platform = getAccountSafe(accounts, 3)
+		}
+		if len(accounts) < count || (!cp && len(payload) < 9) {
+			return DexEvent{}
+		}
+		return DexEvent{Type: EventTypeRaydiumLaunchlabMigrateAmm, Data: &RaydiumLaunchlabMigrateAmmEvent{Metadata: meta, OldPool: getAccountSafe(accounts, oldIndex), NewPool: getAccountSafe(accounts, newIndex), User: getAccountSafe(accounts, 0), LiquidityAmount: 0, LiquidityAmountKnown: false, BaseMint: getAccountSafe(accounts, 1), QuoteMint: getAccountSafe(accounts, 2), PlatformConfig: platform, DestinationProgram: getAccountSafe(accounts, destinationIndex)}}
 	}
 
 	return DexEvent{}
