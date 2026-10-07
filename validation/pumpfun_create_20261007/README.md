@@ -57,3 +57,94 @@ Raw transaction responses, account mappings, parser outputs and SHA-256 hashes a
 | PumpFunCreateV2 | [MrD2Xcb9n6noXCFcihLrZsqYRNkQfm8VCetHYXi3DwYpfxAD9ug4d6CEMegqRZPdpDZtWnicogeNEq5UKihBNwm](https://solscan.io/tx/MrD2Xcb9n6noXCFcihLrZsqYRNkQfm8VCetHYXi3DwYpfxAD9ug4d6CEMegqRZPdpDZtWnicogeNEq5UKihBNwm) | 454059428 | 16 | 1 | no | `11111111111111111111111111111111` |
 | PumpFunCreateV2 | [WZa4Q4JXs4qN6NT7L6FtXdyTsQa1LcgaHcozTzwv5frnpFDb4LH1Umwhtqt2iu1X3HET4z6HrneicMUkUU4eFcB](https://solscan.io/tx/WZa4Q4JXs4qN6NT7L6FtXdyTsQa1LcgaHcozTzwv5frnpFDb4LH1Umwhtqt2iu1X3HET4z6HrneicMUkUU4eFcB) | 389243709 | 16 | 1 | no | `11111111111111111111111111111111` |
 | PumpFunCreateV2 | [tDo6DVYrj6q3i8y532dryX2JAtkmQXWgH8hdEU9G2E87QCaRHRJLHpJHpRYJnLEeabQ7s7yJBobdUyTxv9Y9yYr](https://solscan.io/tx/tDo6DVYrj6q3i8y532dryX2JAtkmQXWgH8hdEU9G2E87QCaRHRJLHpJHpRYJnLEeabQ7s7yJBobdUyTxv9Y9yYr) | 454059395 | 16 | 1 | no | `11111111111111111111111111111111` |
+
+
+---
+
+# PumpFun create / create_v2 cross-language regression verification
+
+Date: 2026-10-07. At verification time, changes were local and uncommitted. Publication is tracked by the repository release.
+
+## Corrected behavior
+
+- Select creation account context by the actual create/create_v2 discriminator and event mint, including CPI invocations. Require the corresponding minimum IDL account count (14/16). Decline ambiguous matches; never select a larger buy invocation as creation context.
+- The current official public Pump IDL defines 16 fixed create_v2 accounts and **no quote mint/vault/token-program accounts**. Positions 16/17/18 are not interpreted as quote accounts. Preserve quote fields from decoded events and existing authoritative enrichment.
+- Recognize the historical CreateEvent layout: three Borsh strings followed by exactly 96 bytes (mint, curve, user). Reject partial historical/modern layouts. Rust handles both direct logs and pre-decoded log/CPI event paths under both parser features.
+- Rust and sol-shred-sdk also recognize historical create instruction arguments ending after the three strings, leaving unavailable creator metadata unspecified.
+- Node.js and Python fill the complete legacy creation account context. Python declares the canonical create account fields so dataclass serialization retains them.
+- sol-shred-sdk and the Rust parser SDK apply the quote fix to their ShredStream instruction paths as well.
+
+## Mainnet evidence
+
+Source: `sol-parser-sdk-golang/validation/pumpfun_create_20261007/transactions` and its `sources.json`, `pump_public_idl.json`, and `README.md`.
+Official IDL source: https://raw.githubusercontent.com/pump-fun/pump-public-docs/main/idl/pump.json
+
+The shared corpus contains 36 signed getTransaction responses: 3 successful legacy creates, 25 successful create_v2 transactions, and 8 failed transactions. All four SDKs replayed the corpus. For each successful transaction, regression assertions compare creation mint/user/token program against the actual creating instruction and reject unrelated quote account values. Failed transactions are excluded from successful-launch assertions.
+
+Rust RPC verification reconstructs the original signed binary transaction from the unparsed JSON response because its RPC parser expects binary encoding. sol-shred-sdk replays that same reconstructed signed transaction with the actual loaded addresses. These are offline RPC-derived replays, not independent live gRPC or raw-shred captures. This corpus does not establish USDC-launch coverage.
+
+Each repository also includes five self-contained RPC fixtures: two historical legacy creates, a newer legacy create, and two recent create_v2 transactions. Regression tests additionally cover CPI creates, multiple mints, ambiguous duplicate creates, a longer unrelated buy, arbitrary remaining accounts, preservation of decoded quote fields, and historical payload bounds.
+
+## Validation
+
+| SDK | Full test results |
+| --- | --- |
+| sol-parser-sdk (Rust) | Default: 476 passed / 1 ignored; zero-copy: 474 passed / 1 ignored |
+| sol-shred-sdk | Default: 398 passed / 2 ignored; zero-copy: 396 passed / 2 ignored |
+| sol-parser-sdk-nodejs | TypeScript build passed; full suite with shared corpus: 302 passed / 8 skipped |
+| sol-parser-sdk-python | Full suite with shared corpus: 275 passed |
+
+All repositories passed `git diff --check`. Existing unrelated sol-shred-sdk working changes were preserved.
+
+Run the new regression tests from each repository with `PUMPFUN_CREATE_CORPUS` pointing to the shared transactions directory to repeat all 36 samples; without that variable they use the repository's five saved fixtures.
+
+- Rust: `cargo test --test pumpfun_create_regression`; also `cargo test --no-default-features --features parse-zero-copy --test pumpfun_create_regression`.
+- sol-shred-sdk: the same Cargo test commands. On this macOS host, Cargo required `DYLD_LIBRARY_PATH` and `LIBCLANG_PATH` to point to the Xcode toolchain `usr/lib` directory for its existing RocksDB build dependency.
+- Node.js: `npm test -- --run src/pumpfun_create_regression.test.ts`.
+- Python: `.venv/bin/python -m pytest -q tests/test_pumpfun_create_regression.py`.
+
+
+---
+
+# Failed-transaction and skipped-test audit — 2026-10-07
+
+## Findings and fix
+
+The eight failed mainnet transactions failed on-chain: six attempted to allocate an already-used mint account; two had insufficient SOL. No parser fix can change their historical chain outcome. A new launch must use an unused mint account and sufficient SOL for the transfer/rent/fees.
+
+Reviewing these previously excluded samples exposed an SDK defect: Go, Node.js and Python could emit instruction/log Create or Buy events for failed transactions, even though all of the transaction's program effects were rolled back. Python RPC metadata omitted `err`; Go and Node.js Yellowstone adapters also lost the failure flag.
+
+The corrected high-level RPC/gRPC event paths suppress all DEX events when the transaction has a failure status. RPC metadata retains the original error; RPC-to-Yellowstone conversion preserves error **presence**, without pretending the JSON error is a Yellowstone binary error enum. Native protobuf errors remain usable as failure indicators even when their encoded payload is empty. Python's full subscription callback suppresses both instruction and log events.
+
+The Rust RPC parser already suppressed failed transactions; the mainnet regression now explicitly asserts this behavior for the eight failed fixtures instead of skipping them. Raw ShredStream instruction decoding in sol-shred-sdk has no execution status and reports instruction intent; callers must use confirmed RPC/gRPC status to decide whether a launch committed.
+
+## Actual failed transactions
+
+| Signature | Slot | Confirmed chain failure |
+| --- | ---: | --- |
+| [2dabmQiykzC1tsNmgtRFbsRJjEKMfUySgScJc2J2uq8CQtoXWZ3YyT99p3nVuCXifEhLkyUe4Sf4nfe2UkFT8AJr](https://solscan.io/tx/2dabmQiykzC1tsNmgtRFbsRJjEKMfUySgScJc2J2uq8CQtoXWZ3YyT99p3nVuCXifEhLkyUe4Sf4nfe2UkFT8AJr) | 299999997 | Mint account already in use |
+| [3GufGVVRrnrH1Yuto57jDeTKXeki6ooE9w6h4qYRvNm5FcCpxwDHNvzHXdpAMbxRmukWJpSPHUKHEjnFTCC979ka](https://solscan.io/tx/3GufGVVRrnrH1Yuto57jDeTKXeki6ooE9w6h4qYRvNm5FcCpxwDHNvzHXdpAMbxRmukWJpSPHUKHEjnFTCC979ka) | 454059364 | Insufficient SOL / lamports |
+| [3LQK2JHVbVSSfyCYwTwzoYTY9NEN4gZXzqw3TvAvMJHsvPsopCHtsa5ALhj4tFn8xWbmJ5DsYMMcnPukTBkSjtQf](https://solscan.io/tx/3LQK2JHVbVSSfyCYwTwzoYTY9NEN4gZXzqw3TvAvMJHsvPsopCHtsa5ALhj4tFn8xWbmJ5DsYMMcnPukTBkSjtQf) | 299999997 | Mint account already in use |
+| [3MRWKDUcD5CGn5Xz4qWyGA8Y9udw4SsSr4gcxCjTUqCFt6Zc6uiwHF1wLZXKoqBcGEM2kruBS85ymYxmYk8FLGBk](https://solscan.io/tx/3MRWKDUcD5CGn5Xz4qWyGA8Y9udw4SsSr4gcxCjTUqCFt6Zc6uiwHF1wLZXKoqBcGEM2kruBS85ymYxmYk8FLGBk) | 299999997 | Mint account already in use |
+| [3NBSCgAXpNqg7JBUzp6RsfZYzf2QbbHi6r2wcoBF4Lpuzozae7ExUJUGoqpVCXXs8cbibr6aWySH1bsg86Enuhez](https://solscan.io/tx/3NBSCgAXpNqg7JBUzp6RsfZYzf2QbbHi6r2wcoBF4Lpuzozae7ExUJUGoqpVCXXs8cbibr6aWySH1bsg86Enuhez) | 299999991 | Mint account already in use |
+| [3QVpcUq64D4DUV9empFr3G98pCEa1Cp2fAcFJKyiJGsQ2ir2S4yBLhHYXPNmLfCE8KVDgLApfBYTFM7pf9JVPbsb](https://solscan.io/tx/3QVpcUq64D4DUV9empFr3G98pCEa1Cp2fAcFJKyiJGsQ2ir2S4yBLhHYXPNmLfCE8KVDgLApfBYTFM7pf9JVPbsb) | 389243699 | Insufficient SOL / lamports |
+| [3REXMDkvZsWvgc8czYpfn24avz18APMuzbV2VgQBeymArdJvfQcfcpKr46f3j1H2bAiymFneaNocPH7KzPUPbR1S](https://solscan.io/tx/3REXMDkvZsWvgc8czYpfn24avz18APMuzbV2VgQBeymArdJvfQcfcpKr46f3j1H2bAiymFneaNocPH7KzPUPbR1S) | 299999991 | Mint account already in use |
+| [3zC4bw1osyebZ77KagXYP3b5rEBHvJCgcwCriCLc5gAUp9Ev6Bx5ZMbqnYpkKE2VgZgMFcZN5FYKQfcKL45MWpyu](https://solscan.io/tx/3zC4bw1osyebZ77KagXYP3b5rEBHvJCgcwCriCLc5gAUp9Ev6Bx5ZMbqnYpkKE2VgZgMFcZN5FYKQfcKL45MWpyu) | 299999991 | Mint account already in use |
+
+The detailed JSON audit retains `meta.err` and the actual failure log message for each signature. The eight actual failures are now checked by Go/Node.js/Python/Rust RPC regressions; they produce no committed DEX events.
+
+## Previously skipped or ignored tests
+
+- The eight Node.js tests in `current_mainnet_transactions.test.ts` were opt-in network tests. Enabled them with `RUN_MAINNET_TESTS=1`: all eight passed against the public mainnet RPC, including PumpFun/PumpSwap, Meteora, Orca and Raydium fixtures.
+- The Rust parser's ignored route timing test passed when run with `cargo test --lib -- --ignored`.
+- sol-shred-sdk's ignored route timing and decoder microbenchmark tests both passed with the same command. These are manual timing tests, not previously failed tests.
+
+## Final validation
+
+- Go: `go test ./...` and `go vet ./...` passed, including the eight real failed transactions and native gRPC failure status tests.
+- Node.js: build passed; full suite with `RUN_MAINNET_TESTS=1` and the shared 36-transaction corpus: **311 passed, zero skipped**.
+- Python: full suite with the shared 36-transaction corpus: **277 passed**. Tests include RPC conversion, instruction-only gRPC parsing and the full subscription callback on failed transactions.
+- Rust: shared-corpus RPC regression: **2 passed** (covering every successful sample plus all eight actual failed transactions); the ignored timing test passed.
+- sol-shred-sdk: both ignored manual tests passed; its existing default/zero-copy correctness suites passed in the earlier synchronized-fix verification.
+
+At verification time, changes were local and uncommitted. No transactions were submitted to Solana. Publication is tracked by the repository release.

@@ -58,6 +58,9 @@ lines=['# PumpFun create/create_v2 mainnet verification — 2026-10-07','',
 for r in summary:
  if not r['success']:continue
  sig=r['signature'];lines.append(f"| {r['kind']} | [{sig}](https://solscan.io/tx/{sig}) | {r['slot']} | {r['create_accounts']} | {r['logs_create_count']} | {'YES' if r['quote_mint_corrupted'] else 'no'} | `{r['rpc_quote_mint']}` |")
-(root/'REPORT.md').write_text('\n'.join(lines)+'\n')
+report = root/'README.md'
+separator = '\n\n---\n\n'
+supplement = report.read_text().partition(separator)[2]
+report.write_text('\n'.join(lines)+'\n'+(separator+supplement if supplement else ''))
 assert not bad and not old, 'real-transaction regression remains'
 print('transactions',len(rows),'successful quote corruption',len(bad),'successful historical logs missing',len(old))

@@ -215,9 +215,9 @@ go vet ./...
 
 MIT — https://github.com/0xfnzero/sol-parser-sdk-golang
 
-## Native alignment status
+## API compatibility
 
-See [NATIVE_ALIGNMENT.md](NATIVE_ALIGNMENT.md) for implemented native APIs, Rust golden tests, mainnet simulation evidence, examples, and remaining parity gaps. Full cross-language parity is still in progress.
+Full cross-language API parity is still in progress. See the [API migration guide](NATIVE_MIGRATION.md) for public behavior and support boundaries, and the examples directory for usage.
 
 ### Offline simulation route evidence
 
@@ -226,5 +226,4 @@ See [NATIVE_ALIGNMENT.md](NATIVE_ALIGNMENT.md) for implemented native APIs, Rust
 
 实时 parser → trade 接入使用 Yellowstone **gRPC**；见 [gRPC 缓存接入与三语言示例](examples/GRPC_CACHE.md)。此路径不使用 WebSocket，报价和构建热路径不调用 RPC。
 
-
-[本轮原生对齐 API 迁移](NATIVE_MIGRATION.md)（实施中，尚未发布）。
+Shared PumpFun create/create_v2 mainnet fixtures, replay instructions and verification limits are documented in the [validation guide](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007).
