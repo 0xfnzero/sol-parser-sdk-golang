@@ -29,7 +29,7 @@ type raw struct {
 	Slot      uint64
 	BlockTime *int64
 	Meta      struct {
-		Err                       json.RawMessage
+		Err                       any
 		Fee                       uint64
 		PreBalances, PostBalances []uint64
 		LogMessages               []string
@@ -99,7 +99,7 @@ func main() {
 		}
 		sig := r.Transaction.Signatures[0]
 		m := r.Transaction.Message
-		tx := &sp.RpcTransactionResponse{Slot: r.Slot, BlockTime: r.BlockTime, Transaction: &sp.RpcTransaction{Signatures: r.Transaction.Signatures, Message: &sp.RpcMessage{AccountKeys: m.AccountKeys, Header: &m.Header, RecentBlockhash: m.RecentBlockhash}}, Meta: &sp.RpcTransactionMeta{Fee: r.Meta.Fee, PreBalances: r.Meta.PreBalances, PostBalances: r.Meta.PostBalances, LogMessages: r.Meta.LogMessages, LoadedAddresses: &sp.RpcLoadedAddresses{Writable: r.Meta.LoadedAddresses.Writable, Readonly: r.Meta.LoadedAddresses.Readonly}}}
+		tx := &sp.RpcTransactionResponse{Slot: r.Slot, BlockTime: r.BlockTime, Transaction: &sp.RpcTransaction{Signatures: r.Transaction.Signatures, Message: &sp.RpcMessage{AccountKeys: m.AccountKeys, Header: &m.Header, RecentBlockhash: m.RecentBlockhash}}, Meta: &sp.RpcTransactionMeta{Err: r.Meta.Err, Fee: r.Meta.Fee, PreBalances: r.Meta.PreBalances, PostBalances: r.Meta.PostBalances, LogMessages: r.Meta.LogMessages, LoadedAddresses: &sp.RpcLoadedAddresses{Writable: r.Meta.LoadedAddresses.Writable, Readonly: r.Meta.LoadedAddresses.Readonly}}}
 		pm := &pb.Message{RecentBlockhash: dec(m.RecentBlockhash), Header: &pb.MessageHeader{NumRequiredSignatures: m.Header.NumRequiredSignatures, NumReadonlySignedAccounts: m.Header.NumReadonlySignedAccounts, NumReadonlyUnsignedAccounts: m.Header.NumReadonlyUnsignedAccounts}}
 		for _, k := range m.AccountKeys {
 			pm.AccountKeys = append(pm.AccountKeys, dec(k))
@@ -109,6 +109,10 @@ func main() {
 			pm.Instructions = append(pm.Instructions, &pb.CompiledInstruction{ProgramIdIndex: i.ProgramIDIndex, Accounts: indices(i.Accounts), Data: dec(i.Data)})
 		}
 		meta := &pb.TransactionStatusMeta{Fee: r.Meta.Fee, PreBalances: r.Meta.PreBalances, PostBalances: r.Meta.PostBalances, LogMessages: r.Meta.LogMessages}
+		if r.Meta.Err != nil {
+			// Preserve failure presence without inventing a Yellowstone binary error enum.
+			meta.Err = &pb.TransactionError{}
+		}
 		for _, k := range r.Meta.LoadedAddresses.Writable {
 			meta.LoadedWritableAddresses = append(meta.LoadedWritableAddresses, dec(k))
 		}

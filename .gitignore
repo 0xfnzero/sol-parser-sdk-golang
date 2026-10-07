@@ -3,3 +3,19 @@
 *.out
 .DS_Store
 .env
+
+# Generated reports and local tooling outputs
+/NATIVE_*EVIDENCE*.json
+bin/
+dist/
+build/
+
+# Derived outputs from the saved PumpFun replay corpus
+/validation/pumpfun_create_20261007/results*.json
+/validation/pumpfun_create_20261007/summary*.json
+/validation/pumpfun_create_20261007/failed_transaction_audit.json
+/validation/pumpfun_create_20261007/discovery/
+
+# Python replay helper bytecode
+__pycache__/
+*.py[cod]

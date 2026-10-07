@@ -221,10 +221,10 @@ MIT — https://github.com/0xfnzero/sol-parser-sdk-golang
 
 ## API 兼容性
 
-完整跨语言 API 对齐仍在进行；公开行为和支持边界见 [API 迁移说明](NATIVE_MIGRATION.md)，使用方法见 examples 目录。
+完整跨语言 API 对齐仍在进行；公开行为和支持边界见 [API 迁移说明](docs/USAGE.md#api-compatibility)，使用方法见 examples 目录。
 
 ### Offline simulation route evidence
 
-`solparser.AnalyzeSimulationRoutes(wire, simulationResponseJSON, graduatedPools)` accepts original transaction bytes and a complete `simulateTransaction` JSON response. It makes no RPC calls. Parsed SPL transfers, compiled CPI, execution failure, and unknown Token-2022 net credits are preserved. See [examples/SIMULATION_ROUTES.md](examples/SIMULATION_ROUTES.md) and `go run ./examples/simulation_routes solparser/testdata/cached_tip_routes_20261002.json route-buy`.
+`solparser.AnalyzeSimulationRoutes(wire, simulationResponseJSON, graduatedPools)` accepts original transaction bytes and a complete `simulateTransaction` JSON response. It makes no RPC calls. Parsed SPL transfers, compiled CPI, execution failure, and unknown Token-2022 net credits are preserved. See [docs/USAGE.md#simulation-routes](docs/USAGE.md#simulation-routes) and `go run ./examples/simulation_routes solparser/testdata/cached_tip_routes_20261002.json route-buy`.
 
 PumpFun create/create_v2 的共享主网样本、重放方法和验证边界见 [验证说明](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007)。
