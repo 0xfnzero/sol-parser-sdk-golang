@@ -28,10 +28,13 @@ func buildRpcProgramInvokes(msg *RpcMessage, meta *RpcTransactionMeta) map[strin
 }
 
 func getRpcInstructionData(msg *RpcMessage, meta *RpcTransactionMeta, inv [2]int32) []byte {
-	if meta == nil || msg == nil {
+	if msg == nil {
 		return nil
 	}
 	if inv[1] >= 0 {
+		if meta == nil {
+			return nil
+		}
 		for _, g := range meta.InnerInstructions {
 			if g.Index == uint32(inv[0]) && int(inv[1]) < len(g.Instructions) {
 				return g.Instructions[inv[1]].Data
@@ -87,7 +90,7 @@ func fillRpcOneEvent(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, in
 		}
 	case EventTypePumpFunCreateV2:
 		pumpInv := invokes[PUMPFUN_PROGRAM_ID]
-		get := rpcAccountGetter(msg, meta, pumpInv)
+		get, _ := rpcPumpFunCreateAccountGetter(msg, meta, pumpInv, ev)
 		if get == nil {
 			return
 		}
@@ -267,6 +270,16 @@ func fillRpcPumpFunTrade(tr *PumpFunTradeEvent, get func(int) string) {
 	}
 }
 
+// The all-zero public key is a real account for the System Program, not an
+// unknown value. Preserve it when filling a verified create instruction.
+func fillPumpFunCreateSystemProgram(dst *string, get func(int) string, index int) {
+	if isDefaultPubkeyString(*dst) && get(index) == zeroPubkey {
+		*dst = zeroPubkey
+		return
+	}
+	fillStringFromAccount(dst, get, index)
+}
+
 func fillRpcPumpFunCreate(c *PumpFunCreateEvent, get func(int) string, isCreateV2 bool) {
 	if c == nil {
 		return
@@ -278,7 +291,7 @@ func fillRpcPumpFunCreate(c *PumpFunCreateEvent, get func(int) string, isCreateV
 		fillStringFromAccount(&c.MintAuthority, get, 1)
 		fillStringFromAccount(&c.AssociatedBondingCurve, get, 3)
 		fillStringFromAccount(&c.Global, get, 4)
-		fillStringFromAccount(&c.SystemProgram, get, 6)
+		fillPumpFunCreateSystemProgram(&c.SystemProgram, get, 6)
 		fillStringFromAccount(&c.TokenProgram, get, 7)
 		fillStringFromAccount(&c.AssociatedTokenProgram, get, 8)
 		fillStringFromAccount(&c.MayhemProgramID, get, 9)
@@ -296,7 +309,7 @@ func fillRpcPumpFunCreate(c *PumpFunCreateEvent, get func(int) string, isCreateV
 		fillStringFromAccount(&c.MintAuthority, get, 1)
 		fillStringFromAccount(&c.AssociatedBondingCurve, get, 3)
 		fillStringFromAccount(&c.Global, get, 4)
-		fillStringFromAccount(&c.SystemProgram, get, 8)
+		fillPumpFunCreateSystemProgram(&c.SystemProgram, get, 8)
 		fillStringFromAccount(&c.TokenProgram, get, 9)
 		fillStringFromAccount(&c.AssociatedTokenProgram, get, 10)
 		fillStringFromAccount(&c.EventAuthority, get, 12)
@@ -305,7 +318,6 @@ func fillRpcPumpFunCreate(c *PumpFunCreateEvent, get func(int) string, isCreateV
 			c.IxName = "create"
 		}
 	}
-	fillRpcPumpFunCreateQuoteAccounts(&c.QuoteMint, &c.QuoteVault, &c.QuoteTokenProgram, get)
 }
 
 func fillRpcPumpFunCreateV2(c *PumpFunCreateV2TokenEvent, get func(int) string) {
@@ -318,7 +330,7 @@ func fillRpcPumpFunCreateV2(c *PumpFunCreateV2TokenEvent, get func(int) string) 
 	fillStringFromAccount(&c.MintAuthority, get, 1)
 	fillStringFromAccount(&c.AssociatedBondingCurve, get, 3)
 	fillStringFromAccount(&c.Global, get, 4)
-	fillStringFromAccount(&c.SystemProgram, get, 6)
+	fillPumpFunCreateSystemProgram(&c.SystemProgram, get, 6)
 	fillStringFromAccount(&c.TokenProgram, get, 7)
 	fillStringFromAccount(&c.AssociatedTokenProgram, get, 8)
 	fillStringFromAccount(&c.MayhemProgramID, get, 9)
@@ -328,25 +340,6 @@ func fillRpcPumpFunCreateV2(c *PumpFunCreateV2TokenEvent, get func(int) string) 
 	fillStringFromAccount(&c.MayhemTokenVault, get, 13)
 	fillStringFromAccount(&c.EventAuthority, get, 14)
 	fillStringFromAccount(&c.Program, get, 15)
-	fillRpcPumpFunCreateQuoteAccounts(&c.QuoteMint, &c.QuoteVault, &c.QuoteTokenProgram, get)
-}
-
-func fillRpcPumpFunCreateQuoteAccounts(quoteMint, quoteVault, quoteTokenProgram *string, get func(int) string) {
-	qm := get(16)
-	qv := get(17)
-	qtp := get(18)
-	if isDefaultPubkeyString(qm) || qm == PUMPFUN_PROGRAM_ID || isDefaultPubkeyString(qv) || isDefaultPubkeyString(qtp) {
-		return
-	}
-	if quoteMint != nil && isDefaultPubkeyString(*quoteMint) {
-		*quoteMint = qm
-	}
-	if quoteVault != nil && isDefaultPubkeyString(*quoteVault) {
-		*quoteVault = qv
-	}
-	if quoteTokenProgram != nil && isDefaultPubkeyString(*quoteTokenProgram) {
-		*quoteTokenProgram = qtp
-	}
 }
 
 func fillRpcPumpSwapBuy(b *PumpSwapBuyEvent, get func(int) string) {
@@ -426,38 +419,58 @@ func rpcGetterForProgram(msg *RpcMessage, meta *RpcTransactionMeta, invokes map[
 	return rpcAccountGetter(msg, meta, invokes[programID])
 }
 
+// Select the creating invocation by discriminator and mint, never by account count.
+// A transaction can contain create_v2 followed by a buy with a larger account list.
 func rpcPumpFunCreateAccountGetter(msg *RpcMessage, meta *RpcTransactionMeta, list [][2]int32, ev *DexEvent) (func(int) string, bool) {
-	if msg == nil || len(list) == 0 {
+	if msg == nil || ev == nil {
 		return nil, false
 	}
-	want := instrPumpOuterCreate
-	if ev != nil && ev.Type == EventTypePumpFunCreateV2 {
-		want = instrPumpOuterCreateV2
-	} else if ev != nil && ev.Type == EventTypePumpFunCreate {
-		if c, ok := ev.Data.(*PumpFunCreateEvent); ok && c != nil && c.IsMayhemMode {
-			want = instrPumpOuterCreateV2
+	var mint string
+	v2Only := ev.Type == EventTypePumpFunCreateV2
+	switch c := ev.Data.(type) {
+	case *PumpFunCreateEvent:
+		if c == nil {
+			return nil, false
 		}
+		mint = c.Mint
+	case *PumpFunCreateV2TokenEvent:
+		if c == nil {
+			return nil, false
+		}
+		mint = c.Mint
+	default:
+		return nil, false
 	}
+	var selected func(int) string
+	var selectedV2 bool
 	for _, inv := range list {
-		if inv[1] >= 0 || inv[0] < 0 || int(inv[0]) >= len(msg.Instructions) {
+		data := getRpcInstructionData(msg, meta, inv)
+		if len(data) < 8 {
 			continue
 		}
-		data := msg.Instructions[inv[0]].Data
-		if len(data) >= 8 && disc8FromBytes(data[:8]) == want {
-			return rpcAccountGetter(msg, meta, [][2]int32{inv}), want == instrPumpOuterCreateV2
+		disc := disc8FromBytes(data[:8])
+		v2 := disc == instrPumpOuterCreateV2
+		if !v2 && (v2Only || disc != instrPumpOuterCreate) {
+			continue
 		}
-	}
-	for _, inv := range list {
-		if inv[1] < 0 {
-			isCreateV2 := false
-			if int(inv[0]) >= 0 && int(inv[0]) < len(msg.Instructions) {
-				data := msg.Instructions[inv[0]].Data
-				isCreateV2 = len(data) >= 8 && disc8FromBytes(data[:8]) == instrPumpOuterCreateV2
-			}
-			return rpcAccountGetter(msg, meta, [][2]int32{inv}), isCreateV2
+		minimum := 14
+		if v2 {
+			minimum = 16
 		}
+		if rpcInvokeAccountLen(msg, meta, inv) < minimum {
+			continue
+		}
+		get := rpcAccountGetter(msg, meta, [][2]int32{inv})
+		if get == nil || (!isDefaultPubkeyString(mint) && get(0) != mint) {
+			continue
+		}
+		// An event without a usable mint cannot safely choose between multiple creates.
+		if selected != nil {
+			return nil, false
+		}
+		selected, selectedV2 = get, v2
 	}
-	return rpcAccountGetter(msg, meta, list), want == instrPumpOuterCreateV2
+	return selected, selectedV2
 }
 
 func disc8FromBytes(b []byte) uint64 {

@@ -1,0 +1,8 @@
+{
+  "checked_on": "2026-10-07 Asia/Shanghai",
+  "parser_commit": "b057e687d384e7a4cd912c086fc509f5d4f4fbfb",
+  "rpc": "https://api.mainnet-beta.solana.com",
+  "idl_url": "https://raw.githubusercontent.com/pump-fun/pump-public-docs/main/idl/pump.json",
+  "idl_sha256": "ffe966c42f1af41652ee753fe2f1e3f7cd4077d7e6f49faf3138959c8b56064b",
+  "discovery": "getSignaturesForAddress on mint-authority PDA TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM; recent page, page before example signature 3zsihbygW7hoKGtduAyDDFzp4E1eis8gaBzEzzNKr8ma39baffpFcphok9wHFgR3EauDe9vYYsVf4Puh5pZ6UJiS, and page before a signature from historical block 300000000"
+}

@@ -1059,6 +1059,8 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 	if v, ok := readBool(data, off); ok {
 		isHolderReward = v
 	}
+	// The public create_v2 IDL defines 16 fixed accounts and no quote accounts.
+	// Quote fields must come from decoded event data, not arbitrary remaining accounts.
 	acc := accounts[:minAcc]
 	return DexEvent{
 		Type: EventTypePumpFunCreateV2,
@@ -1076,9 +1078,9 @@ func parsePumpFunCreateV2Instr(data []byte, accounts []string, meta EventMetadat
 			IsCashbackEnabled:      isCashbackEnabled,
 			CreatorFeeBps:          creatorFeeBps,
 			IsHolderReward:         isHolderReward,
-			QuoteMint:              getAccountSafe(accounts, 16),
-			QuoteVault:             getAccountSafe(accounts, 17),
-			QuoteTokenProgram:      getAccountSafe(accounts, 18),
+			QuoteMint:              zeroPubkey,
+			QuoteVault:             zeroPubkey,
+			QuoteTokenProgram:      zeroPubkey,
 			IxName:                 "create_v2",
 			MintAuthority:          acc[1],
 			AssociatedBondingCurve: acc[3],

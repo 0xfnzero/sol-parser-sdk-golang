@@ -96,6 +96,9 @@ func pbMetaToRpc(meta *pb.TransactionStatusMeta) *RpcTransactionMeta {
 		LogMessages:       meta.LogMessages,
 		InnerInstructions: make([]RpcInnerInstructionGroup, len(meta.InnerInstructions)),
 	}
+	if meta.Err != nil {
+		out.Err = meta.Err
+	}
 	for i, g := range meta.InnerInstructions {
 		grp := RpcInnerInstructionGroup{Index: g.Index}
 		for _, ix := range g.Instructions {

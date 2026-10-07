@@ -242,6 +242,19 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 	if !ok {
 		return DexEvent{}
 	}
+	// Original CreateEvent logs contain only mint, bonding curve and user after
+	// the three strings. Only accept that exact historical payload length;
+	// intermediate lengths do not match a supported layout.
+	if len(data)-o == 32*3 {
+		mint, _ := readPubkey(data, o)
+		bondingCurve, _ := readPubkey(data, o+32)
+		user, _ := readPubkey(data, o+64)
+		return DexEvent{Type: EventTypePumpFunCreate, Data: &PumpFunCreateEvent{
+			Metadata: meta, Name: name, Symbol: sym, Uri: uri,
+			Mint: mint, BondingCurve: bondingCurve, User: user,
+			Creator: zeroPubkey, TokenProgram: zeroPubkey, QuoteMint: zeroPubkey,
+		}}
+	}
 	if len(data) < o+32*4+8*5+32+1 {
 		return DexEvent{}
 	}

@@ -51,6 +51,8 @@ type RpcTransactionResponse struct {
 
 // RpcTransactionMeta 交易元数据
 type RpcTransactionMeta struct {
+	// Err is nil for success; RPC errors are retained without assuming their shape.
+	Err                  any `json:"err"`
 	Fee                  uint64
 	PreBalances          []uint64
 	PostBalances         []uint64
@@ -165,6 +167,9 @@ func parseRpcTransactionImpl(
 		}
 	}
 
+	if tx.Meta != nil && tx.Meta.Err != nil {
+		return nil, nil // Failed transaction instructions and logs were rolled back.
+	}
 	msg := tx.Transaction.Message
 	meta := tx.Meta
 	if meta == nil {
@@ -356,6 +361,14 @@ func ConvertRpcToGrpc(
 		InnerInstructions: make([]*pb.InnerInstructions, len(meta.InnerInstructions)),
 		PreTokenBalances:  make([]*pb.TokenBalance, len(meta.PreTokenBalances)),
 		PostTokenBalances: make([]*pb.TokenBalance, len(meta.PostTokenBalances)),
+	}
+
+	if meta.Err != nil {
+		// Preserve failure presence without inventing a Yellowstone binary error enum.
+		grpcMeta.Err = &pb.TransactionError{}
+		if original, ok := meta.Err.(*pb.TransactionError); ok {
+			grpcMeta.Err = original
+		}
 	}
 
 	// 转换内部指令
