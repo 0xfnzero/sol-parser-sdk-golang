@@ -148,6 +148,9 @@ func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 		if !ok1 || !ok2 {
 			return false
 		}
+		if (b.IxName == "multi_hop_swap" || i.IxName == "multi_hop_swap") && b.Mint != "" && i.Mint != "" && b.Mint != i.Mint {
+			return false
+		}
 		mergePumpfunTrade(b, i)
 		return true
 	case EventTypePumpFunCreate:
@@ -192,6 +195,9 @@ func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 		if !ok1 || !ok2 {
 			return false
 		}
+		if b.Pool != "" && i.Pool != "" && b.Pool != i.Pool {
+			return false
+		}
 		supplementPumpSwapBuy(b, i)
 		return true
 	case EventTypePumpSwapSell:
@@ -201,6 +207,9 @@ func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 		b, ok1 := base.Data.(*PumpSwapSellEvent)
 		i, ok2 := inner.Data.(*PumpSwapSellEvent)
 		if !ok1 || !ok2 {
+			return false
+		}
+		if b.Pool != "" && i.Pool != "" && b.Pool != i.Pool {
 			return false
 		}
 		supplementPumpSwapSell(b, i)

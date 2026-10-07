@@ -197,6 +197,27 @@ func routeSwap(ix routeIx, mints map[string]string, graduated map[string]bool) *
 	pair := [2]string{}
 	exact := true
 	switch {
+	case protocol == "PumpFun" && n == 17 && len(d) >= 24 && (disc == "07051dc4f5176550" || disc == "e1f7501ed5b38488" || disc == "1c92de7726c469d5"):
+		buy := disc != "1c92de7726c469d5"
+		exact = disc != "07051dc4f5176550"
+		leg.Pool = a(5)
+		leg.Trader = a(8)
+		if buy {
+			leg.InputAccount = a(10)
+			leg.OutputAccount = a(9)
+			pair = [2]string{a(2), a(1)}
+		} else {
+			leg.InputAccount = a(9)
+			leg.OutputAccount = a(10)
+			pair = [2]string{a(1), a(2)}
+		}
+		if a(2) == routeWSOL {
+			if buy {
+				leg.InputAccount = leg.Trader
+			} else {
+				leg.OutputAccount = leg.Trader
+			}
+		}
 	case protocol == "PumpFun" && n >= 16 && (disc == "c2ab1c46684d5b2f" || disc == "b817ee6167c5d33d" || disc == "5df6823ce7e940b2"):
 		buy := disc != "5df6823ce7e940b2"
 		exact = disc != "b817ee6167c5d33d"
@@ -323,17 +344,17 @@ func routeSwap(ix routeIx, mints map[string]string, graduated map[string]bool) *
 			pair = [2]string{a(10), a(9)}
 		} else {
 			switch disc {
-			case "c62e1552b4d9e870":
+			case "c62e1552b4d9e870", "c2ab1c46684d5b2f":
 				exact = true
-			case "66063d1201daebea":
+			case "66063d1201daebea", "b817ee6167c5d33d":
 				exact = false
-			case "33e685a4017f83ad":
+			case "33e685a4017f83ad", "5df6823ce7e940b2":
 				buy = false
 				exact = true
 			default:
 				valid = false
 			}
-			if n < 21 {
+			if n < 21 && !(n == 17 && (disc == "c2ab1c46684d5b2f" || disc == "b817ee6167c5d33d" || disc == "5df6823ce7e940b2")) {
 				return nil
 			}
 			leg.Pool = a(0)

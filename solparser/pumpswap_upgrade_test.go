@@ -81,7 +81,7 @@ func TestPumpSwapTradeLayoutValidation(t *testing.T) {
 		t.Fatalf("legacy buy payload did not parse: %q", ev.Type)
 	}
 	for tailLen := 0; tailLen <= 80; tailLen++ {
-		expected := tailLen == 0 || tailLen == 16 || tailLen == 32 || tailLen == 57 || tailLen >= 73
+		expected := tailLen == 0 || tailLen == 16 || tailLen == 32 || tailLen == 57 || tailLen == 73 || tailLen >= 81
 		ev := parsePSSellFromData(make([]byte, 352+tailLen), EventMetadata{})
 		if (ev.Type != "") != expected {
 			t.Fatalf("sell tail length %d acceptance mismatch: got %q", tailLen, ev.Type)

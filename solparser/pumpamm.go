@@ -3,6 +3,7 @@ package solparser
 import "unicode/utf8"
 
 type pumpSwapTradeTail struct {
+	CreatorFeeUnclaimed    uint64
 	CashbackFeeBasisPoints uint64
 	Cashback               uint64
 	BuybackFeeBasisPoints  uint64
@@ -55,10 +56,14 @@ func parsePumpSwapTradeTail(data []byte) (pumpSwapTradeTail, bool) {
 	if len(data) != 57 && len(data) < 73 {
 		return tail, false
 	}
+	if len(data) > 73 && len(data) < 81 {
+		return tail, false
+	}
 	if len(data) >= 73 {
 		tail.HolderRewardsBps, _ = readU64LE(data, 57)
 		tail.HolderRewards, _ = readU64LE(data, 65)
 	}
+	tail.CreatorFeeUnclaimed = upgradeAccountU64(data, 73)
 	return tail, true
 }
 
@@ -132,6 +137,7 @@ func parsePSBuyFromData(data []byte, meta EventMetadata) DexEvent {
 	ev.BaseSupply = tail.BaseSupply
 	ev.HolderRewardsBps = tail.HolderRewardsBps
 	ev.HolderRewards = tail.HolderRewards
+	ev.CreatorFeeUnclaimed = tail.CreatorFeeUnclaimed
 	ev.IsCashbackCoin = tail.CashbackFeeBasisPoints > 0
 	return DexEvent{Type: EventTypePumpSwapBuy, Data: ev}
 }
@@ -184,6 +190,7 @@ func parsePSSellFromData(data []byte, meta EventMetadata) DexEvent {
 	ev.BaseSupply = tail.BaseSupply
 	ev.HolderRewardsBps = tail.HolderRewardsBps
 	ev.HolderRewards = tail.HolderRewards
+	ev.CreatorFeeUnclaimed = tail.CreatorFeeUnclaimed
 	return DexEvent{Type: EventTypePumpSwapSell, Data: ev}
 }
 
@@ -340,6 +347,12 @@ func enrichPumpSwapBuyFromAccounts(ev *PumpSwapBuyEvent, accounts []string) {
 	set(&ev.QuoteMint, 4)
 	set(&ev.PoolBaseTokenAccount, 7)
 	set(&ev.PoolQuoteTokenAccount, 8)
+	if len(accounts) == 17 && accounts[16] == PUMPSWAP_PROGRAM_ID {
+		set(&ev.BaseTokenProgram, 9)
+		set(&ev.QuoteTokenProgram, 10)
+		set(&ev.FeeRecipientQuoteTokenAccount, 14)
+		return
+	}
 	set(&ev.BaseTokenProgram, 11)
 	set(&ev.QuoteTokenProgram, 12)
 	if len(accounts) >= 19 {
@@ -376,6 +389,12 @@ func enrichPumpSwapSellFromAccounts(ev *PumpSwapSellEvent, accounts []string) {
 	set(&ev.QuoteMint, 4)
 	set(&ev.PoolBaseTokenAccount, 7)
 	set(&ev.PoolQuoteTokenAccount, 8)
+	if len(accounts) == 17 && accounts[16] == PUMPSWAP_PROGRAM_ID {
+		set(&ev.BaseTokenProgram, 9)
+		set(&ev.QuoteTokenProgram, 10)
+		set(&ev.FeeRecipientQuoteTokenAccount, 14)
+		return
+	}
 	set(&ev.BaseTokenProgram, 11)
 	set(&ev.QuoteTokenProgram, 12)
 	if len(accounts) >= 19 {

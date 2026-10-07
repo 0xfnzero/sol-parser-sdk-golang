@@ -288,6 +288,9 @@ func normalInstructionDataMayParse(programID string, data []byte) bool {
 		return headInDiscs(data, discDammInit)
 	case PUMPFUN_PROGRAM_ID:
 		return headInDiscs(data,
+			disc8(7, 5, 29, 196, 245, 23, 101, 80),
+			disc8(225, 247, 80, 30, 213, 179, 132, 136),
+			disc8(28, 146, 222, 119, 38, 196, 105, 213),
 			instrPumpOuterCreate,
 			instrPumpOuterCreateV2,
 			instrPumpOuterBuy,
@@ -301,6 +304,9 @@ func normalInstructionDataMayParse(programID string, data []byte) bool {
 		return headInDiscs(data,
 			instrPumpSwapBuy,
 			instrPumpSwapSell,
+			disc8(184, 23, 238, 97, 103, 197, 211, 61),
+			disc8(194, 171, 28, 70, 104, 77, 91, 47),
+			disc8(93, 246, 130, 60, 231, 233, 64, 178),
 			instrPumpSwapCreatePool,
 			instrPumpSwapBuyExactQuote,
 			instrPumpSwapDeposit,
@@ -438,6 +444,15 @@ func ParseInnerInstructionUnified(
 	disc := instructionData[:16]
 	inner := instructionData[16:]
 	disc8Value := binary.LittleEndian.Uint64(disc[:8])
+	var upgradeDisc uint64
+	if bytes.Equal(disc[:8], []byte{228, 69, 165, 46, 81, 203, 154, 29}) {
+		upgradeDisc = binary.LittleEndian.Uint64(disc[8:])
+	} else if bytes.Equal(disc[8:], []byte{155, 167, 108, 32, 122, 76, 173, 64}) {
+		upgradeDisc = disc8Value
+	}
+	if _, ok := pumpUpgradeEventType(upgradeDisc, programID); ok {
+		return applyActualEventTypeFilter(parsePumpUpgradeEvent(upgradeDisc, inner, meta, programID), filter)
+	}
 
 	switch programID {
 	case PUMPFUN_PROGRAM_ID:
@@ -690,6 +705,90 @@ func ParsePumpfunInstruction(
 	}
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 	outer := binary.LittleEndian.Uint64(data[:8])
+	if outer == disc8(7, 5, 29, 196, 245, 23, 101, 80) {
+		if len(accounts) != 17 || len(data) < 24 || len(data) > 25 || (len(data) == 25 && data[24] > 1) {
+			return DexEvent{}
+		}
+		mapped := make([]string, 27)
+		mapped[0] = accounts[0]
+		mapped[1] = accounts[1]
+		mapped[2] = accounts[2]
+		mapped[3] = accounts[3]
+		mapped[4] = accounts[4]
+		mapped[8] = accounts[13]
+		mapped[10] = accounts[5]
+		mapped[11] = accounts[6]
+		mapped[12] = accounts[7]
+		mapped[13] = accounts[8]
+		mapped[14] = accounts[9]
+		mapped[15] = accounts[10]
+		mapped[20] = accounts[11]
+		mapped[22] = accounts[12]
+		mapped[24] = accounts[14]
+		mapped[25] = accounts[15]
+		mapped[26] = accounts[16]
+		ev := parsePumpFunTradeV2Instr("buy_v2", data[8:], mapped, meta)
+		if tr, ok := ev.Data.(*PumpFunTradeEvent); ok {
+			tr.IxName = "buy_v3"
+		}
+		return ev
+	}
+	if outer == disc8(225, 247, 80, 30, 213, 179, 132, 136) {
+		if len(accounts) != 17 || len(data) < 24 || len(data) > 25 || (len(data) == 25 && data[24] > 1) {
+			return DexEvent{}
+		}
+		mapped := make([]string, 27)
+		mapped[0] = accounts[0]
+		mapped[1] = accounts[1]
+		mapped[2] = accounts[2]
+		mapped[3] = accounts[3]
+		mapped[4] = accounts[4]
+		mapped[8] = accounts[13]
+		mapped[10] = accounts[5]
+		mapped[11] = accounts[6]
+		mapped[12] = accounts[7]
+		mapped[13] = accounts[8]
+		mapped[14] = accounts[9]
+		mapped[15] = accounts[10]
+		mapped[20] = accounts[11]
+		mapped[22] = accounts[12]
+		mapped[24] = accounts[14]
+		mapped[25] = accounts[15]
+		mapped[26] = accounts[16]
+		ev := parsePumpFunTradeV2Instr("buy_exact_quote_in_v2", data[8:], mapped, meta)
+		if tr, ok := ev.Data.(*PumpFunTradeEvent); ok {
+			tr.IxName = "buy_exact_quote_in_v3"
+		}
+		return ev
+	}
+	if outer == disc8(28, 146, 222, 119, 38, 196, 105, 213) {
+		if len(accounts) != 17 || len(data) < 24 || len(data) > 25 || len(data) != 24 {
+			return DexEvent{}
+		}
+		mapped := make([]string, 27)
+		mapped[0] = accounts[0]
+		mapped[1] = accounts[1]
+		mapped[2] = accounts[2]
+		mapped[3] = accounts[3]
+		mapped[4] = accounts[4]
+		mapped[8] = accounts[13]
+		mapped[10] = accounts[5]
+		mapped[11] = accounts[6]
+		mapped[12] = accounts[7]
+		mapped[13] = accounts[8]
+		mapped[14] = accounts[9]
+		mapped[15] = accounts[10]
+		mapped[19] = accounts[11]
+		mapped[21] = accounts[12]
+		mapped[23] = accounts[14]
+		mapped[24] = accounts[15]
+		mapped[25] = accounts[16]
+		ev := parsePumpFunTradeV2Instr("sell_v2", data[8:], mapped, meta)
+		if tr, ok := ev.Data.(*PumpFunTradeEvent); ok {
+			tr.IxName = "sell_v3"
+		}
+		return ev
+	}
 	if outer == instrPumpOuterCreateV2 {
 		return parsePumpFunCreateV2Instr(data[8:], accounts, meta)
 	}
@@ -1152,6 +1251,84 @@ func ParsePumpswapInstruction(
 	}
 	discriminator := binary.LittleEndian.Uint64(data[:8])
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	if discriminator == disc8(184, 23, 238, 97, 103, 197, 211, 61) {
+		if len(accounts) != 17 || len(data) != 24 {
+			return DexEvent{}
+		}
+		mapped := make([]string, 26)
+		mapped[0] = accounts[0]
+		mapped[1] = accounts[1]
+		mapped[2] = accounts[2]
+		mapped[3] = accounts[3]
+		mapped[4] = accounts[4]
+		mapped[5] = accounts[5]
+		mapped[6] = accounts[6]
+		mapped[7] = accounts[7]
+		mapped[8] = accounts[8]
+		mapped[11] = accounts[9]
+		mapped[12] = accounts[10]
+		mapped[13] = accounts[11]
+		mapped[15] = accounts[15]
+		mapped[16] = accounts[16]
+		mapped[20] = accounts[12]
+		mapped[21] = accounts[13]
+		mapped[25] = accounts[14]
+		legacy := append([]byte(nil), data...)
+		binary.LittleEndian.PutUint64(legacy, instrPumpSwapBuy)
+		return ParsePumpswapInstruction(legacy, mapped, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	}
+	if discriminator == disc8(194, 171, 28, 70, 104, 77, 91, 47) {
+		if len(accounts) != 17 || len(data) != 24 {
+			return DexEvent{}
+		}
+		mapped := make([]string, 26)
+		mapped[0] = accounts[0]
+		mapped[1] = accounts[1]
+		mapped[2] = accounts[2]
+		mapped[3] = accounts[3]
+		mapped[4] = accounts[4]
+		mapped[5] = accounts[5]
+		mapped[6] = accounts[6]
+		mapped[7] = accounts[7]
+		mapped[8] = accounts[8]
+		mapped[11] = accounts[9]
+		mapped[12] = accounts[10]
+		mapped[13] = accounts[11]
+		mapped[15] = accounts[15]
+		mapped[16] = accounts[16]
+		mapped[20] = accounts[12]
+		mapped[21] = accounts[13]
+		mapped[25] = accounts[14]
+		legacy := append([]byte(nil), data...)
+		binary.LittleEndian.PutUint64(legacy, instrPumpSwapBuyExactQuote)
+		return ParsePumpswapInstruction(legacy, mapped, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	}
+	if discriminator == disc8(93, 246, 130, 60, 231, 233, 64, 178) {
+		if len(accounts) != 17 || len(data) != 24 {
+			return DexEvent{}
+		}
+		mapped := make([]string, 26)
+		mapped[0] = accounts[0]
+		mapped[1] = accounts[1]
+		mapped[2] = accounts[2]
+		mapped[3] = accounts[3]
+		mapped[4] = accounts[4]
+		mapped[5] = accounts[5]
+		mapped[6] = accounts[6]
+		mapped[7] = accounts[7]
+		mapped[8] = accounts[8]
+		mapped[11] = accounts[9]
+		mapped[12] = accounts[10]
+		mapped[13] = accounts[11]
+		mapped[15] = accounts[15]
+		mapped[16] = accounts[16]
+		mapped[20] = accounts[12]
+		mapped[21] = accounts[13]
+		mapped[25] = accounts[14]
+		legacy := append([]byte(nil), data...)
+		binary.LittleEndian.PutUint64(legacy, instrPumpSwapSell)
+		return ParsePumpswapInstruction(legacy, mapped, signature, slot, txIndex, blockTimeUs, grpcRecvUs)
+	}
 	switch discriminator {
 	case instrPumpSwapBuy:
 		return parsePumpSwapBuyInstr(data, accounts, meta, false)

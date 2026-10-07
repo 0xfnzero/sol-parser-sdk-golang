@@ -18,6 +18,7 @@ type DexEventInterface interface {
 
 // PumpFunTradeEvent PumpFun 交易事件
 type PumpFunTradeEvent struct {
+	CreatorFeeUnclaimed                uint64                `json:"creator_fee_unclaimed"`
 	Metadata                           EventMetadata         `json:"metadata"`
 	Mint                               string                `json:"mint"`
 	SolAmount                          uint64                `json:"sol_amount"`
@@ -97,6 +98,7 @@ func (e *PumpFunTradeEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // PumpFunCreateEvent PumpFun 创建代币事件
 type PumpFunCreateEvent struct {
+	Depth                  uint8         `json:"depth"`
 	Metadata               EventMetadata `json:"metadata"`
 	Name                   string        `json:"name"`
 	Symbol                 string        `json:"symbol"`
@@ -220,22 +222,34 @@ func (e *PumpFunBondingCurveAccountEvent) EventType() EventType {
 func (e *PumpFunBondingCurveAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 type PumpFunBondingCurve struct {
-	VirtualTokenReserves uint64 `json:"virtual_token_reserves"`
-	VirtualQuoteReserves uint64 `json:"virtual_quote_reserves"`
-	RealTokenReserves    uint64 `json:"real_token_reserves"`
-	RealQuoteReserves    uint64 `json:"real_quote_reserves"`
-	TokenTotalSupply     uint64 `json:"token_total_supply"`
-	Complete             bool   `json:"complete"`
-	Creator              string `json:"creator"`
-	IsMayhemMode         bool   `json:"is_mayhem_mode"`
-	IsCashbackCoin       bool   `json:"is_cashback_coin"`
-	QuoteMint            string `json:"quote_mint"`
-	CreatorFeeBps        uint64 `json:"creator_fee_bps"`
-	CanEditCreatorFee    bool   `json:"can_edit_creator_fee"`
-	IsHolderReward       bool   `json:"is_holder_reward"`
+	CreatorFee                  uint64 `json:"creator_fee"`
+	ProtocolFees                uint64 `json:"protocol_fees"`
+	Depth                       uint8  `json:"depth"`
+	InitialVirtualQuoteReserves uint64 `json:"initial_virtual_quote_reserves"`
+	PostCompleteBaseOut         uint64 `json:"post_complete_base_out"`
+	PostCompleteQuoteIn         uint64 `json:"post_complete_quote_in"`
+	VirtualTokenReserves        uint64 `json:"virtual_token_reserves"`
+	VirtualQuoteReserves        uint64 `json:"virtual_quote_reserves"`
+	RealTokenReserves           uint64 `json:"real_token_reserves"`
+	RealQuoteReserves           uint64 `json:"real_quote_reserves"`
+	TokenTotalSupply            uint64 `json:"token_total_supply"`
+	Complete                    bool   `json:"complete"`
+	Creator                     string `json:"creator"`
+	IsMayhemMode                bool   `json:"is_mayhem_mode"`
+	IsCashbackCoin              bool   `json:"is_cashback_coin"`
+	QuoteMint                   string `json:"quote_mint"`
+	CreatorFeeBps               uint64 `json:"creator_fee_bps"`
+	CanEditCreatorFee           bool   `json:"can_edit_creator_fee"`
+	IsHolderReward              bool   `json:"is_holder_reward"`
 }
 
 type PumpFunGlobal struct {
+	CreatorFeeConfigurable       bool   `json:"creator_fee_configurable"`
+	MaxConfigurableCreatorFeeBps uint64 `json:"max_configurable_creator_fee_bps"`
+	HolderRewardClaimAuthority   string `json:"holder_reward_claim_authority"`
+	IsHolderRewardEnabled        bool   `json:"is_holder_reward_enabled"`
+	MaxCurveDepth                uint8  `json:"max_curve_depth"`
+
 	Initialized                 bool     `json:"initialized"`
 	Authority                   string   `json:"authority"`
 	FeeRecipient                string   `json:"fee_recipient"`
@@ -275,6 +289,7 @@ func (e *PumpFunFeeConfigAccountEvent) EventType() EventType {
 func (e *PumpFunFeeConfigAccountEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 type PumpFunFeeConfig struct {
+	ExoticFlatFees PumpFeesFees      `json:"exotic_flat_fees"`
 	Bump           uint8             `json:"bump"`
 	Admin          string            `json:"admin"`
 	FlatFees       PumpFeesFees      `json:"flat_fees"`
@@ -522,6 +537,7 @@ func (e *PumpFunMigrateBondingCurveCreatorEvent) GetMetadata() EventMetadata { r
 
 // PumpSwapBuyEvent PumpSwap 买入事件
 type PumpSwapBuyEvent struct {
+	CreatorFeeUnclaimed              uint64        `json:"creator_fee_unclaimed"`
 	Metadata                         EventMetadata `json:"metadata"`
 	Timestamp                        int64         `json:"timestamp"`
 	BaseAmountOut                    uint64        `json:"base_amount_out"`
@@ -583,6 +599,7 @@ func (e *PumpSwapBuyEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // PumpSwapSellEvent PumpSwap 卖出事件
 type PumpSwapSellEvent struct {
+	CreatorFeeUnclaimed              uint64        `json:"creator_fee_unclaimed"`
 	Metadata                         EventMetadata `json:"metadata"`
 	Timestamp                        int64         `json:"timestamp"`
 	BaseAmountIn                     uint64        `json:"base_amount_in"`
@@ -2216,6 +2233,8 @@ type PumpSwapPoolAccountEvent struct {
 
 // PumpSwapPoolAccountData PumpSwap 池子数据
 type PumpSwapPoolAccountData struct {
+	ProtocolFees          uint64 `json:"protocol_fees"`
+	CreatorFees           uint64 `json:"creator_fees"`
 	PoolBump              uint8  `json:"pool_bump"`
 	Index                 uint16 `json:"index"`
 	Creator               string `json:"creator"`

@@ -181,6 +181,26 @@ func fillRpcPumpFunTrade(tr *PumpFunTradeEvent, get func(int) string) {
 	if tr == nil {
 		return
 	}
+	if get(16) == PUMPFUN_PROGRAM_ID {
+		fillStringFromAccount(&tr.Global, get, 0)
+		fillStringFromAccount(&tr.Mint, get, 1)
+		fillStringFromAccount(&tr.QuoteMint, get, 2)
+		fillStringFromAccount(&tr.TokenProgram, get, 3)
+		fillStringFromAccount(&tr.QuoteTokenProgram, get, 4)
+		fillStringFromAccount(&tr.BondingCurve, get, 5)
+		fillStringFromAccount(&tr.AssociatedBondingCurve, get, 6)
+		fillStringFromAccount(&tr.AssociatedQuoteBondingCurve, get, 7)
+		fillStringFromAccount(&tr.User, get, 8)
+		fillStringFromAccount(&tr.AssociatedUser, get, 9)
+		fillStringFromAccount(&tr.AssociatedQuoteUser, get, 10)
+		fillStringFromAccount(&tr.UserVolumeAccumulator, get, 11)
+		fillStringFromAccount(&tr.FeeConfig, get, 12)
+		fillStringFromAccount(&tr.BuybackFeeRecipient, get, 13)
+		fillStringFromAccount(&tr.SystemProgram, get, 14)
+		fillStringFromAccount(&tr.EventAuthority, get, 15)
+		fillStringFromAccount(&tr.Program, get, 16)
+		return
+	}
 	isV2 := tr.IxName == "buy_v2" || tr.IxName == "sell_v2" || tr.IxName == "buy_exact_quote_in_v2" ||
 		(!isDefaultPubkeyString(tr.Mint) && get(1) == tr.Mint)
 	isSell := tr.IxName == "sell" || tr.IxName == "sell_v2" || !tr.IsBuy
@@ -347,6 +367,10 @@ func fillRpcPumpSwapBuy(b *PumpSwapBuyEvent, get func(int) string) {
 		return
 	}
 	fillRpcPumpSwapTradeCommon(&b.Pool, &b.User, &b.BaseMint, &b.QuoteMint, &b.UserBaseTokenAccount, &b.UserQuoteTokenAccount, &b.PoolBaseTokenAccount, &b.PoolQuoteTokenAccount, &b.ProtocolFeeRecipient, &b.ProtocolFeeRecipientTokenAccount, &b.BaseTokenProgram, &b.QuoteTokenProgram, &b.CoinCreatorVaultAta, &b.CoinCreatorVaultAuthority, get)
+	if get(16) == PUMPSWAP_PROGRAM_ID {
+		fillStringFromAccount(&b.FeeRecipientQuoteTokenAccount, get, 14)
+		return
+	}
 	if !isDefaultPubkeyString(get(26)) {
 		fillStringFromAccount(&b.PoolV2, get, 24)
 		fillStringFromAccount(&b.FeeRecipient, get, 25)
@@ -367,6 +391,10 @@ func fillRpcPumpSwapSell(s *PumpSwapSellEvent, get func(int) string) {
 		return
 	}
 	fillRpcPumpSwapTradeCommon(&s.Pool, &s.User, &s.BaseMint, &s.QuoteMint, &s.UserBaseTokenAccount, &s.UserQuoteTokenAccount, &s.PoolBaseTokenAccount, &s.PoolQuoteTokenAccount, &s.ProtocolFeeRecipient, &s.ProtocolFeeRecipientTokenAccount, &s.BaseTokenProgram, &s.QuoteTokenProgram, &s.CoinCreatorVaultAta, &s.CoinCreatorVaultAuthority, get)
+	if get(16) == PUMPSWAP_PROGRAM_ID {
+		fillStringFromAccount(&s.FeeRecipientQuoteTokenAccount, get, 14)
+		return
+	}
 	if !isDefaultPubkeyString(get(25)) {
 		fillStringFromAccount(&s.PoolV2, get, 23)
 		fillStringFromAccount(&s.FeeRecipient, get, 24)
@@ -394,6 +422,11 @@ func fillRpcPumpSwapTradeCommon(
 	fillStringFromAccount(userQuote, get, 6)
 	fillStringFromAccount(poolBase, get, 7)
 	fillStringFromAccount(poolQuote, get, 8)
+	if get(16) == PUMPSWAP_PROGRAM_ID {
+		fillStringFromAccount(baseProgram, get, 9)
+		fillStringFromAccount(quoteProgram, get, 10)
+		return
+	}
 	fillStringFromAccount(protocolFee, get, 9)
 	fillStringFromAccount(protocolFeeToken, get, 10)
 	fillStringFromAccount(baseProgram, get, 11)

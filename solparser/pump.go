@@ -168,9 +168,11 @@ func parseTradeFromData(data []byte, meta EventMetadata, isCreatedBuy bool) DexE
 	}
 	if o+8 <= len(data) {
 		holderRewards, _ = readU64LE(data, o)
+		o += 8
 	}
 
 	ev := &PumpFunTradeEvent{
+		CreatorFeeUnclaimed:    upgradeAccountU64(data, o),
 		Metadata:               meta,
 		Mint:                   mint,
 		SolAmount:              solAmount,
@@ -334,6 +336,7 @@ func parseCreateFromData(data []byte, meta EventMetadata) DexEvent {
 			VirtualQuoteReserves: virtualQuoteReserves,
 			CreatorFeeBps:        creatorFeeBps,
 			IsHolderReward:       isHolderReward,
+			Depth:                upgradeAccountByte(data, o+1),
 		},
 	}
 }
@@ -420,6 +423,26 @@ func enrichPumpFunTradeFromAccounts(ev *PumpFunTradeEvent, accounts []string) {
 		if s != "" && s != zeroPubkey {
 			*dst = s
 		}
+	}
+	if getAccountSafe(accounts, 16) == PUMPFUN_PROGRAM_ID {
+		set(&ev.Global, 0)
+		set(&ev.Mint, 1)
+		set(&ev.QuoteMint, 2)
+		set(&ev.TokenProgram, 3)
+		set(&ev.QuoteTokenProgram, 4)
+		set(&ev.BondingCurve, 5)
+		set(&ev.AssociatedBondingCurve, 6)
+		set(&ev.AssociatedQuoteBondingCurve, 7)
+		set(&ev.User, 8)
+		set(&ev.AssociatedUser, 9)
+		set(&ev.AssociatedQuoteUser, 10)
+		set(&ev.UserVolumeAccumulator, 11)
+		set(&ev.FeeConfig, 12)
+		set(&ev.BuybackFeeRecipient, 13)
+		set(&ev.SystemProgram, 14)
+		set(&ev.EventAuthority, 15)
+		set(&ev.Program, 16)
+		return
 	}
 	isV2 := ev.IxName == "buy_v2" ||
 		ev.IxName == "sell_v2" ||

@@ -358,6 +358,12 @@ func ParsePumpfunGlobal(account *AccountData, metadata EventMetadata) DexEvent {
 			Metadata: metadata,
 			Pubkey:   account.Pubkey,
 			Global: PumpFunGlobal{
+				CreatorFeeConfigurable:       len(data) > 1037 && data[1037] == 1,
+				MaxConfigurableCreatorFeeBps: upgradeAccountU64(data, 1038),
+				HolderRewardClaimAuthority:   ReadPubkey(data, 1046),
+				IsHolderRewardEnabled:        len(data) > 1078 && data[1078] == 1,
+				MaxCurveDepth:                upgradeAccountByte(data, 1079),
+
 				Initialized:                 initialized,
 				Authority:                   authority,
 				FeeRecipient:                feeRecipient,
@@ -442,19 +448,25 @@ func ParsePumpfunBondingCurve(account *AccountData, metadata EventMetadata) DexE
 			Metadata: metadata,
 			Pubkey:   account.Pubkey,
 			BondingCurve: PumpFunBondingCurve{
-				VirtualTokenReserves: virtualTokenReserves,
-				VirtualQuoteReserves: virtualQuoteReserves,
-				RealTokenReserves:    realTokenReserves,
-				RealQuoteReserves:    realQuoteReserves,
-				TokenTotalSupply:     tokenTotalSupply,
-				Complete:             complete,
-				Creator:              creator,
-				IsMayhemMode:         isMayhemMode,
-				IsCashbackCoin:       isCashbackCoin,
-				QuoteMint:            quoteMint,
-				CreatorFeeBps:        creatorFeeBps,
-				CanEditCreatorFee:    canEditCreatorFee,
-				IsHolderReward:       isHolderReward,
+				CreatorFee:                  upgradeAccountU64(data, 117),
+				ProtocolFees:                upgradeAccountU64(data, 125),
+				Depth:                       upgradeAccountU8(data, 133),
+				InitialVirtualQuoteReserves: upgradeAccountU64(data, 134),
+				PostCompleteBaseOut:         upgradeAccountU64(data, 142),
+				PostCompleteQuoteIn:         upgradeAccountU64(data, 150),
+				VirtualTokenReserves:        virtualTokenReserves,
+				VirtualQuoteReserves:        virtualQuoteReserves,
+				RealTokenReserves:           realTokenReserves,
+				RealQuoteReserves:           realQuoteReserves,
+				TokenTotalSupply:            tokenTotalSupply,
+				Complete:                    complete,
+				Creator:                     creator,
+				IsMayhemMode:                isMayhemMode,
+				IsCashbackCoin:              isCashbackCoin,
+				QuoteMint:                   quoteMint,
+				CreatorFeeBps:               creatorFeeBps,
+				CanEditCreatorFee:           canEditCreatorFee,
+				IsHolderReward:              isHolderReward,
 			},
 		},
 	}
@@ -545,6 +557,14 @@ func ParsePumpfunFeeConfig(account *AccountData, metadata EventMetadata) DexEven
 	if !ok {
 		return DexEvent{}
 	}
+	var exotic PumpFeesFees
+	if len(data) > offset {
+		var ok bool
+		exotic, ok = readPumpfunFees(data, &offset)
+		if !ok {
+			return DexEvent{}
+		}
+	}
 	return DexEvent{
 		Type: EventTypeAccountPumpFunFeeConfig,
 		Data: &PumpFunFeeConfigAccountEvent{
@@ -556,6 +576,7 @@ func ParsePumpfunFeeConfig(account *AccountData, metadata EventMetadata) DexEven
 				FlatFees:       flatFees,
 				FeeTiers:       feeTiers,
 				StableFeeTiers: stableFeeTiers,
+				ExoticFlatFees: exotic,
 			},
 		},
 	}
@@ -880,6 +901,8 @@ func ParsePumpswapPool(account *AccountData, metadata EventMetadata) DexEvent {
 			Metadata: metadata,
 			Pubkey:   account.Pubkey,
 			Pool: PumpSwapPoolAccountData{
+				ProtocolFees:          upgradeAccountU64(data, 263),
+				CreatorFees:           upgradeAccountU64(data, 271),
 				PoolBump:              poolBump,
 				Index:                 index,
 				Creator:               creator,
@@ -1009,4 +1032,24 @@ func ReadU8(data []byte, offset int) uint8 {
 		return 0
 	}
 	return data[offset]
+}
+
+func upgradeAccountU64(data []byte, offset int) uint64 {
+	if offset+8 > len(data) {
+		return 0
+	}
+	return binary.LittleEndian.Uint64(data[offset : offset+8])
+}
+func upgradeAccountU8(data []byte, offset int) uint8 {
+	if offset >= len(data) {
+		return 0
+	}
+	return data[offset]
+}
+
+func upgradeAccountByte(data []byte, o int) uint8 {
+	if o < len(data) {
+		return data[o]
+	}
+	return 0
 }

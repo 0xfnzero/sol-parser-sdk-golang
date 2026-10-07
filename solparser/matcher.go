@@ -24,6 +24,9 @@ func ParseLogUnified(log, signature string, slot uint64, blockTimeUs *int64) Dex
 }
 
 func logDiscriminatorEventType(disc uint64) (EventType, bool) {
+	if kind, ok := pumpUpgradeEventType(disc, ""); ok {
+		return kind, true
+	}
 	switch disc {
 	case discPumpCreate:
 		return EventTypePumpFunCreate, true
@@ -171,6 +174,9 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 }
 
 func programScopedLogDiscriminatorEventType(programID string, disc uint64) (EventType, bool) {
+	if kind, ok := pumpUpgradeEventType(disc, programID); ok {
+		return kind, true
+	}
 	switch programID {
 	case PUMPFUN_PROGRAM_ID:
 		switch disc {
@@ -651,6 +657,9 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 		}
 	}
 
+	if _, ok := pumpUpgradeEventType(disc, programID); ok {
+		return applyActualEventTypeFilter(parsePumpUpgradeEvent(disc, data, meta, programID), eventFilter)
+	}
 	if programID == RAYDIUM_LAUNCHLAB_PROGRAM_ID {
 		return applyActualEventTypeFilter(ParseRaydiumLaunchlabFromDiscriminator(disc, data, meta), eventFilter)
 	}
