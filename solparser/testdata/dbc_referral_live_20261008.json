@@ -1,0 +1,105 @@
+{
+  "cases": [
+    {
+      "name": "no-referral-buy",
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAANF9xKsAAAAA2pGuls1HeAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAAiVPHagAAAAA=",
+          "expected_referral_fee": 0,
+          "expected_has_referral": false
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA0X3EqwAAAADaka6WzUd4AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAA2aHKAAAAAAAnpcfLCQAAAIlTx2oAAAAA",
+          "expected_referral_fee": 0,
+          "expected_has_referral": false
+        }
+      ],
+      "referral_bank_credit": 0,
+      "error": null,
+      "dedup_count": 1
+    },
+    {
+      "name": "referral-legacy-buy",
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAaCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAANF9xKsAAAAA2pGuls1HeAEAAAAAAAAAAKAPAAAAAAAAIAMAAAAAAADIAAAAAAAAAKCGAQAAAAAAh1PHagAAAAA=",
+          "expected_referral_fee": 200,
+          "expected_has_referral": true
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAaCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA0X3EqwAAAADaka6WzUd4AQAAAAAAAAAAoA8AAAAAAAAgAwAAAAAAAMgAAAAAAAAA2aHKAAAAAAAnpcfLCQAAAIdTx2oAAAAA",
+          "expected_referral_fee": 200,
+          "expected_has_referral": true
+        }
+      ],
+      "referral_bank_credit": 200,
+      "error": null,
+      "dedup_count": 1
+    },
+    {
+      "name": "referral-roundtrip",
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAaCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAANF9xKsAAAAA2pGuls1HeAEAAAAAAAAAAKAPAAAAAAAAIAMAAAAAAADIAAAAAAAAAKCGAQAAAAAAi1PHagAAAAA=",
+          "expected_referral_fee": 200,
+          "expected_has_referral": true
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAaCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA0X3EqwAAAADaka6WzUd4AQAAAAAAAAAAoA8AAAAAAAAgAwAAAAAAAMgAAAAAAAAA2aHKAAAAAAAnpcfLCQAAAItTx2oAAAAA",
+          "expected_referral_fee": 200,
+          "expected_has_referral": true
+        },
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAXQf8SoAAAAAAQAAAAAAAAB0H/EqAAAAACJYAAAAAAAAHZhnjsBHeAEAAAAAAAAAALcDAAAAAAAAvgAAAAAAAAAvAAAAAAAAAHQf8SoAAAAAi1PHagAAAAA=",
+          "expected_referral_fee": 47,
+          "expected_has_referral": true
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAXQf8SoAAAAAAQAAAAAAAAAAdB/xKgAAAAB0H/EqAAAAAAAAAAAAAAAAIlgAAAAAAAAdmGeOwEd4AQAAAAAAAAAAtwMAAAAAAAC+AAAAAAAAAC8AAAAAAAAAE0XKAAAAAAAnpcfLCQAAAItTx2oAAAAA",
+          "expected_referral_fee": 47,
+          "expected_has_referral": true
+        }
+      ],
+      "referral_bank_credit": 247,
+      "error": null,
+      "dedup_count": 2
+    },
+    {
+      "name": "referral-swap2-buy",
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAaCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAANF9xKsAAAAA2pGuls1HeAEAAAAAAAAAAKAPAAAAAAAAIAMAAAAAAADIAAAAAAAAAKCGAQAAAAAAhVPHagAAAAA=",
+          "expected_referral_fee": 200,
+          "expected_has_referral": true
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAaCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA0X3EqwAAAADaka6WzUd4AQAAAAAAAAAAoA8AAAAAAAAgAwAAAAAAAMgAAAAAAAAA2aHKAAAAAAAnpcfLCQAAAIVTx2oAAAAA",
+          "expected_referral_fee": 200,
+          "expected_has_referral": true
+        }
+      ],
+      "referral_bank_credit": 200,
+      "error": null,
+      "dedup_count": 1
+    },
+    {
+      "name": "wrong-referral-mint",
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "events": [],
+      "referral_bank_credit": null,
+      "error": {
+        "InstructionError": [
+          7,
+          {
+            "Custom": 3
+          }
+        ]
+      },
+      "dedup_count": 0
+    }
+  ]
+}

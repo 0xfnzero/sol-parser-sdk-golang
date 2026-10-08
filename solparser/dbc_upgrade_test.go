@@ -137,3 +137,54 @@ func TestRealBankDbcEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestDbcReferralBankCredit(t *testing.T) {
+	raw, err := os.ReadFile("testdata/dbc_referral_live_20261008.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var f struct {
+		Cases []struct {
+			Name, Program string
+			Error         any
+			Credit        uint64 `json:"referral_bank_credit"`
+			Count         int    `json:"dedup_count"`
+			Events        []struct {
+				Data string
+				Fee  uint64 `json:"expected_referral_fee"`
+				Has  bool   `json:"expected_has_referral"`
+			}
+		}
+	}
+	if err := json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range f.Cases {
+		t.Run(c.Name, func(t *testing.T) {
+			var events []DexEvent
+			for _, row := range c.Events {
+				data, _ := base64.StdEncoding.DecodeString(row.Data)
+				e := ParseInnerInstructionUnified(data, nil, "simulation", 1, 0, nil, 0, nil, c.Program, false)
+				body, ok := e.Data.(*MeteoraDbcSwapEvent)
+				if !ok || body.ReferralFee != row.Fee || body.HasReferral != row.Has {
+					t.Fatal("referral fields differ")
+				}
+				events = append(events, e)
+			}
+			current := DedupeLogInstructionEvents(nil, events)
+			if len(current) != c.Count {
+				t.Fatal("dedup count")
+			}
+			var credit uint64
+			for _, e := range current {
+				credit += e.Data.(*MeteoraDbcSwapEvent).ReferralFee
+			}
+			if c.Error == nil && credit != c.Credit {
+				t.Fatal("bank credit differs")
+			}
+			if c.Error != nil && len(current) != 0 {
+				t.Fatal("rolled back fills")
+			}
+		})
+	}
+}
