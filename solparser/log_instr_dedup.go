@@ -13,6 +13,8 @@ type logInstrDedupKey struct {
 
 const (
 	dedupPumpFunTrade uint8 = iota + 1
+	dedupPumpFunComplete
+	dedupPumpFunPostCompleteBuy
 	dedupPumpFunCreate
 	dedupPumpFunMigrate
 	dedupRaydiumLaunchlabTrade
@@ -72,6 +74,14 @@ func dedupeKey(ev DexEvent, occurrenceCounts map[logInstrDedupKey]uint16) (logIn
 			lane:       base.lane,
 			occurrence: occ,
 		}, true
+	case EventTypePumpFunComplete:
+		if e, ok := ev.Data.(*PumpFunCompleteEvent); ok && e != nil {
+			return logInstrDedupKey{kind: dedupPumpFunComplete, a: e.Mint, b: e.BondingCurve, c: e.User}, true
+		}
+	case EventTypePumpFunPostCompleteBuy:
+		if e, ok := ev.Data.(*PumpFunPostCompleteBuyEvent); ok && e != nil {
+			return logInstrDedupKey{kind: dedupPumpFunPostCompleteBuy, a: e.Mint, b: e.BondingCurve, c: e.User, amount: e.BaseOut}, true
+		}
 	case EventTypePumpFunCreate:
 		if c, ok := ev.Data.(*PumpFunCreateEvent); ok && c != nil {
 			return logInstrDedupKey{kind: dedupPumpFunCreate, a: c.Mint}, true
