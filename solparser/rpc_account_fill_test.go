@@ -131,11 +131,12 @@ func TestFillRpcDexEventsPumpSwapLogDerivedBuy(t *testing.T) {
 		"feeRecipientQuoteTokenAccount", PUMPSWAP_PROGRAM_ID,
 	}
 	msg := rpcMessageWithProgramInvoke(keys, PUMPSWAP_PROGRAM_ID, sequentialAccounts(26))
+	msg.Instructions[0].Data = []byte{102, 6, 61, 18, 1, 218, 235, 234}
 	events := []DexEvent{{
 		Type: EventTypePumpSwapBuy,
 		Data: &PumpSwapBuyEvent{
-			Pool:                          zeroPubkey,
-			User:                          zeroPubkey,
+			Pool:                          "pool",
+			User:                          "user",
 			BaseMint:                      zeroPubkey,
 			QuoteMint:                     zeroPubkey,
 			FeeRecipientQuoteTokenAccount: zeroPubkey,

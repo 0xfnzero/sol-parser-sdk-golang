@@ -99,18 +99,16 @@ func fillRpcOneEvent(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, in
 		}
 	case EventTypePumpSwapBuy:
 		swapInv := invokes[PUMPSWAP_PROGRAM_ID]
-		get := rpcAccountGetter(msg, meta, swapInv)
-		if get != nil {
-			if b, ok := ev.Data.(*PumpSwapBuyEvent); ok {
+		if b, ok := ev.Data.(*PumpSwapBuyEvent); ok {
+			if get := rpcPumpSwapTradeGetter(msg, meta, swapInv, b.Pool, b.User, true); get != nil {
 				fillRpcPumpSwapBuy(b, get)
 			}
 		}
 		fillPumpSwapIsPumpPool(ev, msg, meta, feesInv)
 	case EventTypePumpSwapSell:
 		swapInv := invokes[PUMPSWAP_PROGRAM_ID]
-		get := rpcAccountGetter(msg, meta, swapInv)
-		if get != nil {
-			if s, ok := ev.Data.(*PumpSwapSellEvent); ok {
+		if s, ok := ev.Data.(*PumpSwapSellEvent); ok {
+			if get := rpcPumpSwapTradeGetter(msg, meta, swapInv, s.Pool, s.User, false); get != nil {
 				fillRpcPumpSwapSell(s, get)
 			}
 		}
@@ -983,4 +981,45 @@ func isCompactPumpSwapTrade(get func(int) string) bool {
 		return s == "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" || s == "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 	}
 	return get(16) == PUMPSWAP_PROGRAM_ID && isToken(get(9)) && isToken(get(10))
+}
+
+// Logs must inherit accounts only from a unique trade of their pool/user/direction.
+func rpcPumpSwapTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes [][2]int32, pool, user string, buy bool) func(int) string {
+	if pool == "" || pool == "11111111111111111111111111111111" {
+		return nil
+	}
+	var selected func(int) string
+	for _, invoke := range invokes {
+		raw := getRpcInstructionData(msg, meta, invoke)
+		if len(raw) < 8 {
+			continue
+		}
+		disc := [8]byte(raw[:8])
+		legacyBuy := disc == [8]byte{102, 6, 61, 18, 1, 218, 235, 234} || disc == [8]byte{198, 46, 21, 82, 180, 217, 232, 112}
+		compactBuy := disc == [8]byte{184, 23, 238, 97, 103, 197, 211, 61} || disc == [8]byte{194, 171, 28, 70, 104, 77, 91, 47}
+		legacySell := disc == [8]byte{51, 230, 133, 164, 1, 127, 131, 173}
+		compactSell := disc == [8]byte{93, 246, 130, 60, 231, 233, 64, 178}
+		if buy && !legacyBuy && !compactBuy || !buy && !legacySell && !compactSell {
+			continue
+		}
+		minimum := 21
+		if buy {
+			minimum = 23
+		}
+		if compactBuy || compactSell {
+			minimum = 17
+		}
+		if rpcInvokeAccountLen(msg, meta, invoke) < minimum {
+			continue
+		}
+		get := rpcAccountGetter(msg, meta, [][2]int32{invoke})
+		if get == nil || get(0) != pool || (user != "" && user != "11111111111111111111111111111111" && get(1) != user) {
+			continue
+		}
+		if selected != nil {
+			return nil
+		}
+		selected = get
+	}
+	return selected
 }
