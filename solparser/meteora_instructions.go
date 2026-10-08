@@ -71,18 +71,23 @@ func ParseMeteoraPoolsInstruction(
 				TokenBOutAmount: tokenB,
 			},
 		}
-	case instrMeteoraPoolsCreatePool:
-		if len(payload) < 1+6*8 || len(accounts) <= 9 {
+	case instrMeteoraPoolsCreatePool, instrMeteoraPoolsCreatePoolConfig2:
+		if len(payload) < 16 || len(accounts) < 5 {
 			return DexEvent{}
+		}
+		if disc == instrMeteoraPoolsCreatePoolConfig2 {
+			if len(payload) < 17 || payload[16] > 1 || (payload[16] == 1 && len(payload) < 25) {
+				return DexEvent{}
+			}
 		}
 		return DexEvent{
 			Type: EventTypeMeteoraPoolsPoolCreated,
 			Data: &MeteoraPoolsPoolCreatedEvent{
 				Metadata:   meta,
-				LpMint:     getAccountSafe(accounts, 4),
-				TokenAMint: getAccountSafe(accounts, 8),
-				TokenBMint: getAccountSafe(accounts, 9),
-				PoolType:   payload[0],
+				LpMint:     getAccountSafe(accounts, 2),
+				TokenAMint: getAccountSafe(accounts, 3),
+				TokenBMint: getAccountSafe(accounts, 4),
+				PoolType:   1, // PoolType::Permissionless, independent of CurveType.
 				Pool:       pool,
 			},
 		}

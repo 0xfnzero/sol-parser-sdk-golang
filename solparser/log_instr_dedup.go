@@ -17,6 +17,7 @@ const (
 	dedupPumpFunMigrate
 	dedupRaydiumLaunchlabTrade
 	dedupRaydiumLaunchlabPoolCreate
+	dedupMeteoraPoolsPoolCreated
 	dedupRaydiumLaunchlabMigrateAmm
 	dedupPumpSwapBuy
 	dedupPumpSwapSell
@@ -86,6 +87,10 @@ func dedupeKey(ev DexEvent, occurrenceCounts map[logInstrDedupKey]uint16) (logIn
 	case EventTypeRaydiumLaunchlabTrade:
 		if t, ok := ev.Data.(*RaydiumLaunchlabTradeEvent); ok && t != nil {
 			return logInstrDedupKey{kind: dedupRaydiumLaunchlabTrade, a: t.PoolState, b: t.User, flag: t.IsBuy}, true
+		}
+	case EventTypeMeteoraPoolsPoolCreated:
+		if p, ok := ev.Data.(*MeteoraPoolsPoolCreatedEvent); ok && p != nil && p.Pool != "" && p.Pool != "11111111111111111111111111111111" {
+			return logInstrDedupKey{kind: dedupMeteoraPoolsPoolCreated, a: p.Pool}, true
 		}
 	case EventTypeRaydiumLaunchlabPoolCreate:
 		if p, ok := ev.Data.(*RaydiumLaunchlabPoolCreateEvent); ok && p != nil {

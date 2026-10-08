@@ -219,10 +219,11 @@ var (
 	discMeteoraPoolCreated = disc8(202, 44, 41, 88, 104, 220, 157, 82)
 	discMeteoraSetPoolFees = disc8(245, 26, 198, 164, 88, 18, 75, 9)
 
-	instrMeteoraPoolsSwap            = disc8(248, 198, 158, 145, 225, 117, 135, 200)
-	instrMeteoraPoolsAddLiquidity    = disc8(181, 157, 89, 67, 143, 182, 52, 72)
-	instrMeteoraPoolsRemoveLiquidity = disc8(80, 85, 209, 72, 24, 206, 177, 108)
-	instrMeteoraPoolsCreatePool      = disc8(95, 180, 10, 172, 84, 174, 232, 40)
+	instrMeteoraPoolsSwap              = disc8(248, 198, 158, 145, 225, 117, 135, 200)
+	instrMeteoraPoolsAddLiquidity      = disc8(181, 157, 89, 67, 143, 182, 52, 72)
+	instrMeteoraPoolsRemoveLiquidity   = disc8(80, 85, 209, 72, 24, 206, 177, 108)
+	instrMeteoraPoolsCreatePool        = disc8(7, 166, 138, 171, 206, 171, 236, 244)
+	instrMeteoraPoolsCreatePoolConfig2 = disc8(48, 149, 220, 130, 61, 11, 9, 178)
 
 	// Meteora DAMM v2
 	discDammSwap                        = disc8(27, 60, 21, 213, 138, 170, 187, 147)

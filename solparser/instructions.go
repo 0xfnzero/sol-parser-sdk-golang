@@ -373,6 +373,7 @@ func normalInstructionDataMayParse(programID string, data []byte) bool {
 			instrMeteoraPoolsAddLiquidity,
 			instrMeteoraPoolsRemoveLiquidity,
 			instrMeteoraPoolsCreatePool,
+			instrMeteoraPoolsCreatePoolConfig2,
 		)
 	default:
 		return false
