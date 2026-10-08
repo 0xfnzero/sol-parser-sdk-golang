@@ -3,7 +3,7 @@ package solparser
 import "testing"
 
 // 回归：Program data 日志解析出的 PumpFun Trade（无指令账户）须能通过 fillRpcDexEventsPump
-// 用交易 message 中任意一次 PumpFun invoke 的账户表补全 bonding_curve 等字段。
+// 用匹配 mint、用户及方向的 PumpFun invoke 补全 bonding_curve 等字段。
 func TestFillRpcDexEventsPump_LogDerivedBuyExactSolIn(t *testing.T) {
 	// 与 IDL buy 一致：0 global … 3 bonding_curve, 4 associated_bonding_curve, 8 token_program, 9 creator_vault
 	keys := []string{
@@ -25,7 +25,7 @@ func TestFillRpcDexEventsPump_LogDerivedBuyExactSolIn(t *testing.T) {
 			{
 				ProgramIDIndex: progIx,
 				Accounts:       accs,
-				Data:           []byte{1, 2, 3},
+				Data:           []byte{56, 252, 116, 8, 158, 223, 205, 95},
 			},
 		},
 	}
@@ -33,6 +33,8 @@ func TestFillRpcDexEventsPump_LogDerivedBuyExactSolIn(t *testing.T) {
 		Type: EventTypePumpFunBuyExactSolIn,
 		Data: &PumpFunTradeEvent{
 			Metadata:     EventMetadata{},
+			Mint:         "mintMINT",
+			User:         "userUSER",
 			IsBuy:        true,
 			IxName:       "buy_exact_sol_in",
 			BondingCurve: "",

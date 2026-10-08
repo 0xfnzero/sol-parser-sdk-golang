@@ -68,16 +68,13 @@ func fillRpcDexEventsPump(events []DexEvent, msg *RpcMessage, meta *RpcTransacti
 func fillRpcOneEvent(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32, feesInv [][2]int32) {
 	switch ev.Type {
 	case EventTypePumpFunTrade, EventTypePumpFunBuy, EventTypePumpFunSell, EventTypePumpFunBuyExactSolIn:
-		pumpInv := invokes[PUMPFUN_PROGRAM_ID]
-		get := rpcAccountGetter(msg, meta, pumpInv)
-		if get == nil {
-			return
-		}
 		tr, ok := ev.Data.(*PumpFunTradeEvent)
 		if !ok {
 			return
 		}
-		fillRpcPumpFunTrade(tr, get)
+		if get := rpcPumpFunTradeGetter(msg, meta, invokes[PUMPFUN_PROGRAM_ID], tr); get != nil {
+			fillRpcPumpFunTrade(tr, get)
+		}
 		fillPumpFunBalances(tr, msg, meta)
 	case EventTypePumpFunCreate:
 		pumpInv := invokes[PUMPFUN_PROGRAM_ID]
@@ -1047,4 +1044,48 @@ func rpcPumpSwapTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes [
 		selectedBoost = boost
 	}
 	return selected, selectedBoost
+}
+
+// Trade logs must inherit a unique matching trade, never a larger create/invoke.
+func rpcPumpFunTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes [][2]int32, event *PumpFunTradeEvent) func(int) string {
+	if event == nil || isDefaultPubkeyString(event.Mint) {
+		return nil
+	}
+	var selected func(int) string
+	for _, invoke := range invokes {
+		raw := getRpcInstructionData(msg, meta, invoke)
+		if len(raw) < 8 {
+			continue
+		}
+		var mintIndex, userIndex, minimum int
+		var buy bool
+		switch [8]byte(raw[:8]) {
+		case [8]byte{102, 6, 61, 18, 1, 218, 235, 234}, [8]byte{56, 252, 116, 8, 158, 223, 205, 95}:
+			mintIndex, userIndex, buy, minimum = 2, 6, true, 16
+		case [8]byte{51, 230, 133, 164, 1, 127, 131, 173}:
+			mintIndex, userIndex, buy, minimum = 2, 6, false, 14
+		case [8]byte{184, 23, 238, 97, 103, 197, 211, 61}, [8]byte{194, 171, 28, 70, 104, 77, 91, 47}:
+			mintIndex, userIndex, buy, minimum = 1, 13, true, 27
+		case [8]byte{93, 246, 130, 60, 231, 233, 64, 178}:
+			mintIndex, userIndex, buy, minimum = 1, 13, false, 26
+		case [8]byte{7, 5, 29, 196, 245, 23, 101, 80}, [8]byte{225, 247, 80, 30, 213, 179, 132, 136}:
+			mintIndex, userIndex, buy, minimum = 1, 8, true, 17
+		case [8]byte{28, 146, 222, 119, 38, 196, 105, 213}:
+			mintIndex, userIndex, buy, minimum = 1, 8, false, 17
+		default:
+			continue
+		}
+		if buy != event.IsBuy || rpcInvokeAccountLen(msg, meta, invoke) < minimum {
+			continue
+		}
+		get := rpcAccountGetter(msg, meta, [][2]int32{invoke})
+		if get == nil || get(mintIndex) != event.Mint || (!isDefaultPubkeyString(event.User) && get(userIndex) != event.User) {
+			continue
+		}
+		if selected != nil {
+			return nil
+		}
+		selected = get
+	}
+	return selected
 }
