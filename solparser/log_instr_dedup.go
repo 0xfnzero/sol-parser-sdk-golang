@@ -27,6 +27,8 @@ const (
 	dedupRaydiumCpmmSwap
 	dedupRaydiumAmmV4Swap
 	dedupOrcaWhirlpoolSwap
+	dedupOrcaWhirlpoolLiquidityIncreased
+	dedupOrcaWhirlpoolLiquidityDecreased
 	dedupMeteoraDlmmSwap
 )
 
@@ -141,6 +143,20 @@ func dedupeKey(ev DexEvent, occurrenceCounts map[logInstrDedupKey]uint16) (logIn
 			return logInstrDedupKey{
 				kind: dedupRaydiumAmmV4Swap, amount: amount, flag: baseOut, occurrence: occ,
 			}, true
+		}
+	case EventTypeOrcaWhirlpoolLiquidityIncreased:
+		if e, ok := ev.Data.(*OrcaWhirlpoolLiquidityIncreasedEvent); ok && e != nil {
+			base := logInstrDedupKey{kind: dedupOrcaWhirlpoolLiquidityIncreased, a: e.Whirlpool, b: e.Position, c: e.Liquidity}
+			occurrence := nextOccurrence(base, occurrenceCounts)
+			base.occurrence = occurrence
+			return base, true
+		}
+	case EventTypeOrcaWhirlpoolLiquidityDecreased:
+		if e, ok := ev.Data.(*OrcaWhirlpoolLiquidityDecreasedEvent); ok && e != nil {
+			base := logInstrDedupKey{kind: dedupOrcaWhirlpoolLiquidityDecreased, a: e.Whirlpool, b: e.Position, c: e.Liquidity}
+			occurrence := nextOccurrence(base, occurrenceCounts)
+			base.occurrence = occurrence
+			return base, true
 		}
 	case EventTypeOrcaWhirlpoolSwap:
 		if s, ok := ev.Data.(*OrcaWhirlpoolSwapEvent); ok && s != nil {
@@ -577,7 +593,7 @@ func DedupeLogInstructionEvents(logEvents []DexEvent, instrEvents []DexEvent) []
 	for key := range idxByKey {
 		base := key
 		base.occurrence = 0
-		if (base.kind == dedupPumpFunTrade || base.kind == dedupPumpSwapBuy || base.kind == dedupPumpSwapSell) && logOccurrences[base] != ixOccurrences[base] {
+		if (base.kind == dedupPumpFunTrade || base.kind == dedupPumpSwapBuy || base.kind == dedupPumpSwapSell || base.kind == dedupOrcaWhirlpoolLiquidityIncreased || base.kind == dedupOrcaWhirlpoolLiquidityDecreased) && logOccurrences[base] != ixOccurrences[base] {
 			delete(idxByKey, key)
 		}
 	}

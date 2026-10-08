@@ -114,7 +114,7 @@ func TestParseOrcaWhirlpoolLiquidityInstructionFields(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected OrcaWhirlpoolLiquidityIncreasedEvent, got %T", inc.Data)
 	}
-	if incData.Whirlpool != "account_1" || incData.Position != "account_3" ||
+	if incData.Whirlpool != "account_0" || incData.Position != "account_3" ||
 		incData.Liquidity != u128LEDecimalString(u128ForTest(80, 1)) ||
 		incData.TokenAAmount != 222 || incData.TokenBAmount != 333 {
 		t.Fatalf("unexpected increase liquidity fields: %+v", incData)
@@ -136,7 +136,7 @@ func TestParseOrcaWhirlpoolLiquidityInstructionFields(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected OrcaWhirlpoolLiquidityDecreasedEvent, got %T", dec.Data)
 	}
-	if decData.Whirlpool != "account_1" || decData.Position != "account_3" ||
+	if decData.Whirlpool != "account_0" || decData.Position != "account_3" ||
 		decData.Liquidity != u128LEDecimalString(u128ForTest(80, 2)) ||
 		decData.TokenAAmount != 444 || decData.TokenBAmount != 555 {
 		t.Fatalf("unexpected decrease liquidity fields: %+v", decData)

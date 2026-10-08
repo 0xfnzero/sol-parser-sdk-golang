@@ -362,7 +362,9 @@ func normalInstructionDataMayParse(programID string, data []byte) bool {
 			disc8(248, 198, 158, 145, 225, 117, 135, 200),
 			disc8(43, 4, 237, 11, 26, 201, 30, 98),
 			disc8(46, 156, 243, 118, 13, 205, 251, 178),
+			disc8(133, 29, 89, 223, 69, 238, 176, 10),
 			disc8(160, 38, 208, 111, 104, 91, 44, 1),
+			disc8(58, 127, 188, 62, 79, 82, 196, 96),
 			disc8(17, 43, 80, 74, 168, 202, 6, 113),
 		)
 	case METEORA_POOLS_PROGRAM_ID:
@@ -2075,8 +2077,13 @@ func ParseOrcaWhirlpoolInstruction(
 				OutputAmount: outputAmount,
 			},
 		}
-	case disc8(46, 156, 243, 118, 13, 205, 251, 178):
-		if len(data) < 8+16+8+8 {
+	case disc8(46, 156, 243, 118, 13, 205, 251, 178), disc8(133, 29, 89, 223, 69, 238, 176, 10):
+		v2 := discriminator == disc8(133, 29, 89, 223, 69, 238, 176, 10)
+		positionIndex, extra := 3, 0
+		if v2 {
+			positionIndex, extra = 5, 1
+		}
+		if len(data) < 8+16+8+8+extra {
 			return DexEvent{}
 		}
 		liquidity, _ := readU128LE(data, 8)
@@ -2086,15 +2093,20 @@ func ParseOrcaWhirlpoolInstruction(
 			Type: EventTypeOrcaWhirlpoolLiquidityIncreased,
 			Data: &OrcaWhirlpoolLiquidityIncreasedEvent{
 				Metadata:     meta,
-				Whirlpool:    getAccountSafe(accounts, 1),
-				Position:     getAccountSafe(accounts, 3),
+				Whirlpool:    getAccountSafe(accounts, 0),
+				Position:     getAccountSafe(accounts, positionIndex),
 				Liquidity:    u128LEDecimalString(liquidity),
 				TokenAAmount: amountA,
 				TokenBAmount: amountB,
 			},
 		}
-	case disc8(160, 38, 208, 111, 104, 91, 44, 1):
-		if len(data) < 8+16+8+8 {
+	case disc8(160, 38, 208, 111, 104, 91, 44, 1), disc8(58, 127, 188, 62, 79, 82, 196, 96):
+		v2 := discriminator == disc8(58, 127, 188, 62, 79, 82, 196, 96)
+		positionIndex, extra := 3, 0
+		if v2 {
+			positionIndex, extra = 5, 1
+		}
+		if len(data) < 8+16+8+8+extra {
 			return DexEvent{}
 		}
 		liquidity, _ := readU128LE(data, 8)
@@ -2104,8 +2116,8 @@ func ParseOrcaWhirlpoolInstruction(
 			Type: EventTypeOrcaWhirlpoolLiquidityDecreased,
 			Data: &OrcaWhirlpoolLiquidityDecreasedEvent{
 				Metadata:     meta,
-				Whirlpool:    getAccountSafe(accounts, 1),
-				Position:     getAccountSafe(accounts, 3),
+				Whirlpool:    getAccountSafe(accounts, 0),
+				Position:     getAccountSafe(accounts, positionIndex),
 				Liquidity:    u128LEDecimalString(liquidity),
 				TokenAAmount: amountA,
 				TokenBAmount: amountB,
