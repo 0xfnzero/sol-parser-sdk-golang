@@ -32,9 +32,9 @@ const (
 
 func pumpfunIxLane(ixName string) uint8 {
 	switch ixName {
-	case "sell", "sell_v2":
+	case "sell", "sell_v2", "sell_v3":
 		return 1
-	case "buy_exact_sol_in", "buy_exact_quote_in", "buy_exact_quote_in_v2":
+	case "buy_exact_sol_in", "buy_exact_quote_in", "buy_exact_quote_in_v2", "buy_exact_quote_in_v3":
 		return 2
 	default:
 		return 0

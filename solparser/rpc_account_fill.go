@@ -367,7 +367,7 @@ func fillRpcPumpSwapBuy(b *PumpSwapBuyEvent, get func(int) string) {
 		return
 	}
 	fillRpcPumpSwapTradeCommon(&b.Pool, &b.User, &b.BaseMint, &b.QuoteMint, &b.UserBaseTokenAccount, &b.UserQuoteTokenAccount, &b.PoolBaseTokenAccount, &b.PoolQuoteTokenAccount, &b.ProtocolFeeRecipient, &b.ProtocolFeeRecipientTokenAccount, &b.BaseTokenProgram, &b.QuoteTokenProgram, &b.CoinCreatorVaultAta, &b.CoinCreatorVaultAuthority, get)
-	if get(16) == PUMPSWAP_PROGRAM_ID {
+	if isCompactPumpSwapTrade(get) {
 		fillStringFromAccount(&b.FeeRecipientQuoteTokenAccount, get, 14)
 		return
 	}
@@ -391,7 +391,7 @@ func fillRpcPumpSwapSell(s *PumpSwapSellEvent, get func(int) string) {
 		return
 	}
 	fillRpcPumpSwapTradeCommon(&s.Pool, &s.User, &s.BaseMint, &s.QuoteMint, &s.UserBaseTokenAccount, &s.UserQuoteTokenAccount, &s.PoolBaseTokenAccount, &s.PoolQuoteTokenAccount, &s.ProtocolFeeRecipient, &s.ProtocolFeeRecipientTokenAccount, &s.BaseTokenProgram, &s.QuoteTokenProgram, &s.CoinCreatorVaultAta, &s.CoinCreatorVaultAuthority, get)
-	if get(16) == PUMPSWAP_PROGRAM_ID {
+	if isCompactPumpSwapTrade(get) {
 		fillStringFromAccount(&s.FeeRecipientQuoteTokenAccount, get, 14)
 		return
 	}
@@ -422,7 +422,7 @@ func fillRpcPumpSwapTradeCommon(
 	fillStringFromAccount(userQuote, get, 6)
 	fillStringFromAccount(poolBase, get, 7)
 	fillStringFromAccount(poolQuote, get, 8)
-	if get(16) == PUMPSWAP_PROGRAM_ID {
+	if isCompactPumpSwapTrade(get) {
 		fillStringFromAccount(baseProgram, get, 9)
 		fillStringFromAccount(quoteProgram, get, 10)
 		return
@@ -975,4 +975,12 @@ func rpcInvokeAccountLen(msg *RpcMessage, meta *RpcTransactionMeta, inv [2]int32
 		return len(msg.Instructions[inv[0]].Accounts)
 	}
 	return 0
+}
+
+// The program at index16 is shared with legacy trades; inspect token program roles.
+func isCompactPumpSwapTrade(get func(int) string) bool {
+	isToken := func(s string) bool {
+		return s == "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" || s == "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+	}
+	return get(16) == PUMPSWAP_PROGRAM_ID && isToken(get(9)) && isToken(get(10))
 }
