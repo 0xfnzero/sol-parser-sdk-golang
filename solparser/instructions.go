@@ -53,7 +53,8 @@ var (
 )
 
 var (
-	instrCpmmInitialize = disc8(175, 175, 109, 31, 13, 152, 155, 237)
+	instrCpmmInitializePermission = disc8(63, 55, 254, 65, 49, 178, 89, 121)
+	instrCpmmInitialize           = disc8(175, 175, 109, 31, 13, 152, 155, 237)
 )
 
 // InstructionData 指令数据
@@ -341,6 +342,7 @@ func normalInstructionDataMayParse(programID string, data []byte) bool {
 			discCpmmSwapIn,
 			discCpmmSwapOut,
 			instrCpmmInitialize,
+			instrCpmmInitializePermission,
 			discCpmmDeposit,
 			discCpmmWithdraw,
 		)
@@ -1798,8 +1800,12 @@ func ParseRaydiumCpmmInstruction(
 				BaseInput:    discriminator == discCpmmSwapIn,
 			},
 		}
-	case instrCpmmInitialize:
-		if len(data) < 8+8+8+8 {
+	case instrCpmmInitialize, instrCpmmInitializePermission:
+		poolIndex, creatorIndex, minimumData, minimumAccounts := 3, 0, 32, 20
+		if discriminator == instrCpmmInitializePermission {
+			poolIndex, creatorIndex, minimumData, minimumAccounts = 4, 1, 33, 21
+		}
+		if len(data) < minimumData || len(accounts) < minimumAccounts {
 			return DexEvent{}
 		}
 		initAmount0, _ := readU64LE(data, 8)
@@ -1808,8 +1814,8 @@ func ParseRaydiumCpmmInstruction(
 			Type: EventTypeRaydiumCpmmInitialize,
 			Data: &RaydiumCpmmInitializeEvent{
 				Metadata:    meta,
-				Pool:        getAccountSafe(accounts, 0),
-				Creator:     getAccountSafe(accounts, 1),
+				Pool:        getAccountSafe(accounts, poolIndex),
+				Creator:     getAccountSafe(accounts, creatorIndex),
 				InitAmount0: initAmount0,
 				InitAmount1: initAmount1,
 			},

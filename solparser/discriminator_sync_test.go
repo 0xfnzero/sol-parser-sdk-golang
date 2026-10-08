@@ -163,7 +163,8 @@ func TestParseInnerCompiledInstructionFallback(t *testing.T) {
 	binary.LittleEndian.PutUint64(ix[:8], instrCpmmInitialize)
 	binary.LittleEndian.PutUint64(ix[8:16], 111)
 	binary.LittleEndian.PutUint64(ix[16:24], 222)
-	accounts := []string{"pool", "creator"}
+	accounts := make([]string, 20)
+	accounts[0], accounts[3] = "creator", "pool"
 	ev := ParseInnerCompiledInstructionIfSupported(ix, accounts, "sig", 1, 0, nil, 10, nil, RAYDIUM_CPMM_PROGRAM_ID)
 	if ev.Type != EventTypeRaydiumCpmmInitialize {
 		t.Fatalf("expected normal inner CPMM initialize, got %q", ev.Type)
