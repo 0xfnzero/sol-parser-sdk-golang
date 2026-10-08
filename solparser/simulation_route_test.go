@@ -39,6 +39,7 @@ func simulationCasesFile(t *testing.T, file string) []simulationCase {
 
 func TestSimulationMainnetEvidence(t *testing.T) {
 	cases := append(simulationCases(t), simulationCasesFile(t, "simulation_routes_live_20261002.json")...)
+	cases = append(cases, simulationCasesFile(t, "account_lifecycle_20261008.json")...)
 	cases = append(cases, simulationCasesFile(t, "simulation_ata_20261002.json")...)
 	cases = append(cases, simulationCasesFile(t, "pumpswap_mainnet_simulations_20261004.json")...)
 	cases = append(cases, simulationCasesFile(t, "damm_v2_mainnet_simulations_20261004.json")...)
@@ -458,6 +459,30 @@ func TestSupplySimulationCPIEncoding(t *testing.T) {
 					}
 				}
 			})
+		}
+	}
+}
+
+func TestFailedAccountLifecycleHasNoFills(t *testing.T) {
+	for _, c := range simulationCasesFile(t, "account_lifecycle_20261008.json") {
+		wire, _ := base64.StdEncoding.DecodeString(c.Wire)
+		r, err := AnalyzeSimulationRoutes(wire, c.Response, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(c.Name, "idempotent_existing_ata") {
+			if !r.Succeeded {
+				t.Fatal("idempotent ATA creation failed")
+			}
+			continue
+		}
+		if r.Succeeded || len(r.Legs) == 0 {
+			t.Fatal("rolled back transaction reported success")
+		}
+		for _, l := range r.Legs {
+			if l.ActualInputAmount != nil || l.ActualOutputAmount != nil {
+				t.Fatal("invented rolled back fill")
+			}
 		}
 	}
 }
