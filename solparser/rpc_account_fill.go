@@ -100,15 +100,19 @@ func fillRpcOneEvent(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, in
 	case EventTypePumpSwapBuy:
 		swapInv := invokes[PUMPSWAP_PROGRAM_ID]
 		if b, ok := ev.Data.(*PumpSwapBuyEvent); ok {
-			if get := rpcPumpSwapTradeGetter(msg, meta, swapInv, b.Pool, b.User, true); get != nil {
-				fillRpcPumpSwapBuy(b, get)
+			if get, boost := rpcPumpSwapTradeGetter(msg, meta, swapInv, b.Pool, b.User, true); get != nil {
+				if boost {
+					fillRpcPumpSwapBoostBuy(b, get)
+				} else {
+					fillRpcPumpSwapBuy(b, get)
+				}
 			}
 		}
 		fillPumpSwapIsPumpPool(ev, msg, meta, feesInv)
 	case EventTypePumpSwapSell:
 		swapInv := invokes[PUMPSWAP_PROGRAM_ID]
 		if s, ok := ev.Data.(*PumpSwapSellEvent); ok {
-			if get := rpcPumpSwapTradeGetter(msg, meta, swapInv, s.Pool, s.User, false); get != nil {
+			if get, _ := rpcPumpSwapTradeGetter(msg, meta, swapInv, s.Pool, s.User, false); get != nil {
 				fillRpcPumpSwapSell(s, get)
 			}
 		}
@@ -358,6 +362,17 @@ func fillRpcPumpFunCreateV2(c *PumpFunCreateV2TokenEvent, get func(int) string) 
 	fillStringFromAccount(&c.MayhemTokenVault, get, 13)
 	fillStringFromAccount(&c.EventAuthority, get, 14)
 	fillStringFromAccount(&c.Program, get, 15)
+}
+
+// Boost vault slots differ from buys; user and fee accounts have no counterpart.
+func fillRpcPumpSwapBoostBuy(b *PumpSwapBuyEvent, get func(int) string) {
+	fillStringFromAccount(&b.Pool, get, 0)
+	fillStringFromAccount(&b.BaseMint, get, 3)
+	fillStringFromAccount(&b.QuoteMint, get, 4)
+	fillStringFromAccount(&b.PoolBaseTokenAccount, get, 5)
+	fillStringFromAccount(&b.PoolQuoteTokenAccount, get, 6)
+	fillStringFromAccount(&b.BaseTokenProgram, get, 9)
+	fillStringFromAccount(&b.QuoteTokenProgram, get, 10)
 }
 
 func fillRpcPumpSwapBuy(b *PumpSwapBuyEvent, get func(int) string) {
@@ -984,11 +999,12 @@ func isCompactPumpSwapTrade(get func(int) string) bool {
 }
 
 // Logs must inherit accounts only from a unique trade of their pool/user/direction.
-func rpcPumpSwapTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes [][2]int32, pool, user string, buy bool) func(int) string {
+func rpcPumpSwapTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes [][2]int32, pool, user string, buy bool) (func(int) string, bool) {
 	if pool == "" || pool == "11111111111111111111111111111111" {
-		return nil
+		return nil, false
 	}
 	var selected func(int) string
+	selectedBoost := false
 	for _, invoke := range invokes {
 		raw := getRpcInstructionData(msg, meta, invoke)
 		if len(raw) < 8 {
@@ -999,7 +1015,8 @@ func rpcPumpSwapTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes [
 		compactBuy := disc == [8]byte{184, 23, 238, 97, 103, 197, 211, 61} || disc == [8]byte{194, 171, 28, 70, 104, 77, 91, 47}
 		legacySell := disc == [8]byte{51, 230, 133, 164, 1, 127, 131, 173}
 		compactSell := disc == [8]byte{93, 246, 130, 60, 231, 233, 64, 178}
-		if buy && !legacyBuy && !compactBuy || !buy && !legacySell && !compactSell {
+		boost := buy && disc == [8]byte{105, 68, 6, 175, 0, 7, 35, 162}
+		if buy && !boost && !legacyBuy && !compactBuy || !buy && !legacySell && !compactSell {
 			continue
 		}
 		minimum := 21
@@ -1009,17 +1026,25 @@ func rpcPumpSwapTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes [
 		if compactBuy || compactSell {
 			minimum = 17
 		}
+		if boost {
+			minimum = 13
+		}
 		if rpcInvokeAccountLen(msg, meta, invoke) < minimum {
 			continue
 		}
+		userIndex := 1
+		if boost {
+			userIndex = 7
+		}
 		get := rpcAccountGetter(msg, meta, [][2]int32{invoke})
-		if get == nil || get(0) != pool || (user != "" && user != "11111111111111111111111111111111" && get(1) != user) {
+		if get == nil || get(0) != pool || (user != "" && user != "11111111111111111111111111111111" && get(userIndex) != user) {
 			continue
 		}
 		if selected != nil {
-			return nil
+			return nil, false
 		}
 		selected = get
+		selectedBoost = boost
 	}
-	return selected
+	return selected, selectedBoost
 }

@@ -1,0 +1,59 @@
+{
+  "source": "Synthetic account context derived from official pump_amm IDL at 8cda1fa30ea658b20909d8aedf002047119388d2; not a captured mainnet transaction. BuyEvent user is boost_vault_authority (7), not authority (1).",
+  "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+  "cases": [
+    {
+      "signature": "IDL-boost-buy-and-burn-not-a-mainnet-transaction",
+      "keys": [
+        "FHpcNSe6tb2n15bAdq4BkeYWGyZKFD7yLYrH92ng7wCT",
+        "B7bRypKX6rMryqKWQzqfDPYMNs5Nihx9anS8kXMSVUYv",
+        "FEFHrJiwfuB5Kgfxkx69agHpf1TdmzhW6QoSZqY8wWz",
+        "2zu4ArjTzmRcGPi2o4Mk8PWTsUZNoW3gwHSK71wnBwob",
+        "4cBKPJSLLHZA2BJmVYgLVNW3ymVVzL2NRrVJsPrRcNmX",
+        "4mdQgodP1CZsx6fZEQWesU7BtPpGdYn69gCCGYAEYqUj",
+        "59v2cSbCsnyaWymLnsq6TWzE6cEN5KJYNTBNrcP4smRH",
+        "6obTGFDBTH6grpctErUeATrL1KCzwfeJtVwJaYGTDgHM",
+        "7x4VcEX8aLd3kFsNWULTp1qFgVtDwyWSxpTGQkoMM6XX",
+        "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "CR5dTgvTddGAqDjP8dGHTL51N6PKRaXqxFBp9FQ5PrKn",
+        "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+      ],
+      "instructions": [
+        {
+          "accounts": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "data": "694406af000723a201000000000000000000000000000000"
+        }
+      ],
+      "events": [
+        {
+          "buy": true,
+          "pool": "FHpcNSe6tb2n15bAdq4BkeYWGyZKFD7yLYrH92ng7wCT",
+          "user": "6obTGFDBTH6grpctErUeATrL1KCzwfeJtVwJaYGTDgHM",
+          "expected": {
+            "base_mint": "2zu4ArjTzmRcGPi2o4Mk8PWTsUZNoW3gwHSK71wnBwob",
+            "quote_mint": "4cBKPJSLLHZA2BJmVYgLVNW3ymVVzL2NRrVJsPrRcNmX",
+            "pool_base_token_account": "4mdQgodP1CZsx6fZEQWesU7BtPpGdYn69gCCGYAEYqUj",
+            "pool_quote_token_account": "59v2cSbCsnyaWymLnsq6TWzE6cEN5KJYNTBNrcP4smRH",
+            "base_token_program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+            "quote_token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          }
+        }
+      ]
+    }
+  ]
+}
