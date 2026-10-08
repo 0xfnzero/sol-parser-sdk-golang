@@ -119,3 +119,45 @@ func TestRepeatedPumpSwapDedupOccurrences(t *testing.T) {
 		}
 	}
 }
+
+func TestIncompletePumpSourcesPreserveAccounts(t *testing.T) {
+	for kind := 0; kind < 3; kind++ {
+		for _, counts := range [][2]int{{1, 2}, {2, 1}} {
+			event := func(account string) DexEvent {
+				switch kind {
+				case 0:
+					return DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Mint: "mint", User: "user", IsBuy: true, IxName: "buy_v3", BondingCurve: account}}
+				case 1:
+					return DexEvent{Type: EventTypePumpSwapBuy, Data: &PumpSwapBuyEvent{Pool: "pool", User: "user", UserBaseTokenAccount: account}}
+				default:
+					return DexEvent{Type: EventTypePumpSwapSell, Data: &PumpSwapSellEvent{Pool: "pool", User: "user", UserBaseTokenAccount: account}}
+				}
+			}
+			logs, instructions := []DexEvent{}, []DexEvent{}
+			for i := 0; i < counts[0]; i++ {
+				logs = append(logs, event(""))
+			}
+			for i := 0; i < counts[1]; i++ {
+				instructions = append(instructions, event(fmt.Sprint(i)))
+			}
+			out := DedupeLogInstructionEvents(logs, instructions)
+			if len(out) != counts[0]+counts[1] {
+				t.Fatalf("kind %d counts %v: ambiguous sources merged", kind, counts)
+			}
+			for _, e := range out[:counts[0]] {
+				account := ""
+				switch body := e.Data.(type) {
+				case *PumpFunTradeEvent:
+					account = body.BondingCurve
+				case *PumpSwapBuyEvent:
+					account = body.UserBaseTokenAccount
+				case *PumpSwapSellEvent:
+					account = body.UserBaseTokenAccount
+				}
+				if account != "" {
+					t.Fatal("wrong invocation account attached")
+				}
+			}
+		}
+	}
+}

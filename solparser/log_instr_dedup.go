@@ -570,6 +570,21 @@ func DedupeLogInstructionEvents(logEvents []DexEvent, instrEvents []DexEvent) []
 		out = append(out, ev)
 	}
 
+	// Pre-count the sources: missing invocations make ordinal pairing ambiguous.
+	for _, ev := range instrEvents {
+		dedupeKey(ev, ixOccurrences)
+	}
+	for key := range idxByKey {
+		base := key
+		base.occurrence = 0
+		if (base.kind == dedupPumpFunTrade || base.kind == dedupPumpSwapBuy || base.kind == dedupPumpSwapSell) && logOccurrences[base] != ixOccurrences[base] {
+			delete(idxByKey, key)
+		}
+	}
+	for base := range ixOccurrences {
+		ixOccurrences[base] = 0
+	}
+
 	for _, ev := range instrEvents {
 		k, ok := dedupeKey(ev, ixOccurrences)
 		if !ok {
