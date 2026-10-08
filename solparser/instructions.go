@@ -1395,7 +1395,7 @@ func parsePumpSwapBuyInstr(data []byte, accounts []string, meta EventMetadata, b
 	}
 	var baseOut, maxQuoteIn uint64
 	if buyExactQuoteIn {
-		maxQuoteIn, baseOut = a0, a1
+		maxQuoteIn, baseOut = a0, 0
 	} else {
 		baseOut, maxQuoteIn = a0, a1
 	}
@@ -1419,6 +1419,7 @@ func parsePumpSwapBuyInstr(data []byte, accounts []string, meta EventMetadata, b
 	}
 	if buyExactQuoteIn {
 		ev.IxName = "buy_exact_quote_in"
+		ev.MinBaseAmountOut = a1
 	} else {
 		ev.IxName = "buy"
 	}
