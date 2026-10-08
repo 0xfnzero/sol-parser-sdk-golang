@@ -1704,10 +1704,11 @@ type MeteoraDbcSwapEvent struct {
 	Amount1                uint64 `json:"amount_1"`
 	MaximumAmountIn        uint64 `json:"maximum_amount_in"`
 	IncludedFeeInputAmount uint64 `json:"included_fee_input_amount"`
-	AmountLeft             uint64 `json:"amount_left"`
-	QuoteReserveAmount     uint64 `json:"quote_reserve_amount"`
-	MigrationThreshold     uint64 `json:"migration_threshold"`
-	HasTransferHook        bool   `json:"has_transfer_hook"`
+	// Curve remainder uses fee-excluded units with input fees; not gross unspent wallet funding.
+	AmountLeft         uint64 `json:"amount_left"`
+	QuoteReserveAmount uint64 `json:"quote_reserve_amount"`
+	MigrationThreshold uint64 `json:"migration_threshold"`
+	HasTransferHook    bool   `json:"has_transfer_hook"`
 
 	Metadata          EventMetadata `json:"metadata"`
 	Pool              string        `json:"pool"`
