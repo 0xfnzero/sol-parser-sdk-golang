@@ -1347,8 +1347,14 @@ func ParsePumpswapInstruction(
 	case instrPumpSwapCreatePool:
 		return parsePumpSwapCreatePoolInstr(data, accounts, meta)
 	case instrPumpSwapDeposit:
+		if len(data) < 32 {
+			return DexEvent{}
+		}
 		return parsePumpSwapDepositInstr(accounts, meta)
 	case instrPumpSwapWithdraw:
+		if len(data) < 32 {
+			return DexEvent{}
+		}
 		return parsePumpSwapWithdrawInstr(accounts, meta)
 	default:
 		return DexEvent{}
@@ -1520,7 +1526,7 @@ func parsePumpSwapCreatePoolInstr(data []byte, accounts []string, meta EventMeta
 }
 
 func parsePumpSwapDepositInstr(accounts []string, meta EventMetadata) DexEvent {
-	if len(accounts) < 8 {
+	if len(accounts) < 15 {
 		return DexEvent{}
 	}
 	return DexEvent{
@@ -1528,16 +1534,16 @@ func parsePumpSwapDepositInstr(accounts []string, meta EventMetadata) DexEvent {
 		Data: &PumpSwapLiquidityAddedEvent{
 			Metadata:              meta,
 			Pool:                  getAccountSafe(accounts, 0),
-			User:                  getAccountSafe(accounts, 1),
-			UserBaseTokenAccount:  getAccountSafe(accounts, 4),
-			UserQuoteTokenAccount: getAccountSafe(accounts, 5),
-			UserPoolTokenAccount:  getAccountSafe(accounts, 6),
+			User:                  getAccountSafe(accounts, 2),
+			UserBaseTokenAccount:  getAccountSafe(accounts, 6),
+			UserQuoteTokenAccount: getAccountSafe(accounts, 7),
+			UserPoolTokenAccount:  getAccountSafe(accounts, 8),
 		},
 	}
 }
 
 func parsePumpSwapWithdrawInstr(accounts []string, meta EventMetadata) DexEvent {
-	if len(accounts) < 8 {
+	if len(accounts) < 15 {
 		return DexEvent{}
 	}
 	return DexEvent{
@@ -1545,10 +1551,10 @@ func parsePumpSwapWithdrawInstr(accounts []string, meta EventMetadata) DexEvent 
 		Data: &PumpSwapLiquidityRemovedEvent{
 			Metadata:              meta,
 			Pool:                  getAccountSafe(accounts, 0),
-			User:                  getAccountSafe(accounts, 1),
-			UserBaseTokenAccount:  getAccountSafe(accounts, 4),
-			UserQuoteTokenAccount: getAccountSafe(accounts, 5),
-			UserPoolTokenAccount:  getAccountSafe(accounts, 6),
+			User:                  getAccountSafe(accounts, 2),
+			UserBaseTokenAccount:  getAccountSafe(accounts, 6),
+			UserQuoteTokenAccount: getAccountSafe(accounts, 7),
+			UserPoolTokenAccount:  getAccountSafe(accounts, 8),
 		},
 	}
 }

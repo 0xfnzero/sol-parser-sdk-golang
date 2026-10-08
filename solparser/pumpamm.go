@@ -269,7 +269,7 @@ func parsePSCreatePoolFromData(data []byte, meta EventMetadata) DexEvent {
 }
 
 func parsePSAddLiqFromData(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 10*8+5*32 {
+	if len(data) < 11*8+5*32 {
 		return DexEvent{}
 	}
 	o := 0
@@ -299,7 +299,7 @@ func parsePSAddLiqFromData(data []byte, meta EventMetadata) DexEvent {
 }
 
 func parsePSRemoveLiqFromData(data []byte, meta EventMetadata) DexEvent {
-	if len(data) < 10*8+5*32 {
+	if len(data) < 11*8+5*32 {
 		return DexEvent{}
 	}
 	o := 0
