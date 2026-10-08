@@ -230,11 +230,11 @@ func parseRpcTransactionImpl(
 					programID = fullKeys[ix.ProgramIDIndex]
 				}
 				ixEvents = append(ixEvents, rpcIndexedEvent{
-					OuterIdx:       int(group.Index),
-					InnerIdx:       &jj,
-					StackHeight:    ix.StackHeight,
-					IsDlmmEventCPI: programID == METEORA_DLMM_PROGRAM_ID && isEventCPI(ix.Data),
-					Event:          ev,
+					OuterIdx:    int(group.Index),
+					InnerIdx:    &jj,
+					StackHeight: ix.StackHeight,
+					IsEventCPI:  (programID == METEORA_DLMM_PROGRAM_ID || programID == PUMPFUN_PROGRAM_ID || programID == PUMPSWAP_PROGRAM_ID) && isEventCPI(ix.Data),
+					Event:       ev,
 				})
 			}
 		}

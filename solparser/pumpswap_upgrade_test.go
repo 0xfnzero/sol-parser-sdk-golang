@@ -248,8 +248,9 @@ func TestMergeRpcInstructionEventsPreservesPumpSwapUpgradeFields(t *testing.T) {
 			}},
 		},
 		{
-			OuterIdx: 0,
-			InnerIdx: &innerIdx,
+			OuterIdx:   0,
+			InnerIdx:   &innerIdx,
+			IsEventCPI: true,
 			Event: DexEvent{Type: EventTypePumpSwapBuy, Data: &PumpSwapBuyEvent{
 				BuybackFeeBasisPoints: 199,
 				BuybackFee:            211,
@@ -278,8 +279,9 @@ func TestMergeRpcInstructionEventsPreservesPumpSwapUpgradeFields(t *testing.T) {
 			}},
 		},
 		{
-			OuterIdx: 0,
-			InnerIdx: &innerIdx,
+			OuterIdx:   0,
+			InnerIdx:   &innerIdx,
+			IsEventCPI: true,
 			Event: DexEvent{Type: EventTypePumpSwapSell, Data: &PumpSwapSellEvent{
 				BuybackFeeBasisPoints: 199,
 				BuybackFee:            211,

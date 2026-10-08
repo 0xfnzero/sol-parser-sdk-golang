@@ -93,11 +93,17 @@ func dedupeKey(ev DexEvent, occurrenceCounts map[logInstrDedupKey]uint16) (logIn
 		}
 	case EventTypePumpSwapBuy:
 		if b, ok := ev.Data.(*PumpSwapBuyEvent); ok && b != nil {
-			return logInstrDedupKey{kind: dedupPumpSwapBuy, a: b.Pool, b: b.User}, true
+			base := logInstrDedupKey{kind: dedupPumpSwapBuy, a: b.Pool, b: b.User}
+			occurrence := nextOccurrence(base, occurrenceCounts)
+			base.occurrence = occurrence
+			return base, true
 		}
 	case EventTypePumpSwapSell:
 		if s, ok := ev.Data.(*PumpSwapSellEvent); ok && s != nil {
-			return logInstrDedupKey{kind: dedupPumpSwapSell, a: s.Pool, b: s.User}, true
+			base := logInstrDedupKey{kind: dedupPumpSwapSell, a: s.Pool, b: s.User}
+			occurrence := nextOccurrence(base, occurrenceCounts)
+			base.occurrence = occurrence
+			return base, true
 		}
 	case EventTypePumpSwapCreatePool:
 		if c, ok := ev.Data.(*PumpSwapCreatePoolEvent); ok && c != nil {

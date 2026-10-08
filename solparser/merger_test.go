@@ -45,9 +45,9 @@ func dlmmSwapFixture(pool string, amountIn, amountOut uint64) DexEvent {
 func TestMergeRpcInstructionEvents_DlmmAggregatorSwaps(t *testing.T) {
 	merged := mergeRpcInstructionEvents([]rpcIndexedEvent{
 		{OuterIdx: 0, InnerIdx: intPtr(0), StackHeight: uint32Ptr(2), Event: dlmmSwapFixture("pool-1", 1, 0)},
-		{OuterIdx: 0, InnerIdx: intPtr(1), StackHeight: uint32Ptr(3), IsDlmmEventCPI: true, Event: dlmmSwapFixture("pool-1", 10, 9)},
+		{OuterIdx: 0, InnerIdx: intPtr(1), StackHeight: uint32Ptr(3), IsEventCPI: true, Event: dlmmSwapFixture("pool-1", 10, 9)},
 		{OuterIdx: 0, InnerIdx: intPtr(2), StackHeight: uint32Ptr(2), Event: dlmmSwapFixture("pool-2", 2, 0)},
-		{OuterIdx: 0, InnerIdx: intPtr(3), StackHeight: uint32Ptr(3), IsDlmmEventCPI: true, Event: dlmmSwapFixture("pool-2", 20, 18)},
+		{OuterIdx: 0, InnerIdx: intPtr(3), StackHeight: uint32Ptr(3), IsEventCPI: true, Event: dlmmSwapFixture("pool-2", 20, 18)},
 	})
 
 	if len(merged) != 2 {

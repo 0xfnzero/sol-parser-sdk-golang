@@ -6,11 +6,11 @@ import (
 
 // rpcIndexedEvent 与 Rust `parse_instructions_enhanced` 中 (outer_idx, inner_idx, DexEvent) 对应。
 type rpcIndexedEvent struct {
-	OuterIdx       int
-	InnerIdx       *int // nil identifies an outer instruction.
-	StackHeight    *uint32
-	IsDlmmEventCPI bool
-	Event          DexEvent
+	OuterIdx    int
+	InnerIdx    *int // nil identifies an outer instruction.
+	StackHeight *uint32
+	IsEventCPI  bool
+	Event       DexEvent
 }
 
 func uint32Ptr(value uint32) *uint32 { return &value }
@@ -25,6 +25,26 @@ func isDlmmEvent(event DexEvent) bool {
 		EventTypeMeteoraDlmmCreatePosition,
 		EventTypeMeteoraDlmmClosePosition,
 		EventTypeMeteoraDlmmClaimFee:
+		return true
+	default:
+		return false
+	}
+}
+
+func isPumpTradeEvent(event DexEvent) bool {
+	switch event.Type {
+	case EventTypePumpFunTrade, EventTypePumpFunBuy, EventTypePumpFunSell, EventTypePumpFunBuyExactSolIn, EventTypePumpSwapBuy, EventTypePumpSwapSell:
+		return true
+	default:
+		return false
+	}
+}
+
+func pumpTradeHasInstructionName(event DexEvent) bool {
+	switch e := event.Data.(type) {
+	case *PumpFunTradeEvent:
+		return e.IxName != ""
+	case *PumpSwapBuyEvent, *PumpSwapSellEvent:
 		return true
 	default:
 		return false
@@ -57,12 +77,23 @@ func mergeRpcInstructionEvents(events []rpcIndexedEvent) []DexEvent {
 	}
 	var dlmmTargets [8]dlmmTarget
 	dlmmTargetsLen := 0
+	type pumpTarget struct {
+		outerIdx  int
+		height    *uint32
+		resultIdx int
+		consumed  bool
+	}
+	pumpTargets := []pumpTarget{}
 
 	for _, e := range events {
 		if e.InnerIdx == nil {
 			out = append(out, e.Event)
 			outerTargetIdx = len(out) - 1
 			outerTargetOuter = e.OuterIdx
+			pumpTargets = pumpTargets[:0]
+			if isPumpTradeEvent(e.Event) {
+				pumpTargets = append(pumpTargets, pumpTarget{e.OuterIdx, e.StackHeight, outerTargetIdx, false})
+			}
 			dlmmTargetsLen = 0
 			if isDlmmEvent(e.Event) {
 				dlmmTargets[0] = dlmmTarget{e.OuterIdx, e.StackHeight, outerTargetIdx}
@@ -71,7 +102,41 @@ func mergeRpcInstructionEvents(events []rpcIndexedEvent) []DexEvent {
 			continue
 		}
 
-		if e.IsDlmmEventCPI {
+		if isPumpTradeEvent(e.Event) && (e.IsEventCPI || pumpTradeHasInstructionName(e.Event)) {
+			if e.IsEventCPI {
+				merged := false
+				for i := len(pumpTargets) - 1; i >= 0; i-- {
+					target := &pumpTargets[i]
+					if target.outerIdx == e.OuterIdx && (target.height == nil || e.StackHeight == nil || *e.StackHeight == *target.height+1) {
+						if !target.consumed {
+							target.consumed = true
+							merged = tryMergeDexEvents(&out[target.resultIdx], e.Event)
+						}
+						break
+					}
+				}
+				if !merged {
+					out = append(out, e.Event)
+				}
+			} else {
+				if e.StackHeight == nil {
+					pumpTargets = pumpTargets[:0]
+				} else {
+					for len(pumpTargets) > 0 {
+						last := pumpTargets[len(pumpTargets)-1]
+						if last.outerIdx != e.OuterIdx || (last.height != nil && *last.height >= *e.StackHeight) {
+							pumpTargets = pumpTargets[:len(pumpTargets)-1]
+						} else {
+							break
+						}
+					}
+				}
+				out = append(out, e.Event)
+				pumpTargets = append(pumpTargets, pumpTarget{e.OuterIdx, e.StackHeight, len(out) - 1, false})
+			}
+			continue
+		}
+		if e.IsEventCPI && isDlmmEvent(e.Event) {
 			merged := false
 			for i := dlmmTargetsLen - 1; i >= 0; i-- {
 				target := dlmmTargets[i]
