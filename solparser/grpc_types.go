@@ -157,6 +157,9 @@ const (
 	EventTypeMeteoraDammV2UpdateDelegatePermission    EventType = "MeteoraDammV2UpdateDelegatePermission"
 	EventTypeMeteoraDammV2WithdrawDeadLiquidityReward EventType = "MeteoraDammV2WithdrawDeadLiquidityReward"
 	EventTypeMeteoraDammV2WithdrawIneligibleReward    EventType = "MeteoraDammV2WithdrawIneligibleReward"
+	EventTypeMeteoraDammV2UpdateRewardFunder          EventType = "MeteoraDammV2UpdateRewardFunder"
+	EventTypeMeteoraDammV2UpdateRewardDuration        EventType = "MeteoraDammV2UpdateRewardDuration"
+	EventTypeMeteoraDammV2InitializeReward            EventType = "MeteoraDammV2InitializeReward"
 	EventTypeMeteoraDammV2FundReward                  EventType = "MeteoraDammV2FundReward"
 	EventTypeMeteoraDammV2CreateConfig                EventType = "MeteoraDammV2CreateConfig"
 	EventTypeMeteoraDammV2CreateDynamicConfig         EventType = "MeteoraDammV2CreateDynamicConfig"
@@ -291,6 +294,9 @@ var (
 		EventTypeMeteoraDammV2UpdateDelegatePermission,
 		EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,
 		EventTypeMeteoraDammV2WithdrawIneligibleReward,
+		EventTypeMeteoraDammV2UpdateRewardFunder,
+		EventTypeMeteoraDammV2UpdateRewardDuration,
+		EventTypeMeteoraDammV2InitializeReward,
 		EventTypeMeteoraDammV2FundReward,
 		EventTypeMeteoraDammV2CreateConfig,
 		EventTypeMeteoraDammV2CreateDynamicConfig,
@@ -945,6 +951,9 @@ func AllEventTypes() []EventType {
 		EventTypeMeteoraDammV2UpdateDelegatePermission,
 		EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,
 		EventTypeMeteoraDammV2WithdrawIneligibleReward,
+		EventTypeMeteoraDammV2UpdateRewardFunder,
+		EventTypeMeteoraDammV2UpdateRewardDuration,
+		EventTypeMeteoraDammV2InitializeReward,
 		EventTypeMeteoraDammV2FundReward,
 		EventTypeMeteoraDammV2CreateConfig,
 		EventTypeMeteoraDammV2CreateDynamicConfig,

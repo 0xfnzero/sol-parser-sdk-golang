@@ -152,6 +152,12 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward, true
 	case discDammWithdrawIneligibleReward:
 		return EventTypeMeteoraDammV2WithdrawIneligibleReward, true
+	case discDammUpdateRewardFunder:
+		return EventTypeMeteoraDammV2UpdateRewardFunder, true
+	case discDammUpdateRewardDuration:
+		return EventTypeMeteoraDammV2UpdateRewardDuration, true
+	case discDammInitializeReward:
+		return EventTypeMeteoraDammV2InitializeReward, true
 	case discDammFundReward:
 		return EventTypeMeteoraDammV2FundReward, true
 	case discDammCreateConfig:
@@ -366,6 +372,12 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 			return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward, true
 		case discDammWithdrawIneligibleReward:
 			return EventTypeMeteoraDammV2WithdrawIneligibleReward, true
+		case discDammUpdateRewardFunder:
+			return EventTypeMeteoraDammV2UpdateRewardFunder, true
+		case discDammUpdateRewardDuration:
+			return EventTypeMeteoraDammV2UpdateRewardDuration, true
+		case discDammInitializeReward:
+			return EventTypeMeteoraDammV2InitializeReward, true
 		case discDammFundReward:
 			return EventTypeMeteoraDammV2FundReward, true
 		case discDammCreateConfig:
@@ -945,7 +957,7 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 	case discDammSwap, discDammSwap2, discDammAdd, discDammRem, discDammLiquidityChange,
 		discDammInit, discDammCreate, discDammClose, discDammClaimPositionFee,
 		discDammInit, discDammCreate, discDammClose, discDammClaimReward,
-		discDammUpdateDelegatePermission, discDammWithdrawDeadLiquidityReward, discDammWithdrawIneligibleReward, discDammFundReward,
+		discDammUpdateDelegatePermission, discDammWithdrawDeadLiquidityReward, discDammWithdrawIneligibleReward, discDammUpdateRewardFunder, discDammUpdateRewardDuration, discDammInitializeReward, discDammFundReward,
 		discDammCreateConfig, discDammCreateDynamicConfig:
 		return applyActualEventTypeFilter(ParseMeteoraDammLog(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs), eventFilter)
 

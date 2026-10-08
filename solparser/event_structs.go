@@ -1662,6 +1662,35 @@ type MeteoraDammV2WithdrawIneligibleRewardEvent struct {
 	Amount     uint64        `json:"amount"`
 }
 
+// MeteoraDammV2UpdateRewardFunderEvent decodes official IDL EvtUpdateRewardFunder.
+type MeteoraDammV2UpdateRewardFunderEvent struct {
+	Metadata    EventMetadata `json:"metadata"`
+	Pool        string        `json:"pool"`
+	RewardIndex uint8         `json:"reward_index"`
+	OldFunder   string        `json:"old_funder"`
+	NewFunder   string        `json:"new_funder"`
+}
+
+// MeteoraDammV2UpdateRewardDurationEvent decodes official IDL EvtUpdateRewardDuration.
+type MeteoraDammV2UpdateRewardDurationEvent struct {
+	Metadata          EventMetadata `json:"metadata"`
+	Pool              string        `json:"pool"`
+	RewardIndex       uint8         `json:"reward_index"`
+	OldRewardDuration uint64        `json:"old_reward_duration"`
+	NewRewardDuration uint64        `json:"new_reward_duration"`
+}
+
+// MeteoraDammV2InitializeRewardEvent decodes official IDL EvtInitializeReward.
+type MeteoraDammV2InitializeRewardEvent struct {
+	Metadata       EventMetadata `json:"metadata"`
+	Pool           string        `json:"pool"`
+	RewardMint     string        `json:"reward_mint"`
+	Funder         string        `json:"funder"`
+	Creator        string        `json:"creator"`
+	RewardIndex    uint8         `json:"reward_index"`
+	RewardDuration uint64        `json:"reward_duration"`
+}
+
 // MeteoraDammV2FundRewardEvent decodes IDL EvtFundReward. Amount includes net new
 // funding and carried empty rewards; PostRewardRate also includes unexpired rewards.
 type MeteoraDammV2FundRewardEvent struct {
@@ -1683,6 +1712,15 @@ func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) EventType() EventType {
 func (e *MeteoraDammV2WithdrawIneligibleRewardEvent) EventType() EventType {
 	return EventTypeMeteoraDammV2WithdrawIneligibleReward
 }
+func (e *MeteoraDammV2UpdateRewardFunderEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2UpdateRewardFunder
+}
+func (e *MeteoraDammV2UpdateRewardDurationEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2UpdateRewardDuration
+}
+func (e *MeteoraDammV2InitializeRewardEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2InitializeReward
+}
 func (e *MeteoraDammV2FundRewardEvent) EventType() EventType {
 	return EventTypeMeteoraDammV2FundReward
 }
@@ -1690,6 +1728,15 @@ func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) GetMetadata() EventMetad
 	return e.Metadata
 }
 func (e *MeteoraDammV2WithdrawIneligibleRewardEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+func (e *MeteoraDammV2UpdateRewardFunderEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+func (e *MeteoraDammV2UpdateRewardDurationEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+func (e *MeteoraDammV2InitializeRewardEvent) GetMetadata() EventMetadata {
 	return e.Metadata
 }
 func (e *MeteoraDammV2FundRewardEvent) GetMetadata() EventMetadata {

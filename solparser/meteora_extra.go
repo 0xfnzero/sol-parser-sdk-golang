@@ -51,6 +51,12 @@ func parseMeteoraDammFromDiscriminator(d uint64, data []byte, meta EventMetadata
 		return parseDammWithdrawDeadLiquidityReward(data, meta)
 	case discDammWithdrawIneligibleReward:
 		return parseDammWithdrawIneligibleReward(data, meta)
+	case discDammUpdateRewardFunder:
+		return parseDammUpdateRewardFunder(data, meta)
+	case discDammUpdateRewardDuration:
+		return parseDammUpdateRewardDuration(data, meta)
+	case discDammInitializeReward:
+		return parseDammInitializeReward(data, meta)
 	case discDammFundReward:
 		return parseDammFundReward(data, meta)
 	case discDammCreateConfig:
@@ -481,6 +487,67 @@ func parseDammWithdrawIneligibleReward(data []byte, meta EventMetadata) DexEvent
 		Type: EventTypeMeteoraDammV2WithdrawIneligibleReward,
 		Data: &MeteoraDammV2WithdrawIneligibleRewardEvent{
 			Metadata: meta, Pool: pool, RewardMint: mint, Amount: amt,
+		},
+	}
+}
+func parseDammUpdateRewardFunder(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 97 {
+		return DexEvent{}
+	}
+	pool, _ := readPubkey(data, 0)
+	reward_index, _ := readU8(data, 32)
+	old_funder, _ := readPubkey(data, 33)
+	new_funder, _ := readPubkey(data, 65)
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2UpdateRewardFunder,
+		Data: &MeteoraDammV2UpdateRewardFunderEvent{
+			Metadata:    meta,
+			Pool:        pool,
+			RewardIndex: reward_index,
+			OldFunder:   old_funder,
+			NewFunder:   new_funder,
+		},
+	}
+}
+func parseDammUpdateRewardDuration(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 49 {
+		return DexEvent{}
+	}
+	pool, _ := readPubkey(data, 0)
+	reward_index, _ := readU8(data, 32)
+	old_reward_duration, _ := readU64LE(data, 33)
+	new_reward_duration, _ := readU64LE(data, 41)
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2UpdateRewardDuration,
+		Data: &MeteoraDammV2UpdateRewardDurationEvent{
+			Metadata:          meta,
+			Pool:              pool,
+			RewardIndex:       reward_index,
+			OldRewardDuration: old_reward_duration,
+			NewRewardDuration: new_reward_duration,
+		},
+	}
+}
+func parseDammInitializeReward(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 137 {
+		return DexEvent{}
+	}
+	pool, _ := readPubkey(data, 0)
+	reward_mint, _ := readPubkey(data, 32)
+	funder, _ := readPubkey(data, 64)
+	creator, _ := readPubkey(data, 96)
+	reward_index, _ := readU8(data, 128)
+	reward_duration, _ := readU64LE(data, 129)
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2InitializeReward,
+		Data: &MeteoraDammV2InitializeRewardEvent{
+			Metadata:       meta,
+			Pool:           pool,
+			RewardMint:     reward_mint,
+			Funder:         funder,
+			Creator:        creator,
+			RewardIndex:    reward_index,
+			RewardDuration: reward_duration,
 		},
 	}
 }
