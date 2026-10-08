@@ -770,6 +770,7 @@ type RaydiumClmmIncreaseLiquidityEvent struct {
 	Amount1TransferFee uint64        `json:"amount_1_transfer_fee"`
 	Amount0Max         uint64        `json:"amount0_max"`
 	Amount1Max         uint64        `json:"amount1_max"`
+	PersonalPosition   string        `json:"personal_position,omitempty"`
 }
 
 func (e *RaydiumClmmIncreaseLiquidityEvent) EventType() EventType {
@@ -779,20 +780,21 @@ func (e *RaydiumClmmIncreaseLiquidityEvent) GetMetadata() EventMetadata { return
 
 // RaydiumClmmDecreaseLiquidityEvent Raydium CLMM 减少流动性事件
 type RaydiumClmmDecreaseLiquidityEvent struct {
-	Metadata        EventMetadata `json:"metadata"`
-	Pool            string        `json:"pool"`
-	PositionNftMint string        `json:"position_nft_mint"`
-	User            string        `json:"user"`
-	Liquidity       string        `json:"liquidity"`
-	DecreaseAmount0 uint64        `json:"decrease_amount_0"`
-	DecreaseAmount1 uint64        `json:"decrease_amount_1"`
-	FeeAmount0      uint64        `json:"fee_amount_0"`
-	FeeAmount1      uint64        `json:"fee_amount_1"`
-	RewardAmounts   [3]uint64     `json:"reward_amounts"`
-	TransferFee0    uint64        `json:"transfer_fee_0"`
-	TransferFee1    uint64        `json:"transfer_fee_1"`
-	Amount0Min      uint64        `json:"amount0_min"`
-	Amount1Min      uint64        `json:"amount1_min"`
+	Metadata         EventMetadata `json:"metadata"`
+	Pool             string        `json:"pool"`
+	PositionNftMint  string        `json:"position_nft_mint"`
+	User             string        `json:"user"`
+	Liquidity        string        `json:"liquidity"`
+	DecreaseAmount0  uint64        `json:"decrease_amount_0"`
+	DecreaseAmount1  uint64        `json:"decrease_amount_1"`
+	FeeAmount0       uint64        `json:"fee_amount_0"`
+	FeeAmount1       uint64        `json:"fee_amount_1"`
+	RewardAmounts    [3]uint64     `json:"reward_amounts"`
+	TransferFee0     uint64        `json:"transfer_fee_0"`
+	TransferFee1     uint64        `json:"transfer_fee_1"`
+	Amount0Min       uint64        `json:"amount0_min"`
+	Amount1Min       uint64        `json:"amount1_min"`
+	PersonalPosition string        `json:"personal_position,omitempty"`
 }
 
 func (e *RaydiumClmmDecreaseLiquidityEvent) EventType() EventType {

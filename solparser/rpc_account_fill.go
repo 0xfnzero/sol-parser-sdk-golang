@@ -1,5 +1,10 @@
 package solparser
 
+import (
+	"bytes"
+	"github.com/gagliardetto/solana-go"
+)
+
 // RPC 路径下对齐 Rust `account_dispatcher::fill_accounts_with_owned_keys` 与 `common_filler::fill_data`。
 
 func buildRpcProgramInvokes(msg *RpcMessage, meta *RpcTransactionMeta) map[string][][2]int32 {
@@ -582,26 +587,28 @@ func fillRpcRaydiumClmmClosePosition(ev *DexEvent, msg *RpcMessage, meta *RpcTra
 }
 
 func fillRpcRaydiumClmmIncreaseLiquidity(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
-	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_CLMM_PROGRAM_ID)
-	if get == nil {
-		return
-	}
 	if e, ok := ev.Data.(*RaydiumClmmIncreaseLiquidityEvent); ok {
-		fillStringFromAccount(&e.User, get, 0)
-		fillStringFromAccount(&e.PositionNftMint, get, 1)
-		fillStringFromAccount(&e.Pool, get, 2)
+		if isDefaultPubkeyString(e.PersonalPosition) {
+			e.PersonalPosition = clmmPositionFromMint(e.PositionNftMint)
+		}
+		get := rpcClmmPositionGetter(msg, meta, invokes[RAYDIUM_CLMM_PROGRAM_ID], e.PersonalPosition, 4)
+		if get != nil {
+			fillStringFromAccount(&e.User, get, 0)
+			fillStringFromAccount(&e.Pool, get, 2)
+		}
 	}
 }
 
 func fillRpcRaydiumClmmDecreaseLiquidity(ev *DexEvent, msg *RpcMessage, meta *RpcTransactionMeta, invokes map[string][][2]int32) {
-	get := rpcGetterForProgram(msg, meta, invokes, RAYDIUM_CLMM_PROGRAM_ID)
-	if get == nil {
-		return
-	}
 	if e, ok := ev.Data.(*RaydiumClmmDecreaseLiquidityEvent); ok {
-		fillStringFromAccount(&e.User, get, 0)
-		fillStringFromAccount(&e.PositionNftMint, get, 1)
-		fillStringFromAccount(&e.Pool, get, 3)
+		if isDefaultPubkeyString(e.PersonalPosition) {
+			e.PersonalPosition = clmmPositionFromMint(e.PositionNftMint)
+		}
+		get := rpcClmmPositionGetter(msg, meta, invokes[RAYDIUM_CLMM_PROGRAM_ID], e.PersonalPosition, 2)
+		if get != nil {
+			fillStringFromAccount(&e.User, get, 0)
+			fillStringFromAccount(&e.Pool, get, 3)
+		}
 	}
 }
 
@@ -1084,6 +1091,49 @@ func rpcPumpFunTradeGetter(msg *RpcMessage, meta *RpcTransactionMeta, invokes []
 		}
 		if selected != nil {
 			return nil
+		}
+		selected = get
+	}
+	return selected
+}
+
+func clmmPositionFromMint(mint string) string {
+	key, err := solana.PublicKeyFromBase58(mint)
+	if err != nil || key.IsZero() {
+		return ""
+	}
+	position, _, err := solana.FindProgramAddress([][]byte{[]byte("position"), key.Bytes()}, solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID))
+	if err != nil {
+		return ""
+	}
+	return position.String()
+}
+
+func rpcClmmPositionGetter(msg *RpcMessage, meta *RpcTransactionMeta, list [][2]int32, position string, index int) func(int) string {
+	if position == "" {
+		return nil
+	}
+	var selected func(int) string
+	for _, inv := range list {
+		data := getRpcInstructionData(msg, meta, inv)
+		allowed := [][]byte{{133, 29, 89, 223, 69, 238, 176, 10}, {46, 156, 243, 118, 13, 205, 251, 178}}
+		if index == 2 {
+			allowed = [][]byte{{58, 127, 188, 62, 79, 82, 196, 96}, {160, 38, 208, 111, 104, 91, 44, 1}}
+		}
+		if len(data) < 8 || (!bytes.Equal(data[:8], allowed[0]) && !bytes.Equal(data[:8], allowed[1])) {
+			continue
+		}
+
+		get := rpcAccountGetter(msg, meta, [][2]int32{inv})
+		if get == nil || get(index) != position {
+			continue
+		}
+		if selected != nil {
+			for i := 0; i < 18; i++ {
+				if selected(i) != get(i) {
+					return nil
+				}
+			}
 		}
 		selected = get
 	}

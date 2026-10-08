@@ -1657,13 +1657,14 @@ func ParseRaydiumClmmInstruction(
 		return DexEvent{
 			Type: EventTypeRaydiumClmmIncreaseLiquidity,
 			Data: &RaydiumClmmIncreaseLiquidityEvent{
-				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 2),
-				PositionNftMint: getAccountSafe(accounts, 1),
-				User:            getAccountSafe(accounts, 0),
-				Liquidity:       u128LEDecimalString(liquidity),
-				Amount0Max:      amount0Max,
-				Amount1Max:      amount1Max,
+				Metadata:         meta,
+				Pool:             getAccountSafe(accounts, 2),
+				PositionNftMint:  "", // Account 1 is an NFT token account.
+				PersonalPosition: getAccountSafe(accounts, 4),
+				User:             getAccountSafe(accounts, 0),
+				Liquidity:        u128LEDecimalString(liquidity),
+				Amount0Max:       amount0Max,
+				Amount1Max:       amount1Max,
 			},
 		}
 	case instrClmmDecLiqV2:
@@ -1676,13 +1677,14 @@ func ParseRaydiumClmmInstruction(
 		return DexEvent{
 			Type: EventTypeRaydiumClmmDecreaseLiquidity,
 			Data: &RaydiumClmmDecreaseLiquidityEvent{
-				Metadata:        meta,
-				Pool:            getAccountSafe(accounts, 3),
-				PositionNftMint: getAccountSafe(accounts, 1),
-				User:            getAccountSafe(accounts, 0),
-				Liquidity:       u128LEDecimalString(liquidity),
-				Amount0Min:      amount0Min,
-				Amount1Min:      amount1Min,
+				Metadata:         meta,
+				Pool:             getAccountSafe(accounts, 3),
+				PositionNftMint:  "", // Account 1 is an NFT token account.
+				PersonalPosition: getAccountSafe(accounts, 2),
+				User:             getAccountSafe(accounts, 0),
+				Liquidity:        u128LEDecimalString(liquidity),
+				Amount0Min:       amount0Min,
+				Amount1Min:       amount1Min,
 			},
 		}
 	case instrClmmCreatePool:

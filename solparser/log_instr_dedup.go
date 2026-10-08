@@ -24,6 +24,8 @@ const (
 	dedupPumpSwapLiquidityAdded
 	dedupPumpSwapLiquidityRemoved
 	dedupRaydiumClmmSwap
+	dedupRaydiumClmmIncreaseLiquidity
+	dedupRaydiumClmmDecreaseLiquidity
 	dedupRaydiumCpmmSwap
 	dedupRaydiumAmmV4Swap
 	dedupOrcaWhirlpoolSwap
@@ -118,6 +120,20 @@ func dedupeKey(ev DexEvent, occurrenceCounts map[logInstrDedupKey]uint16) (logIn
 	case EventTypePumpSwapLiquidityRemoved:
 		if r, ok := ev.Data.(*PumpSwapLiquidityRemovedEvent); ok && r != nil {
 			return logInstrDedupKey{kind: dedupPumpSwapLiquidityRemoved, a: r.Pool, b: r.User}, true
+		}
+	case EventTypeRaydiumClmmIncreaseLiquidity:
+		if e, ok := ev.Data.(*RaydiumClmmIncreaseLiquidityEvent); ok && e != nil && e.PersonalPosition != "" && e.PersonalPosition != "11111111111111111111111111111111" {
+			base := logInstrDedupKey{kind: dedupRaydiumClmmIncreaseLiquidity, a: e.PersonalPosition}
+			key := base
+			key.occurrence = nextOccurrence(base, occurrenceCounts)
+			return key, true
+		}
+	case EventTypeRaydiumClmmDecreaseLiquidity:
+		if e, ok := ev.Data.(*RaydiumClmmDecreaseLiquidityEvent); ok && e != nil && e.PersonalPosition != "" && e.PersonalPosition != "11111111111111111111111111111111" {
+			base := logInstrDedupKey{kind: dedupRaydiumClmmDecreaseLiquidity, a: e.PersonalPosition}
+			key := base
+			key.occurrence = nextOccurrence(base, occurrenceCounts)
+			return key, true
 		}
 	case EventTypeRaydiumClmmSwap:
 		if s, ok := ev.Data.(*RaydiumClmmSwapEvent); ok && s != nil {
@@ -473,6 +489,26 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillStringIfDefault(&l.UserQuoteTokenAccount, i.UserQuoteTokenAccount)
 			fillStringIfDefault(&l.UserPoolTokenAccount, i.UserPoolTokenAccount)
 		}
+	case EventTypeRaydiumClmmIncreaseLiquidity:
+		if l, ok := log.Data.(*RaydiumClmmIncreaseLiquidityEvent); ok {
+			if i, ok := ix.Data.(*RaydiumClmmIncreaseLiquidityEvent); ok {
+				fillStringIfDefault(&l.Pool, i.Pool)
+				fillStringIfDefault(&l.User, i.User)
+				fillStringIfDefault(&l.PersonalPosition, i.PersonalPosition)
+				l.Amount0Max = i.Amount0Max
+				l.Amount1Max = i.Amount1Max
+			}
+		}
+	case EventTypeRaydiumClmmDecreaseLiquidity:
+		if l, ok := log.Data.(*RaydiumClmmDecreaseLiquidityEvent); ok {
+			if i, ok := ix.Data.(*RaydiumClmmDecreaseLiquidityEvent); ok {
+				fillStringIfDefault(&l.Pool, i.Pool)
+				fillStringIfDefault(&l.User, i.User)
+				fillStringIfDefault(&l.PersonalPosition, i.PersonalPosition)
+				l.Amount0Min = i.Amount0Min
+				l.Amount1Min = i.Amount1Min
+			}
+		}
 	case EventTypeRaydiumClmmSwap:
 		l, ok1 := log.Data.(*RaydiumClmmSwapEvent)
 		i, ok2 := ix.Data.(*RaydiumClmmSwapEvent)
@@ -593,7 +629,7 @@ func DedupeLogInstructionEvents(logEvents []DexEvent, instrEvents []DexEvent) []
 	for key := range idxByKey {
 		base := key
 		base.occurrence = 0
-		if (base.kind == dedupPumpFunTrade || base.kind == dedupPumpSwapBuy || base.kind == dedupPumpSwapSell || base.kind == dedupOrcaWhirlpoolLiquidityIncreased || base.kind == dedupOrcaWhirlpoolLiquidityDecreased) && logOccurrences[base] != ixOccurrences[base] {
+		if (base.kind == dedupPumpFunTrade || base.kind == dedupPumpSwapBuy || base.kind == dedupPumpSwapSell || base.kind == dedupOrcaWhirlpoolLiquidityIncreased || base.kind == dedupOrcaWhirlpoolLiquidityDecreased || base.kind == dedupRaydiumClmmIncreaseLiquidity || base.kind == dedupRaydiumClmmDecreaseLiquidity) && logOccurrences[base] != ixOccurrences[base] {
 			delete(idxByKey, key)
 		}
 	}

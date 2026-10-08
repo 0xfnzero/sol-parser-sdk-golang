@@ -66,16 +66,16 @@ func TestParseRaydiumClmmDecreaseUsesRustV2InstructionDiscriminator(t *testing.T
 	if !ok {
 		t.Fatalf("expected RaydiumClmmDecreaseLiquidityEvent, got %T", ev.Data)
 	}
-	if data.Pool != "account_3" || data.PositionNftMint != "account_1" || data.User != "account_0" {
+	if data.Pool != "account_3" || data.PositionNftMint != "" || data.PersonalPosition != "account_2" || data.User != "account_0" {
 		t.Fatalf("unexpected accounts: %+v", data)
 	}
 	if data.Liquidity != u128LEDecimalString(liquidity) || data.Amount0Min != 222 || data.Amount1Min != 333 {
 		t.Fatalf("unexpected amounts: %+v", data)
 	}
 
-	oldLogDisc := disc8(160, 38, 208, 111, 104, 91, 44, 1)
-	if got := ParseRaydiumClmmInstruction(clmmLiquidityInstruction(oldLogDisc, u128ForTest(0, 111), 222, 333), raydiumClmmTestAccounts(4), "sig", 1, 0, nil, 10); got.Type != "" {
-		t.Fatalf("old log discriminator should not parse as instruction, got %q", got.Type)
+	legacyDisc := disc8(160, 38, 208, 111, 104, 91, 44, 1)
+	if got := ParseRaydiumClmmInstruction(clmmLiquidityInstruction(legacyDisc, u128ForTest(0, 111), 222, 333), raydiumClmmTestAccounts(4), "sig", 1, 0, nil, 10); got.Type != "" {
+		t.Fatalf("deprecated legacy instruction is not supported in the V2-only parser, got %q", got.Type)
 	}
 }
 
