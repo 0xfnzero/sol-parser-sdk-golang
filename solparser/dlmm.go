@@ -80,6 +80,9 @@ func parseDlmmSwap2Data(data []byte, meta EventMetadata) DexEvent {
 	if len(data) < 32+32+4+4+1+16+8+8+8+8+8+8+8+1+1 {
 		return DexEvent{}
 	}
+	if data[72] > 1 || data[145] > 1 || data[146] > 1 {
+		return DexEvent{}
+	}
 	o := 0
 	pool, _ := readPubkey(data, o)
 	o += 32
@@ -98,16 +101,33 @@ func parseDlmmSwap2Data(data []byte, meta EventMetadata) DexEvent {
 	o += 16
 	ai, _ := readU64LE(data, o)
 	o += 8
+	left, _ := readU64LE(data, o)
 	o += 8
 	ao, _ := readU64LE(data, o)
 	o += 8
-	fee, _ := readU64LE(data, o)
+	mm, _ := readU64LE(data, o)
 	o += 8
 	pf, _ := readU64LE(data, o)
 	o += 8
+	lo, _ := readU64LE(data, o)
 	o += 8
 	hf, _ := readU64LE(data, o)
-	return dlmmSwapEvent(meta, pool, from, sb, eb, ai, ao, sy, fee, pf, fbps, hf)
+	fee := mm
+	for _, part := range []uint64{pf, lo} {
+		if part > ^uint64(0)-fee {
+			return DexEvent{}
+		}
+		fee += part
+	}
+	result := dlmmSwapEvent(meta, pool, from, sb, eb, ai, ao, sy, fee, pf, fbps, hf)
+	e := result.Data.(*MeteoraDlmmSwapEvent)
+	e.EventVersion = 2
+	e.AmountLeft = left
+	e.MmFee = mm
+	e.LimitOrderFee = lo
+	e.FeesOnInput = data[145] != 0
+	e.FeesOnTokenX = data[146] != 0
+	return result
 }
 
 func dlmmSwapEvent(meta EventMetadata, pool, from string, sb, eb int32, ai, ao uint64, sy bool, fee, pf uint64, fbps [16]byte, hf uint64) DexEvent {

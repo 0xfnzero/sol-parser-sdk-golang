@@ -490,7 +490,7 @@ func parseClmmUpdateRewardInfosFromData(data []byte, meta EventMetadata) DexEven
 // Raydium CPMM
 func parseCpmmSwapEventFromData(data []byte, meta EventMetadata) DexEvent {
 	const payloadLen = 32 + 6*8 + 1
-	if len(data) < payloadLen {
+	if len(data) < payloadLen || (len(data) > 81 && len(data) < 162) || data[80] > 1 || (len(data) >= 162 && data[161] > 1) {
 		return DexEvent{}
 	}
 	pool, ok := readPubkey(data, 0)
@@ -504,7 +504,7 @@ func parseCpmmSwapEventFromData(data []byte, meta EventMetadata) DexEvent {
 	inputTransferFee, _ := readU64LE(data, 64)
 	outputTransferFee, _ := readU64LE(data, 72)
 	baseInput, _ := readBool(data, 80)
-	return DexEvent{Type: EventTypeRaydiumCpmmSwap, Data: &RaydiumCpmmSwapEvent{
+	result := DexEvent{Type: EventTypeRaydiumCpmmSwap, Data: &RaydiumCpmmSwapEvent{
 		Metadata:          meta,
 		PoolID:            pool,
 		InputAmount:       inputAmount,
@@ -515,6 +515,15 @@ func parseCpmmSwapEventFromData(data []byte, meta EventMetadata) DexEvent {
 		OutputTransferFee: outputTransferFee,
 		BaseInput:         baseInput,
 	}}
+	if len(data) >= 162 {
+		e := result.Data.(*RaydiumCpmmSwapEvent)
+		e.InputMint, _ = readPubkey(data, 81)
+		e.OutputMint, _ = readPubkey(data, 113)
+		e.TradeFee, _ = readU64LE(data, 145)
+		e.CreatorFee, _ = readU64LE(data, 153)
+		e.CreatorFeeOnInput = data[161] != 0
+	}
+	return result
 }
 
 func parseCpmmSwapInFromData(data []byte, meta EventMetadata) DexEvent {

@@ -637,6 +637,14 @@ func ParseInnerInstructionUnified(
 		default:
 			return DexEvent{}
 		}
+	case METEORA_DBC_PROGRAM_ID:
+		if filter != nil && !EventTypeFilterIncludesMeteoraDbc(filter) {
+			return DexEvent{}
+		}
+		if !disc16HasPrefix(disc) {
+			return DexEvent{}
+		}
+		return applyActualEventTypeFilter(parseMeteoraDbcFromDiscriminator(binary.LittleEndian.Uint64(disc[8:]), inner, meta), filter)
 	case METEORA_DAMM_V2_PROGRAM_ID:
 		if filter != nil && !EventTypeFilterIncludesMeteoraDammV2(filter) {
 			return DexEvent{}

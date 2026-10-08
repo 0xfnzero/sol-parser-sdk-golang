@@ -1126,6 +1126,11 @@ type RaydiumCpmmSwapEvent struct {
 	InputTransferFee  uint64        `json:"input_transfer_fee"`
 	OutputTransferFee uint64        `json:"output_transfer_fee"`
 	BaseInput         bool          `json:"base_input"`
+	InputMint         string        `json:"input_mint"`
+	OutputMint        string        `json:"output_mint"`
+	TradeFee          uint64        `json:"trade_fee"`
+	CreatorFee        uint64        `json:"creator_fee"`
+	CreatorFeeOnInput bool          `json:"creator_fee_on_input"`
 }
 
 func (e *RaydiumCpmmSwapEvent) EventType() EventType       { return EventTypeRaydiumCpmmSwap }
@@ -1255,23 +1260,29 @@ func (e *OrcaWhirlpoolPoolInitializedEvent) GetMetadata() EventMetadata { return
 
 // MeteoraDlmmSwapEvent Meteora DLMM 交换事件
 type MeteoraDlmmSwapEvent struct {
-	Metadata     EventMetadata `json:"metadata"`
-	TokenXMint   string        `json:"token_x_mint"`
-	TokenYMint   string        `json:"token_y_mint"`
-	UserTokenIn  string        `json:"user_token_in"`
-	UserTokenOut string        `json:"user_token_out"`
-	MinAmountOut uint64        `json:"min_amount_out"`
-	Pool         string        `json:"pool"`
-	From         string        `json:"from"`
-	StartBinID   int32         `json:"start_bin_id"`
-	EndBinID     int32         `json:"end_bin_id"`
-	AmountIn     uint64        `json:"amount_in"`
-	AmountOut    uint64        `json:"amount_out"`
-	SwapForY     bool          `json:"swap_for_y"`
-	Fee          uint64        `json:"fee"`
-	ProtocolFee  uint64        `json:"protocol_fee"`
-	FeeBps       string        `json:"fee_bps"`
-	HostFee      uint64        `json:"host_fee"`
+	Metadata      EventMetadata `json:"metadata"`
+	TokenXMint    string        `json:"token_x_mint"`
+	TokenYMint    string        `json:"token_y_mint"`
+	UserTokenIn   string        `json:"user_token_in"`
+	UserTokenOut  string        `json:"user_token_out"`
+	MinAmountOut  uint64        `json:"min_amount_out"`
+	Pool          string        `json:"pool"`
+	From          string        `json:"from"`
+	StartBinID    int32         `json:"start_bin_id"`
+	EndBinID      int32         `json:"end_bin_id"`
+	AmountIn      uint64        `json:"amount_in"`
+	AmountOut     uint64        `json:"amount_out"`
+	SwapForY      bool          `json:"swap_for_y"`
+	Fee           uint64        `json:"fee"`
+	ProtocolFee   uint64        `json:"protocol_fee"`
+	FeeBps        string        `json:"fee_bps"`
+	HostFee       uint64        `json:"host_fee"`
+	EventVersion  uint8         `json:"event_version"`
+	AmountLeft    uint64        `json:"amount_left"`
+	MmFee         uint64        `json:"mm_fee"`
+	LimitOrderFee uint64        `json:"limit_order_fee"`
+	FeesOnInput   bool          `json:"fees_on_input"`
+	FeesOnTokenX  bool          `json:"fees_on_token_x"`
 }
 
 func (e *MeteoraDlmmSwapEvent) EventType() EventType       { return EventTypeMeteoraDlmmSwap }
@@ -1684,6 +1695,17 @@ func (e *MeteoraDammV2CreateDynamicConfigEvent) GetMetadata() EventMetadata { re
 
 // MeteoraDbcSwapEvent Meteora DBC 交易事件
 type MeteoraDbcSwapEvent struct {
+	EventVersion           uint8  `json:"event_version"`
+	SwapMode               uint8  `json:"swap_mode"`
+	Amount0                uint64 `json:"amount_0"`
+	Amount1                uint64 `json:"amount_1"`
+	MaximumAmountIn        uint64 `json:"maximum_amount_in"`
+	IncludedFeeInputAmount uint64 `json:"included_fee_input_amount"`
+	AmountLeft             uint64 `json:"amount_left"`
+	QuoteReserveAmount     uint64 `json:"quote_reserve_amount"`
+	MigrationThreshold     uint64 `json:"migration_threshold"`
+	HasTransferHook        bool   `json:"has_transfer_hook"`
+
 	Metadata          EventMetadata `json:"metadata"`
 	Pool              string        `json:"pool"`
 	Config            string        `json:"config"`

@@ -356,6 +356,7 @@ var (
 		pumpfunFilterTypes,
 		pumpFeesFilterTypes,
 		pumpswapFilterTypes,
+		meteoraDbcFilterTypes,
 		meteoraDammV2FilterTypes,
 		meteoraPoolsFilterTypes,
 		meteoraDlmmFilterTypes,

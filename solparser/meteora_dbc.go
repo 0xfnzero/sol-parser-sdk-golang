@@ -2,6 +2,8 @@ package solparser
 
 func parseMeteoraDbcFromDiscriminator(disc uint64, data []byte, meta EventMetadata) DexEvent {
 	switch disc {
+	case discDbcSwap2, discDbcSwap2TransferHook:
+		return parseDbcSwap2(data, meta, disc == discDbcSwap2TransferHook)
 	case discDbcSwap:
 		return parseDbcSwap(data, meta)
 	case discDbcInit:
@@ -121,4 +123,30 @@ func parseDbcCurveComplete(data []byte, meta EventMetadata) DexEvent {
 			QuoteReserve: quoteReserve,
 		},
 	}
+}
+
+func parseDbcSwap2(data []byte, meta EventMetadata, hook bool) DexEvent {
+	if len(data) < 179 || data[82] > 2 || data[64] > 1 || data[65] > 1 {
+		return DexEvent{}
+	}
+	u64 := func(offset int) uint64 { n, _ := readU64LE(data, offset); return n }
+	pool, _ := readPubkey(data, 0)
+	config, _ := readPubkey(data, 32)
+	sqrt, _ := readU128LE(data, 115)
+	mode := data[82]
+	amount1 := u64(74)
+	minimum, maximum := uint64(0), uint64(0)
+	if mode == 2 {
+		maximum = amount1
+	} else {
+		minimum = amount1
+	}
+	return DexEvent{Type: EventTypeMeteoraDbcSwap, Data: &MeteoraDbcSwapEvent{
+		Metadata: meta, Pool: pool, Config: config, TradeDirection: data[64], HasReferral: data[65] != 0,
+		EventVersion: 2, SwapMode: mode, Amount0: u64(66), Amount1: amount1, HasTransferHook: hook,
+		AmountIn: u64(83), MinimumAmountOut: minimum, MaximumAmountIn: maximum,
+		IncludedFeeInputAmount: u64(83), ActualInputAmount: u64(91), AmountLeft: u64(99),
+		OutputAmount: u64(107), NextSqrtPrice: u128LEDecimalString(sqrt), TradingFee: u64(131), ProtocolFee: u64(139), ReferralFee: u64(147),
+		QuoteReserveAmount: u64(155), MigrationThreshold: u64(163), CurrentTimestamp: u64(171),
+	}}
 }

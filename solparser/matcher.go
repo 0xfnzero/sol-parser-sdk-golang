@@ -359,7 +359,7 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 		}
 	case METEORA_DBC_PROGRAM_ID:
 		switch disc {
-		case discDbcSwap:
+		case discDbcSwap, discDbcSwap2, discDbcSwap2TransferHook:
 			return EventTypeMeteoraDbcSwap, true
 		case discDbcInit:
 			return EventTypeMeteoraDbcInitializePool, true

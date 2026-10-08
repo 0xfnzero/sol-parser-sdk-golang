@@ -193,9 +193,9 @@ func TestParseRaydiumClmmCreateCustomizablePoolInstruction(t *testing.T) {
 	}
 }
 
-func TestMeteoraDbcLogEventsDoNotEnableInstructionPrefilter(t *testing.T) {
-	if EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeMeteoraDbcSwap}) {
-		t.Fatalf("DBC log-only events should not enable instruction parsing")
+func TestMeteoraDbcEventsEnableEventCpiInstructionPrefilter(t *testing.T) {
+	if !EventTypeFilterAllowsInstructionParsing([]EventType{EventTypeMeteoraDbcSwap}) {
+		t.Fatalf("DBC current event CPI must enable instruction parsing")
 	}
 }
 

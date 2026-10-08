@@ -599,5 +599,53 @@ func DedupeLogInstructionEvents(logEvents []DexEvent, instrEvents []DexEvent) []
 		out = append(out, ev)
 	}
 
+	return preferCurrentDbcEvents(out)
+}
+
+func preferCurrentDbcEvents(events []DexEvent) []DexEvent {
+	type key struct {
+		pool, config, price                               string
+		direction                                         uint8
+		input, output, fee, protocol, referral, timestamp uint64
+	}
+	type sources struct{ old, current []int }
+	groups := make(map[key]*sources)
+	for i, event := range events {
+		e, ok := event.Data.(*MeteoraDbcSwapEvent)
+		if !ok {
+			continue
+		}
+		k := key{e.Pool, e.Config, e.NextSqrtPrice, e.TradeDirection, e.AmountIn, e.OutputAmount, e.TradingFee, e.ProtocolFee, e.ReferralFee, e.CurrentTimestamp}
+		g := groups[k]
+		if g == nil {
+			g = &sources{}
+			groups[k] = g
+		}
+		if e.EventVersion == 2 {
+			g.current = append(g.current, i)
+		} else {
+			g.old = append(g.old, i)
+		}
+	}
+	removed := make(map[int]bool)
+	for _, g := range groups {
+		if len(g.old) != len(g.current) {
+			continue
+		}
+		for i, old := range g.old {
+			new := g.current[i]
+			events[old] = events[new]
+			removed[new] = true
+		}
+	}
+	if len(removed) == 0 {
+		return events
+	}
+	out := events[:0]
+	for i, e := range events {
+		if !removed[i] {
+			out = append(out, e)
+		}
+	}
 	return out
 }
