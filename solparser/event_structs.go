@@ -1654,10 +1654,24 @@ type MeteoraDammV2WithdrawDeadLiquidityRewardEvent struct {
 	Amount     uint64        `json:"amount"`
 }
 
+// MeteoraDammV2WithdrawIneligibleRewardEvent IDL EvtWithdrawIneligibleReward
+type MeteoraDammV2WithdrawIneligibleRewardEvent struct {
+	Metadata   EventMetadata `json:"metadata"`
+	Pool       string        `json:"pool"`
+	RewardMint string        `json:"reward_mint"`
+	Amount     uint64        `json:"amount"`
+}
+
 func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) EventType() EventType {
 	return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward
 }
+func (e *MeteoraDammV2WithdrawIneligibleRewardEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2WithdrawIneligibleReward
+}
 func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+func (e *MeteoraDammV2WithdrawIneligibleRewardEvent) GetMetadata() EventMetadata {
 	return e.Metadata
 }
 

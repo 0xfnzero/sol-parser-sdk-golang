@@ -236,6 +236,7 @@ var (
 	discDammClose                       = disc8(20, 145, 144, 68, 143, 142, 214, 178)
 	discDammUpdateDelegatePermission    = disc8(66, 188, 75, 151, 150, 232, 87, 93)
 	discDammWithdrawDeadLiquidityReward = disc8(228, 66, 150, 195, 42, 62, 163, 13)
+	discDammWithdrawIneligibleReward    = disc8(248, 215, 184, 78, 31, 180, 179, 168)
 	discDammCreateConfig                = disc8(131, 207, 180, 174, 180, 73, 165, 54)
 	discDammCreateDynamicConfig         = disc8(231, 197, 13, 164, 248, 213, 133, 152)
 	discDbcSwap2                        = disc8(189, 66, 51, 168, 38, 80, 117, 153)

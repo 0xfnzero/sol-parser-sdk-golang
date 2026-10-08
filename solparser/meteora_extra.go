@@ -49,6 +49,8 @@ func parseMeteoraDammFromDiscriminator(d uint64, data []byte, meta EventMetadata
 		return parseDammUpdateDelegatePermission(data, meta)
 	case discDammWithdrawDeadLiquidityReward:
 		return parseDammWithdrawDeadLiquidityReward(data, meta)
+	case discDammWithdrawIneligibleReward:
+		return parseDammWithdrawIneligibleReward(data, meta)
 	case discDammCreateConfig:
 		return parseDammCreateConfig(data, meta)
 	case discDammCreateDynamicConfig:
@@ -450,6 +452,32 @@ func parseDammWithdrawDeadLiquidityReward(data []byte, meta EventMetadata) DexEv
 	return DexEvent{
 		Type: EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,
 		Data: &MeteoraDammV2WithdrawDeadLiquidityRewardEvent{
+			Metadata: meta, Pool: pool, RewardMint: mint, Amount: amt,
+		},
+	}
+}
+func parseDammWithdrawIneligibleReward(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 32+32+8 {
+		return DexEvent{}
+	}
+	o := 0
+	pool, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	mint, ok := readPubkey(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	o += 32
+	amt, ok := readU64LE(data, o)
+	if !ok {
+		return DexEvent{}
+	}
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2WithdrawIneligibleReward,
+		Data: &MeteoraDammV2WithdrawIneligibleRewardEvent{
 			Metadata: meta, Pool: pool, RewardMint: mint, Amount: amt,
 		},
 	}
