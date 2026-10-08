@@ -148,6 +148,7 @@ const (
 	EventTypeMeteoraDammV2Swap                        EventType = "MeteoraDammV2Swap"
 	EventTypeMeteoraDammV2AddLiquidity                EventType = "MeteoraDammV2AddLiquidity"
 	EventTypeMeteoraDammV2RemoveLiquidity             EventType = "MeteoraDammV2RemoveLiquidity"
+	EventTypeMeteoraDammV2ClaimPositionFee            EventType = "MeteoraDammV2ClaimPositionFee"
 	EventTypeMeteoraDammV2CreatePosition              EventType = "MeteoraDammV2CreatePosition"
 	EventTypeMeteoraDammV2ClosePosition               EventType = "MeteoraDammV2ClosePosition"
 	EventTypeMeteoraDammV2InitializePool              EventType = "MeteoraDammV2InitializePool"
@@ -278,6 +279,7 @@ var (
 		EventTypeMeteoraDammV2Swap,
 		EventTypeMeteoraDammV2AddLiquidity,
 		EventTypeMeteoraDammV2CreatePosition,
+		EventTypeMeteoraDammV2ClaimPositionFee,
 		EventTypeMeteoraDammV2ClosePosition,
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2RemoveLiquidity,
@@ -928,6 +930,7 @@ func AllEventTypes() []EventType {
 		EventTypeMeteoraDammV2RemoveLiquidity,
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2CreatePosition,
+		EventTypeMeteoraDammV2ClaimPositionFee,
 		EventTypeMeteoraDammV2ClosePosition,
 		EventTypeMeteoraDammV2UpdateDelegatePermission,
 		EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,

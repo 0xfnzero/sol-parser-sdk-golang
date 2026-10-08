@@ -140,6 +140,8 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDammV2InitializePool, true
 	case discDammCreate:
 		return EventTypeMeteoraDammV2CreatePosition, true
+	case discDammClaimPositionFee:
+		return EventTypeMeteoraDammV2ClaimPositionFee, true
 	case discDammClose:
 		return EventTypeMeteoraDammV2ClosePosition, true
 	case discDammUpdateDelegatePermission:
@@ -344,6 +346,8 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 			return EventTypeMeteoraDammV2InitializePool, true
 		case discDammCreate:
 			return EventTypeMeteoraDammV2CreatePosition, true
+		case discDammClaimPositionFee:
+			return EventTypeMeteoraDammV2ClaimPositionFee, true
 		case discDammClose:
 			return EventTypeMeteoraDammV2ClosePosition, true
 		case discDammUpdateDelegatePermission:
@@ -923,7 +927,7 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 
 	// Meteora DAMM v2
 	case discDammSwap, discDammSwap2, discDammAdd, discDammRem, discDammLiquidityChange,
-		discDammInit, discDammCreate, discDammClose,
+		discDammInit, discDammCreate, discDammClose, discDammClaimPositionFee,
 		discDammUpdateDelegatePermission, discDammWithdrawDeadLiquidityReward,
 		discDammCreateConfig, discDammCreateDynamicConfig:
 		return applyActualEventTypeFilter(ParseMeteoraDammLog(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs), eventFilter)

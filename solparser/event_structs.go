@@ -2297,3 +2297,18 @@ type LaunchLabPoolCreateEvent = RaydiumLaunchlabPoolCreateEvent
 type StonkFunPoolCreateEvent = RaydiumLaunchlabPoolCreateEvent
 type LaunchLabTradeEvent = RaydiumLaunchlabTradeEvent
 type StonkFunTradeEvent = RaydiumLaunchlabTradeEvent
+
+// MeteoraDammV2ClaimPositionFeeEvent contains gross claims before transfer fees.
+type MeteoraDammV2ClaimPositionFeeEvent struct {
+	Metadata    EventMetadata `json:"metadata"`
+	Pool        string        `json:"pool"`
+	Position    string        `json:"position"`
+	Owner       string        `json:"owner"`
+	FeeAClaimed uint64        `json:"fee_a_claimed"`
+	FeeBClaimed uint64        `json:"fee_b_claimed"`
+}
+
+func (e *MeteoraDammV2ClaimPositionFeeEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2ClaimPositionFee
+}
+func (e *MeteoraDammV2ClaimPositionFeeEvent) GetMetadata() EventMetadata { return e.Metadata }

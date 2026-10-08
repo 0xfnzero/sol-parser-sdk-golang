@@ -29,6 +29,8 @@ func parseMeteoraDammFromDiscriminator(d uint64, data []byte, meta EventMetadata
 		return parseDammSwap(data, meta)
 	case discDammSwap2:
 		return parseDammSwap2(data, meta)
+	case discDammClaimPositionFee:
+		return parseDammClaimPositionFee(data, meta)
 	case discDammCreatePosition:
 		return parseDammCreatePosition(data, meta)
 	case discDammClosePosition:
@@ -742,4 +744,15 @@ func ParseMeteoraDlmmLog(log, sig string, slot, tx uint64, blockUs *int64, grpcU
 	}
 	meta := makeMetadata(sig, slot, tx, blockUs, grpcUs, "")
 	return parseDlmmFromProgramData(buf, meta)
+}
+
+func parseDammClaimPositionFee(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 112 {
+		return DexEvent{}
+	}
+	pool, _ := readPubkey(data, 0)
+	position, _ := readPubkey(data, 32)
+	owner, _ := readPubkey(data, 64)
+	return DexEvent{Type: EventTypeMeteoraDammV2ClaimPositionFee, Data: &MeteoraDammV2ClaimPositionFeeEvent{
+		Metadata: meta, Pool: pool, Position: position, Owner: owner, FeeAClaimed: binary.LittleEndian.Uint64(data[96:104]), FeeBClaimed: binary.LittleEndian.Uint64(data[104:112])}}
 }

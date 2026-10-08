@@ -247,12 +247,13 @@ var (
 	compoundingFeeLayoutActivationSlot uint64 = 406_048_752
 
 	// 别名（用于 meteora_extra.go）
-	discDammCreatePosition  = discDammCreate
-	discDammClosePosition   = discDammClose
-	discDammAddLiquidity    = discDammAdd
-	discDammRemoveLiq       = discDammRem
-	discDammInitPool        = discDammInit
-	discDammLiquidityChange = discDammLiqChange
+	discDammCreatePosition   = discDammCreate
+	discDammClaimPositionFee = binary.LittleEndian.Uint64([]byte{198, 182, 183, 52, 97, 12, 49, 56})
+	discDammClosePosition    = discDammClose
+	discDammAddLiquidity     = discDammAdd
+	discDammRemoveLiq        = discDammRem
+	discDammInitPool         = discDammInit
+	discDammLiquidityChange  = discDammLiqChange
 
 	// RaydiumLaunchlab (Raydium LaunchLab)
 	discRaydiumLaunchlabTrade      = disc8(189, 219, 127, 211, 78, 230, 97, 238)

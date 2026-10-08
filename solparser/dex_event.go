@@ -144,6 +144,8 @@ func (e DexEvent) GetMetadata() EventMetadata {
 		return d.Metadata
 	case *MeteoraDammV2SwapEvent:
 		return d.Metadata
+	case *MeteoraDammV2ClaimPositionFeeEvent:
+		return d.Metadata
 	case *MeteoraDammV2CreatePositionEvent:
 		return d.Metadata
 	case *MeteoraDammV2ClosePositionEvent:
@@ -344,6 +346,8 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 	case *MeteoraPoolsSetPoolFeesEvent:
 		d.Metadata.RecentBlockhash = h
 	case *MeteoraDammV2SwapEvent:
+		d.Metadata.RecentBlockhash = h
+	case *MeteoraDammV2ClaimPositionFeeEvent:
 		d.Metadata.RecentBlockhash = h
 	case *MeteoraDammV2CreatePositionEvent:
 		d.Metadata.RecentBlockhash = h
