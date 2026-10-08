@@ -1662,16 +1662,37 @@ type MeteoraDammV2WithdrawIneligibleRewardEvent struct {
 	Amount     uint64        `json:"amount"`
 }
 
+// MeteoraDammV2FundRewardEvent decodes IDL EvtFundReward. Amount includes net new
+// funding and carried empty rewards; PostRewardRate also includes unexpired rewards.
+type MeteoraDammV2FundRewardEvent struct {
+	Metadata                    EventMetadata `json:"metadata"`
+	Pool                        string        `json:"pool"`
+	Funder                      string        `json:"funder"`
+	MintReward                  string        `json:"mint_reward"`
+	RewardIndex                 uint8         `json:"reward_index"`
+	Amount                      uint64        `json:"amount"`
+	TransferFeeExcludedAmountIn uint64        `json:"transfer_fee_excluded_amount_in"`
+	RewardDurationEnd           uint64        `json:"reward_duration_end"`
+	PreRewardRate               string        `json:"pre_reward_rate"`
+	PostRewardRate              string        `json:"post_reward_rate"`
+}
+
 func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) EventType() EventType {
 	return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward
 }
 func (e *MeteoraDammV2WithdrawIneligibleRewardEvent) EventType() EventType {
 	return EventTypeMeteoraDammV2WithdrawIneligibleReward
 }
+func (e *MeteoraDammV2FundRewardEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2FundReward
+}
 func (e *MeteoraDammV2WithdrawDeadLiquidityRewardEvent) GetMetadata() EventMetadata {
 	return e.Metadata
 }
 func (e *MeteoraDammV2WithdrawIneligibleRewardEvent) GetMetadata() EventMetadata {
+	return e.Metadata
+}
+func (e *MeteoraDammV2FundRewardEvent) GetMetadata() EventMetadata {
 	return e.Metadata
 }
 

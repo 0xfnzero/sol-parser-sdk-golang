@@ -152,6 +152,8 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward, true
 	case discDammWithdrawIneligibleReward:
 		return EventTypeMeteoraDammV2WithdrawIneligibleReward, true
+	case discDammFundReward:
+		return EventTypeMeteoraDammV2FundReward, true
 	case discDammCreateConfig:
 		return EventTypeMeteoraDammV2CreateConfig, true
 	case discDammCreateDynamicConfig:
@@ -364,6 +366,8 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 			return EventTypeMeteoraDammV2WithdrawDeadLiquidityReward, true
 		case discDammWithdrawIneligibleReward:
 			return EventTypeMeteoraDammV2WithdrawIneligibleReward, true
+		case discDammFundReward:
+			return EventTypeMeteoraDammV2FundReward, true
 		case discDammCreateConfig:
 			return EventTypeMeteoraDammV2CreateConfig, true
 		case discDammCreateDynamicConfig:
@@ -941,7 +945,7 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 	case discDammSwap, discDammSwap2, discDammAdd, discDammRem, discDammLiquidityChange,
 		discDammInit, discDammCreate, discDammClose, discDammClaimPositionFee,
 		discDammInit, discDammCreate, discDammClose, discDammClaimReward,
-		discDammUpdateDelegatePermission, discDammWithdrawDeadLiquidityReward, discDammWithdrawIneligibleReward,
+		discDammUpdateDelegatePermission, discDammWithdrawDeadLiquidityReward, discDammWithdrawIneligibleReward, discDammFundReward,
 		discDammCreateConfig, discDammCreateDynamicConfig:
 		return applyActualEventTypeFilter(ParseMeteoraDammLog(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs), eventFilter)
 

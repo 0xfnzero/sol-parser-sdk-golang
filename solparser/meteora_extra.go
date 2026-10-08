@@ -51,6 +51,8 @@ func parseMeteoraDammFromDiscriminator(d uint64, data []byte, meta EventMetadata
 		return parseDammWithdrawDeadLiquidityReward(data, meta)
 	case discDammWithdrawIneligibleReward:
 		return parseDammWithdrawIneligibleReward(data, meta)
+	case discDammFundReward:
+		return parseDammFundReward(data, meta)
 	case discDammCreateConfig:
 		return parseDammCreateConfig(data, meta)
 	case discDammCreateDynamicConfig:
@@ -479,6 +481,35 @@ func parseDammWithdrawIneligibleReward(data []byte, meta EventMetadata) DexEvent
 		Type: EventTypeMeteoraDammV2WithdrawIneligibleReward,
 		Data: &MeteoraDammV2WithdrawIneligibleRewardEvent{
 			Metadata: meta, Pool: pool, RewardMint: mint, Amount: amt,
+		},
+	}
+}
+func parseDammFundReward(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 153 {
+		return DexEvent{}
+	}
+	pool, _ := readPubkey(data, 0)
+	funder, _ := readPubkey(data, 32)
+	mint_reward, _ := readPubkey(data, 64)
+	reward_index, _ := readU8(data, 96)
+	amount, _ := readU64LE(data, 97)
+	transfer_fee_excluded_amount_in, _ := readU64LE(data, 105)
+	reward_duration_end, _ := readU64LE(data, 113)
+	pre_reward_rate, _ := readU128LE(data, 121)
+	post_reward_rate, _ := readU128LE(data, 137)
+	return DexEvent{
+		Type: EventTypeMeteoraDammV2FundReward,
+		Data: &MeteoraDammV2FundRewardEvent{
+			Metadata:                    meta,
+			Pool:                        pool,
+			Funder:                      funder,
+			MintReward:                  mint_reward,
+			RewardIndex:                 reward_index,
+			Amount:                      amount,
+			TransferFeeExcludedAmountIn: transfer_fee_excluded_amount_in,
+			RewardDurationEnd:           reward_duration_end,
+			PreRewardRate:               u128LEDecimalString(pre_reward_rate),
+			PostRewardRate:              u128LEDecimalString(post_reward_rate),
 		},
 	}
 }
