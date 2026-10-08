@@ -213,7 +213,7 @@ func TestParseRaydiumCpmmNormalInstructionUsesRustAccountsAndDefaults(t *testing
 		t.Fatalf("expected RaydiumCpmmDeposit, got %q", deposit.Type)
 	}
 	dep := deposit.Data.(*RaydiumCpmmDepositEvent)
-	if dep.Pool != "account_0" || dep.User != "account_1" ||
+	if dep.Pool != "account_2" || dep.User != "account_0" ||
 		dep.LpTokenAmount != 111 || dep.Token0Amount != 222 || dep.Token1Amount != 333 {
 		t.Fatalf("unexpected CPMM deposit: %+v", dep)
 	}
@@ -231,7 +231,7 @@ func TestParseRaydiumCpmmNormalInstructionUsesRustAccountsAndDefaults(t *testing
 		t.Fatalf("expected RaydiumCpmmWithdraw, got %q", withdraw.Type)
 	}
 	wit := withdraw.Data.(*RaydiumCpmmWithdrawEvent)
-	if wit.Pool != "account_0" || wit.User != "account_1" ||
+	if wit.Pool != "account_2" || wit.User != "account_0" ||
 		wit.LpTokenAmount != 444 || wit.Token0Amount != 555 || wit.Token1Amount != 666 {
 		t.Fatalf("unexpected CPMM withdraw: %+v", wit)
 	}

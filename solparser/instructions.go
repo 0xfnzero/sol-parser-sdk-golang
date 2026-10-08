@@ -1803,6 +1803,7 @@ func ParseRaydiumCpmmInstruction(
 				InitAmount1: initAmount1,
 			},
 		}
+	// Instruction token amounts are deposit maxima / withdrawal minima, not executed fills.
 	case discCpmmDeposit:
 		if len(data) < 8+8+8+8 {
 			return DexEvent{}
@@ -1814,8 +1815,8 @@ func ParseRaydiumCpmmInstruction(
 			Type: EventTypeRaydiumCpmmDeposit,
 			Data: &RaydiumCpmmDepositEvent{
 				Metadata:      meta,
-				Pool:          getAccountSafe(accounts, 0),
-				User:          getAccountSafe(accounts, 1),
+				Pool:          getAccountSafe(accounts, 2),
+				User:          getAccountSafe(accounts, 0),
 				LpTokenAmount: lp,
 				Token0Amount:  token0,
 				Token1Amount:  token1,
@@ -1832,8 +1833,8 @@ func ParseRaydiumCpmmInstruction(
 			Type: EventTypeRaydiumCpmmWithdraw,
 			Data: &RaydiumCpmmWithdrawEvent{
 				Metadata:      meta,
-				Pool:          getAccountSafe(accounts, 0),
-				User:          getAccountSafe(accounts, 1),
+				Pool:          getAccountSafe(accounts, 2),
+				User:          getAccountSafe(accounts, 0),
 				LpTokenAmount: lp,
 				Token0Amount:  token0,
 				Token1Amount:  token1,
