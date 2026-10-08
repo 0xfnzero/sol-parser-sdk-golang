@@ -2397,7 +2397,9 @@ func (e *MeteoraDammV2ClaimPositionFeeEvent) EventType() EventType {
 }
 func (e *MeteoraDammV2ClaimPositionFeeEvent) GetMetadata() EventMetadata { return e.Metadata }
 
-// MeteoraDammV2ClaimRewardEvent contains gross claims before transfer fees.
+// MeteoraDammV2ClaimRewardEvent contains the accrued gross reward cleared from the position.
+// A frozen-vault skip can emit a nonzero TotalReward without transferring tokens.
+// Determine wallet credits from actual token transfers and net balance changes.
 type MeteoraDammV2ClaimRewardEvent struct {
 	Metadata    EventMetadata `json:"metadata"`
 	Pool        string        `json:"pool"`
