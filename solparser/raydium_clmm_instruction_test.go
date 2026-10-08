@@ -259,7 +259,7 @@ func TestParseMeteoraPoolsAndDlmmOuterInstructionsAreRouted(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected MeteoraPoolsSwapEvent, got %T", pools.Data)
 	}
-	if poolsSwap.InAmount != 111 || poolsSwap.OutAmount != 222 {
+	if poolsSwap.AmountIn != 111 || poolsSwap.MinimumOutAmount != 222 || poolsSwap.InAmount != 0 || poolsSwap.OutAmount != 0 {
 		t.Fatalf("unexpected Meteora Pools swap values: %+v", poolsSwap)
 	}
 

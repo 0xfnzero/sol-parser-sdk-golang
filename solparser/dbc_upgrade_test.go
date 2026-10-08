@@ -78,3 +78,62 @@ func TestCurrentDbcEventCPI(t *testing.T) {
 		}
 	}
 }
+
+func TestRealBankDbcEvents(t *testing.T) {
+	raw, err := os.ReadFile("testdata/dbc_live_simulations_20261008.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixture struct {
+		Cases []struct {
+			Name               string
+			Slot               uint64
+			Program            string
+			Error              any
+			DedupCount         int      `json:"dedup_count"`
+			BankOutputBalances []uint64 `json:"bank_output_balances"`
+			Events             []struct {
+				Data     string
+				Expected struct {
+					OutputAmount      uint64 `json:"output_amount"`
+					ActualInputAmount uint64 `json:"actual_input_amount"`
+					SwapMode          uint8  `json:"swap_mode"`
+					EventVersion      uint8  `json:"event_version"`
+					TradeDirection    uint8  `json:"trade_direction"`
+					Amount0           uint64 `json:"amount_0"`
+					Amount1           uint64 `json:"amount_1"`
+				}
+			}
+		}
+	}
+	if err := json.Unmarshal(raw, &fixture); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range fixture.Cases {
+		t.Run(c.Name, func(t *testing.T) {
+			var events []DexEvent
+			for _, row := range c.Events {
+				data, _ := base64.StdEncoding.DecodeString(row.Data)
+				ev := ParseInnerInstructionUnified(data, nil, "simulation", c.Slot, 0, nil, 0, EventTypeFilterIncludeOnly([]EventType{EventTypeMeteoraDbcSwap}), c.Program, false)
+				e, ok := ev.Data.(*MeteoraDbcSwapEvent)
+				if !ok {
+					t.Fatal("missing DBC event")
+				}
+				w := row.Expected
+				if e.OutputAmount != w.OutputAmount || e.ActualInputAmount != w.ActualInputAmount || e.SwapMode != w.SwapMode || e.EventVersion != w.EventVersion || e.TradeDirection != w.TradeDirection || e.Amount0 != w.Amount0 || e.Amount1 != w.Amount1 {
+					t.Fatal("emitted fields mismatch")
+				}
+				events = append(events, ev)
+			}
+			current := DedupeLogInstructionEvents(nil, events)
+			if len(current) != c.DedupCount {
+				t.Fatal("dedup count")
+			}
+			if c.Error == nil && len(current) == 1 {
+				if len(current) == 0 || current[len(current)-1].Data.(*MeteoraDbcSwapEvent).OutputAmount != c.BankOutputBalances[0] {
+					t.Fatal("bank output mismatch")
+				}
+			}
+		})
+	}
+}

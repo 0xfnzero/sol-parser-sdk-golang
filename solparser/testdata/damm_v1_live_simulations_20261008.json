@@ -1,0 +1,78 @@
+{
+  "cases": [
+    {
+      "name": "damm-v1-buy",
+      "logs": [
+        "Program data: UWzjvs3QCsSghgEAAAAAAGBSCQAAAAAAyAAAAAAAAAAyAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "expected": [
+        {
+          "in_amount": 100000,
+          "out_amount": 610912,
+          "trade_fee": 200,
+          "admin_fee": 50,
+          "host_fee": 0
+        }
+      ],
+      "error": null,
+      "bank_output_balances": [
+        610912,
+        9900000
+      ],
+      "sell_source_debits": []
+    },
+    {
+      "name": "damm-v1-roundtrip",
+      "logs": [
+        "Program data: UWzjvs3QCsSghgEAAAAAAGBSCQAAAAAAyAAAAAAAAAAyAAAAAAAAAAAAAAAAAAAA",
+        "Program data: UWzjvs3QCsSWVAIAAAAAACphAAAAAAAAMQEAAAAAAABMAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "expected": [
+        {
+          "in_amount": 100000,
+          "out_amount": 610912,
+          "trade_fee": 200,
+          "admin_fee": 50,
+          "host_fee": 0
+        },
+        {
+          "in_amount": 152726,
+          "out_amount": 24874,
+          "trade_fee": 305,
+          "admin_fee": 76,
+          "host_fee": 0
+        }
+      ],
+      "error": null,
+      "bank_output_balances": [
+        458184,
+        9924874
+      ],
+      "sell_source_debits": [
+        76,
+        152652
+      ]
+    },
+    {
+      "name": "damm-v1-slippage-rejection",
+      "logs": [],
+      "expected": [],
+      "error": {
+        "InstructionError": [
+          5,
+          {
+            "Custom": 6004
+          }
+        ]
+      },
+      "bank_output_balances": [
+        null,
+        null
+      ],
+      "rolled_back_logs": [
+        "Program data: UWzjvs3QCsSghgEAAAAAAGBSCQAAAAAAyAAAAAAAAAAyAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "sell_source_debits": []
+    }
+  ]
+}

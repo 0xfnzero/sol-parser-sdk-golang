@@ -321,36 +321,61 @@ func TestSimulationExplicitFee(t *testing.T) {
 	t.Fatal("fee evidence not found")
 }
 
-func TestSimulationALTRequiresLoadedAddresses(t *testing.T) {
-	raw, err := os.ReadFile("testdata/stonkfun_routes_0_7_7.json")
+func TestResolvedSimulationALT(t *testing.T) {
+	c := simulationCasesFile(t, "simulation_alt_20261008.json")[0]
+	wire, _ := base64.StdEncoding.DecodeString(c.Wire)
+	route, err := AnalyzeSimulationRoutes(wire, c.Response, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var corpus struct {
-		Cases []struct{ Transaction json.RawMessage }
+	actual, _ := json.Marshal(route)
+	var got, want any
+	json.Unmarshal(actual, &got)
+	json.Unmarshal(c.Expected, &want)
+	if !reflect.DeepEqual(got, want) || !route.Succeeded || len(route.Legs) != 2 {
+		t.Fatal("ALT route mismatch")
 	}
-	json.Unmarshal(raw, &corpus)
-	for _, c := range corpus.Cases {
-		var root map[string]any
-		json.Unmarshal(c.Transaction, &root)
-		if result, ok := root["result"].(map[string]any); ok {
-			root = result
-		}
-		encoded := root["transaction"].([]any)[0].(string)
-		wire, _ := base64.StdEncoding.DecodeString(encoded)
-		tx, _, err := DecodeWireTransaction(wire, 0, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(tx.Message.AddressTableLookups) == 0 {
-			continue
-		}
-		if _, err := AnalyzeSimulationRoutes(wire, simulationCases(t)[0].Response, nil); err == nil || !strings.Contains(err.Error(), "ALT") {
-			t.Fatal("ALT accepted without addresses")
-		}
-		return
+	for _, kind := range []string{"missing", "short_writable", "extra_writable", "short_readonly", "extra_readonly", "invalid_key"} {
+		t.Run(kind, func(t *testing.T) {
+			var root map[string]any
+			json.Unmarshal(c.Response, &root)
+			value := root["result"].(map[string]any)["value"].(map[string]any)
+			loaded := value["loadedAddresses"].(map[string]any)
+			if kind == "missing" {
+				delete(value, "loadedAddresses")
+			} else if kind == "invalid_key" {
+				loaded["writable"].([]any)[0] = "1"
+			} else {
+				parts := strings.Split(kind, "_")
+				items := loaded[parts[1]].([]any)
+				if parts[0] == "short" {
+					items = items[:len(items)-1]
+				} else {
+					items = append(items, items[0])
+				}
+				loaded[parts[1]] = items
+			}
+			raw, _ := json.Marshal(root)
+			if _, err := AnalyzeSimulationRoutes(wire, raw, nil); err == nil {
+				t.Fatal("accepted invalid ALT resolution")
+			}
+		})
 	}
-	t.Fatal("ALT evidence missing")
+	c = simulationCases(t)[0]
+	wire, _ = base64.StdEncoding.DecodeString(c.Wire)
+	var root map[string]any
+	json.Unmarshal(c.Response, &root)
+	value := root["result"].(map[string]any)["value"].(map[string]any)
+	value["loadedAddresses"] = map[string]any{"writable": []any{}, "readonly": []any{}}
+	raw, _ := json.Marshal(root)
+	if _, err := AnalyzeSimulationRoutes(wire, raw, nil); err != nil {
+		t.Fatal(err)
+	}
+	value["loadedAddresses"].(map[string]any)["readonly"] = []any{"So11111111111111111111111111111111111111112"}
+	raw, _ = json.Marshal(root)
+	if _, err := AnalyzeSimulationRoutes(wire, raw, nil); err == nil {
+		t.Fatal("extra loaded address accepted on static wire")
+	}
 }
 
 func TestDammSwap2ModeIntent(t *testing.T) {

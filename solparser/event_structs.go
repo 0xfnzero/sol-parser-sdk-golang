@@ -1390,12 +1390,15 @@ func (e *MeteoraDlmmClaimFeeEvent) GetMetadata() EventMetadata { return e.Metada
 
 // MeteoraPoolsSwapEvent Meteora Pools 交换事件
 type MeteoraPoolsSwapEvent struct {
-	Metadata  EventMetadata `json:"metadata"`
-	InAmount  uint64        `json:"in_amount"`
-	OutAmount uint64        `json:"out_amount"`
-	TradeFee  uint64        `json:"trade_fee"`
-	AdminFee  uint64        `json:"admin_fee"`
-	HostFee   uint64        `json:"host_fee"`
+	// Instruction intent, separate from executed InAmount/OutAmount.
+	AmountIn         uint64        `json:"amount_in,omitempty"`
+	MinimumOutAmount uint64        `json:"minimum_out_amount,omitempty"`
+	Metadata         EventMetadata `json:"metadata"`
+	InAmount         uint64        `json:"in_amount"`
+	OutAmount        uint64        `json:"out_amount"`
+	TradeFee         uint64        `json:"trade_fee"`
+	AdminFee         uint64        `json:"admin_fee"`
+	HostFee          uint64        `json:"host_fee"`
 }
 
 func (e *MeteoraPoolsSwapEvent) EventType() EventType       { return EventTypeMeteoraPoolsSwap }

@@ -1,0 +1,857 @@
+{
+  "cases": [
+    {
+      "name": "dbc-exact-in-buy",
+      "slot": 454487027,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        2882339809,
+        9900000
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAAOEDzasAAAAAxzVp4nc+eAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAACFDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447048
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA4QPNqwAAAADHNWnidz54AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAAHi6IAAAAAAAnpcfLCQAAAAhQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 100000,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 100000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8924702,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447048
+          }
+        }
+      ],
+      "dedup_count": 1
+    },
+    {
+      "name": "dbc-exact-out-buy",
+      "slot": 454487059,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        720584952,
+        9975000
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKhhAAAAAAAA+EDzKgAAAADGXAAAAAAAAPhA8yoAAAAASv2WyVA+eAEAAAAAAAAAAOgDAAAAAAAA+gAAAAAAAAAAAAAAAAAAAKhhAAAAAAAAEVDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 25000,
+            "minimum_amount_out": 720584952,
+            "actual_input_amount": 23750,
+            "output_amount": 720584952,
+            "next_sqrt_price": 105903107943628106,
+            "trading_fee": 1000,
+            "protocol_fee": 250,
+            "referral_fee": 0,
+            "current_timestamp": 1791447057
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAPhA8yoAAAAAoIYBAAAAAAACqGEAAAAAAADGXAAAAAAAAAAAAAAAAAAA+EDzKgAAAABK/ZbJUD54AQAAAAAAAAAA6AMAAAAAAAD6AAAAAAAAAAAAAAAAAAAAzBeHAAAAAAAnpcfLCQAAABFQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 2,
+            "amount_0": 720584952,
+            "amount_1": 100000,
+            "maximum_amount_in": 100000,
+            "included_fee_input_amount": 25000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8853452,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 25000,
+            "minimum_amount_out": 0,
+            "actual_input_amount": 23750,
+            "output_amount": 720584952,
+            "next_sqrt_price": 105903107943628106,
+            "trading_fee": 1000,
+            "protocol_fee": 250,
+            "referral_fee": 0,
+            "current_timestamp": 1791447057
+          }
+        }
+      ],
+      "dedup_count": 1
+    },
+    {
+      "name": "dbc-exact-out-sell",
+      "slot": 454487043,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        2850391414,
+        9901000
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAAOEDzasAAAAAxzVp4nc+eAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAADFDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447052
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA4QPNqwAAAADHNWnidz54AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAAHi6IAAAAAAAnpcfLCQAAAAxQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 100000,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 100000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8924702,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447052
+          }
+        },
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAGt+5wEAAAAA6AMAAAAAAABrfucBAAAAAOgDAAAAAAAALsB9Tnc+eAEAAAAAAAAAACsAAAAAAAAACgAAAAAAAAAAAAAAAAAAAGt+5wEAAAAADFDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 31948395,
+            "minimum_amount_out": 1000,
+            "actual_input_amount": 31948395,
+            "output_amount": 1000,
+            "next_sqrt_price": 105903273382101038,
+            "trading_fee": 43,
+            "protocol_fee": 10,
+            "referral_fee": 0,
+            "current_timestamp": 1791447052
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAOgDAAAAAAAA8IHmVQAAAAACa37nAQAAAABrfucBAAAAAAAAAAAAAAAA6AMAAAAAAAAuwH1Odz54AQAAAAAAAAAAKwAAAAAAAAAKAAAAAAAAAAAAAAAAAAAAASqIAAAAAAAnpcfLCQAAAAxQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 2,
+            "amount_0": 1000,
+            "amount_1": 1441169904,
+            "maximum_amount_in": 1441169904,
+            "included_fee_input_amount": 31948395,
+            "amount_left": 0,
+            "quote_reserve_amount": 8923649,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 31948395,
+            "minimum_amount_out": 0,
+            "actual_input_amount": 31948395,
+            "output_amount": 1000,
+            "next_sqrt_price": 105903273382101038,
+            "trading_fee": 43,
+            "protocol_fee": 10,
+            "referral_fee": 0,
+            "current_timestamp": 1791447052
+          }
+        }
+      ],
+      "dedup_count": 2
+    },
+    {
+      "name": "dbc-invalid-mode-rejection",
+      "slot": 454487088,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        null,
+        null
+      ],
+      "error": {
+        "InstructionError": [
+          5,
+          {
+            "Custom": 6006
+          }
+        ]
+      },
+      "events": [],
+      "dedup_count": 0
+    },
+    {
+      "name": "dbc-legacy-buy",
+      "slot": 454487065,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        2882339809,
+        9900000
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAAOEDzasAAAAAxzVp4nc+eAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAAElDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447058
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA4QPNqwAAAADHNWnidz54AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAAHi6IAAAAAAAnpcfLCQAAABJQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 100000,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 100000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8924702,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447058
+          }
+        }
+      ],
+      "dedup_count": 1
+    },
+    {
+      "name": "dbc-legacy-sell",
+      "slot": 454487048,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        2161754857,
+        9922562
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAAOEDzasAAAAAxzVp4nc+eAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAADlDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447054
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA4QPNqwAAAADHNWnidz54AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAAHi6IAAAAAAAnpcfLCQAAAA5Qx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 100000,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 100000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8924702,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447054
+          }
+        },
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAPhA8yoAAAAAAQAAAAAAAAD4QPMqAAAAACJYAAAAAAAAATwi2mo+eAEAAAAAAAAAALcDAAAAAAAA7QAAAAAAAAAAAAAAAAAAAPhA8yoAAAAADlDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 720584952,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 720584952,
+            "output_amount": 22562,
+            "next_sqrt_price": 105903219890338817,
+            "trading_fee": 951,
+            "protocol_fee": 237,
+            "referral_fee": 0,
+            "current_timestamp": 1791447054
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAPhA8yoAAAAAAQAAAAAAAAAA+EDzKgAAAAD4QPMqAAAAAAAAAAAAAAAAIlgAAAAAAAABPCLaaj54AQAAAAAAAAAAtwMAAAAAAADtAAAAAAAAAAAAAAAAAAAAWNGHAAAAAAAnpcfLCQAAAA5Qx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 720584952,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 720584952,
+            "amount_left": 0,
+            "quote_reserve_amount": 8900952,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 720584952,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 720584952,
+            "output_amount": 22562,
+            "next_sqrt_price": 105903219890338817,
+            "trading_fee": 951,
+            "protocol_fee": 237,
+            "referral_fee": 0,
+            "current_timestamp": 1791447054
+          }
+        }
+      ],
+      "dedup_count": 2
+    },
+    {
+      "name": "dbc-max-input-rejection",
+      "slot": 454487082,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        null,
+        null
+      ],
+      "error": {
+        "InstructionError": [
+          5,
+          {
+            "Custom": 6002
+          }
+        ]
+      },
+      "events": [],
+      "dedup_count": 0
+    },
+    {
+      "name": "dbc-partial-fill-buy",
+      "slot": 454487054,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        2882339809,
+        9900000
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAA4QPNqwAAAAAYcwEAAAAAAOEDzasAAAAAxzVp4nc+eAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAAD1DHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 2882339809,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447055
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAABoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA4QPNqwAAAADHNWnidz54AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAAHi6IAAAAAAAnpcfLCQAAAA9Qx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 1,
+            "amount_0": 100000,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 100000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8924702,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447055
+          }
+        }
+      ],
+      "dedup_count": 1
+    },
+    {
+      "name": "dbc-partial-fill-sell",
+      "slot": 454487038,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        2161754857,
+        9922562
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAAOEDzasAAAAAxzVp4nc+eAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAAC1DHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447051
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA4QPNqwAAAADHNWnidz54AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAAHi6IAAAAAAAnpcfLCQAAAAtQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 100000,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 100000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8924702,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447051
+          }
+        },
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAPhA8yoAAAAAIlgAAAAAAAD4QPMqAAAAACJYAAAAAAAAATwi2mo+eAEAAAAAAAAAALcDAAAAAAAA7QAAAAAAAAAAAAAAAAAAAPhA8yoAAAAAC1DHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 720584952,
+            "minimum_amount_out": 22562,
+            "actual_input_amount": 720584952,
+            "output_amount": 22562,
+            "next_sqrt_price": 105903219890338817,
+            "trading_fee": 951,
+            "protocol_fee": 237,
+            "referral_fee": 0,
+            "current_timestamp": 1791447051
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAPhA8yoAAAAAAQAAAAAAAAAB+EDzKgAAAAD4QPMqAAAAAAAAAAAAAAAAIlgAAAAAAAABPCLaaj54AQAAAAAAAAAAtwMAAAAAAADtAAAAAAAAAAAAAAAAAAAAWNGHAAAAAAAnpcfLCQAAAAtQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 1,
+            "amount_0": 720584952,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 720584952,
+            "amount_left": 0,
+            "quote_reserve_amount": 8900952,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 720584952,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 720584952,
+            "output_amount": 22562,
+            "next_sqrt_price": 105903219890338817,
+            "trading_fee": 951,
+            "protocol_fee": 237,
+            "referral_fee": 0,
+            "current_timestamp": 1791447051
+          }
+        }
+      ],
+      "dedup_count": 2
+    },
+    {
+      "name": "dbc-roundtrip",
+      "slot": 454487033,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        2161754857,
+        9922562
+      ],
+      "error": null,
+      "events": [
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAYcwEAAAAAAOEDzasAAAAAxzVp4nc+eAEAAAAAAAAAAKAPAAAAAAAA6AMAAAAAAAAAAAAAAAAAAKCGAQAAAAAAClDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447050
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIBAKCGAQAAAAAAAQAAAAAAAAAAoIYBAAAAAAAYcwEAAAAAAAAAAAAAAAAA4QPNqwAAAADHNWnidz54AQAAAAAAAAAAoA8AAAAAAADoAwAAAAAAAAAAAAAAAAAAHi6IAAAAAAAnpcfLCQAAAApQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 100000,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 100000,
+            "amount_left": 0,
+            "quote_reserve_amount": 8924702,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 1,
+            "has_referral": false,
+            "amount_in": 100000,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 95000,
+            "output_amount": 2882339809,
+            "next_sqrt_price": 105903275863782855,
+            "trading_fee": 4000,
+            "protocol_fee": 1000,
+            "referral_fee": 0,
+            "current_timestamp": 1791447050
+          }
+        },
+        {
+          "data": "5EWlLlHLmh0bPBXViqq7k2m3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAPhA8yoAAAAAAQAAAAAAAAD4QPMqAAAAACJYAAAAAAAAATwi2mo+eAEAAAAAAAAAALcDAAAAAAAA7QAAAAAAAAAAAAAAAAAAAPhA8yoAAAAAClDHagAAAAA=",
+          "expected": {
+            "event_version": 0,
+            "swap_mode": 0,
+            "amount_0": 0,
+            "amount_1": 0,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 0,
+            "amount_left": 0,
+            "quote_reserve_amount": 0,
+            "migration_threshold": 0,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 720584952,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 720584952,
+            "output_amount": 22562,
+            "next_sqrt_price": 105903219890338817,
+            "trading_fee": 951,
+            "protocol_fee": 237,
+            "referral_fee": 0,
+            "current_timestamp": 1791447050
+          }
+        },
+        {
+          "data": "5EWlLlHLmh29QjOoJlB1mWm3SQ7dJ86glENHR7HoqJOsyH2FFOmKWv+tNmrg6Bl/AxNmfA986XH2t/DWYye6jUvEuMvlnwUl1aq0qO/sXxIAAPhA8yoAAAAAAQAAAAAAAAAA+EDzKgAAAAD4QPMqAAAAAAAAAAAAAAAAIlgAAAAAAAABPCLaaj54AQAAAAAAAAAAtwMAAAAAAADtAAAAAAAAAAAAAAAAAAAAWNGHAAAAAAAnpcfLCQAAAApQx2oAAAAA",
+          "expected": {
+            "event_version": 2,
+            "swap_mode": 0,
+            "amount_0": 720584952,
+            "amount_1": 1,
+            "maximum_amount_in": 0,
+            "included_fee_input_amount": 720584952,
+            "amount_left": 0,
+            "quote_reserve_amount": 8900952,
+            "migration_threshold": 42073564455,
+            "has_transfer_hook": false,
+            "pool": "87fubRzjsnHW8MKp2sAJMWwBKyJuVfJpQe2knhGKZuUJ",
+            "config": "D1P6ADtf6sgWUcJBdesMsjv9YahaLJuHnN7HRDWYVus",
+            "trade_direction": 0,
+            "has_referral": false,
+            "amount_in": 720584952,
+            "minimum_amount_out": 1,
+            "actual_input_amount": 720584952,
+            "output_amount": 22562,
+            "next_sqrt_price": 105903219890338817,
+            "trading_fee": 951,
+            "protocol_fee": 237,
+            "referral_fee": 0,
+            "current_timestamp": 1791447050
+          }
+        }
+      ],
+      "dedup_count": 2
+    },
+    {
+      "name": "dbc-slippage-rejection",
+      "slot": 454487072,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        null,
+        null
+      ],
+      "error": {
+        "InstructionError": [
+          5,
+          {
+            "Custom": 6002
+          }
+        ]
+      },
+      "events": [],
+      "dedup_count": 0
+    },
+    {
+      "name": "dbc-zero-input-rejection",
+      "slot": 454487076,
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "bank_output_balances": [
+        null,
+        null
+      ],
+      "error": {
+        "InstructionError": [
+          5,
+          {
+            "Custom": 6005
+          }
+        ]
+      },
+      "events": [],
+      "dedup_count": 0
+    }
+  ],
+  "source": "Official program simulateTransaction, virtual funded wallet; event output checked against bank account credit."
+}

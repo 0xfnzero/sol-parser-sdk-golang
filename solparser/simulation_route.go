@@ -12,14 +12,11 @@ import (
 )
 
 // AnalyzeSimulationRoutes combines original wire with explicit simulation evidence.
-// It performs no RPC. ALT transactions require the compiled route API with loaded addresses.
+// It performs no RPC. V0 requires caller-resolved result.value.loadedAddresses.
 func AnalyzeSimulationRoutes(wire, response []byte, graduatedPools []string) (*TransactionRoute, error) {
 	tx, _, err := DecodeWireTransaction(wire, 0, true)
 	if err != nil {
 		return nil, err
-	}
-	if len(tx.Message.AddressTableLookups) != 0 {
-		return nil, fmt.Errorf("V0 ALT addresses unavailable; use compiled route input with loadedAddresses")
 	}
 	var root map[string]any
 	decoder := json.NewDecoder(bytes.NewReader(response))
@@ -37,7 +34,39 @@ func AnalyzeSimulationRoutes(wire, response []byte, graduatedPools []string) (*T
 	if root["error"] != nil || value == nil || !hasErr || !hasInner {
 		return nil, fmt.Errorf("simulation response missing execution metadata")
 	}
-	keys := tx.Message.AccountKeys
+	keys := append([]string{}, tx.Message.AccountKeys...)
+	loaded, supplied := value["loadedAddresses"]
+	if (!supplied || loaded == nil) && len(tx.Message.AddressTableLookups) != 0 {
+		return nil, fmt.Errorf("V0 ALT addresses unavailable; provide loadedAddresses")
+	}
+	if supplied && loaded != nil {
+		addresses, ok := loaded.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("invalid simulation loaded addresses")
+		}
+		for _, side := range []string{"writable", "readonly"} {
+			expected := 0
+			for _, lookup := range tx.Message.AddressTableLookups {
+				if side == "writable" {
+					expected += len(lookup.WritableIndexes)
+				} else {
+					expected += len(lookup.ReadonlyIndexes)
+				}
+			}
+			items, ok := addresses[side].([]any)
+			if !ok || len(items) != expected {
+				return nil, fmt.Errorf("simulation loaded address count does not match wire lookups")
+			}
+			for _, item := range items {
+				key, ok := item.(string)
+				bytes, err := base58.Decode(key)
+				if !ok || err != nil || len(bytes) != 32 {
+					return nil, fmt.Errorf("invalid simulation loaded public key")
+				}
+				keys = append(keys, key)
+			}
+		}
+	}
 	index := func(v any) (int, error) {
 		key, ok := v.(string)
 		if ok {

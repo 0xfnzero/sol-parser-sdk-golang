@@ -31,12 +31,12 @@ func ParseMeteoraPoolsInstruction(
 		return DexEvent{
 			Type: EventTypeMeteoraPoolsSwap,
 			Data: &MeteoraPoolsSwapEvent{
-				Metadata:  meta,
-				InAmount:  inAmount,
-				OutAmount: outAmount,
-				TradeFee:  0,
-				AdminFee:  0,
-				HostFee:   0,
+				Metadata:         meta,
+				AmountIn:         inAmount,
+				MinimumOutAmount: outAmount,
+				TradeFee:         0,
+				AdminFee:         0,
+				HostFee:          0,
 			},
 		}
 	case instrMeteoraPoolsAddLiquidity:
