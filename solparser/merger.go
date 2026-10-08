@@ -148,7 +148,9 @@ func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 		if !ok1 || !ok2 {
 			return false
 		}
-		if (b.IxName == "multi_hop_swap" || i.IxName == "multi_hop_swap") && b.Mint != "" && i.Mint != "" && b.Mint != i.Mint {
+		baseDirectionKnown := !isDefaultPubkeyString(b.Mint) || b.IxName != "" || b.SolAmount != 0 || b.TokenAmount != 0
+		innerDirectionKnown := !isDefaultPubkeyString(i.Mint) || i.IxName != "" || i.SolAmount != 0 || i.TokenAmount != 0
+		if (baseDirectionKnown && innerDirectionKnown && b.IsBuy != i.IsBuy) || pumpIdentityKeyConflicts(b.Mint, i.Mint) || pumpIdentityKeyConflicts(b.User, i.User) {
 			return false
 		}
 		mergePumpfunTrade(b, i)
@@ -195,7 +197,7 @@ func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 		if !ok1 || !ok2 {
 			return false
 		}
-		if b.Pool != "" && i.Pool != "" && b.Pool != i.Pool {
+		if pumpIdentityKeyConflicts(b.Pool, i.Pool) || pumpIdentityKeyConflicts(b.User, i.User) {
 			return false
 		}
 		supplementPumpSwapBuy(b, i)
@@ -209,7 +211,7 @@ func tryMergeDexEvents(base *DexEvent, inner DexEvent) bool {
 		if !ok1 || !ok2 {
 			return false
 		}
-		if b.Pool != "" && i.Pool != "" && b.Pool != i.Pool {
+		if pumpIdentityKeyConflicts(b.Pool, i.Pool) || pumpIdentityKeyConflicts(b.User, i.User) {
 			return false
 		}
 		supplementPumpSwapSell(b, i)
@@ -561,4 +563,8 @@ func mergePumpfunMigrate(base, inner *PumpFunMigrateEvent) {
 	base.BondingCurve = inner.BondingCurve
 	base.Timestamp = inner.Timestamp
 	base.Pool = inner.Pool
+}
+
+func pumpIdentityKeyConflicts(a, b string) bool {
+	return !isDefaultPubkeyString(a) && !isDefaultPubkeyString(b) && a != b
 }

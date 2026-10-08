@@ -82,6 +82,9 @@ func TestParseRpcTransactionMergesOuterAndInnerPumpfunInstructions(t *testing.T)
 		keys = append(keys, ReadPubkey(pumpfunTestPubkey(byte(i)), 0))
 	}
 
+	keys[2] = ReadPubkey(pumpfunTestPubkey(70), 0)
+	keys[6] = ReadPubkey(pumpfunTestPubkey(71), 0)
+
 	tx := &RpcTransactionResponse{
 		Slot:             7,
 		TransactionIndex: 42,

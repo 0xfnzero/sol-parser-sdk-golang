@@ -7,7 +7,7 @@ import (
 func TestMergeRpcInstructionEvents_OuterBeforeInner(t *testing.T) {
 	inner := mergeRpcInstructionEvents([]rpcIndexedEvent{
 		{OuterIdx: 0, InnerIdx: intPtr(0), Event: DexEvent{Type: EventTypePumpFunBuy, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "inner"}}},
-		{OuterIdx: 0, InnerIdx: nil, Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "outer", BondingCurve: "bc"}}},
+		{OuterIdx: 0, InnerIdx: nil, Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "inner", BondingCurve: "bc"}}},
 	})
 	if len(inner) != 1 {
 		t.Fatalf("expected 1 merged, got %d", len(inner))
@@ -20,7 +20,7 @@ func TestMergeRpcInstructionEvents_OuterBeforeInner(t *testing.T) {
 
 func TestMergeRpcInstructionEvents_ChainsMultipleInnerEvents(t *testing.T) {
 	merged := mergeRpcInstructionEvents([]rpcIndexedEvent{
-		{OuterIdx: 0, InnerIdx: nil, Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "outer"}}},
+		{OuterIdx: 0, InnerIdx: nil, Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "inner-value"}}},
 		{OuterIdx: 0, InnerIdx: intPtr(0), Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, Mint: "inner-value"}}},
 		{OuterIdx: 0, InnerIdx: intPtr(1), Event: DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: EventMetadata{}, BondingCurve: "inner-account"}}},
 	})
