@@ -149,6 +149,8 @@ const (
 	EventTypeMeteoraDammV2AddLiquidity                EventType = "MeteoraDammV2AddLiquidity"
 	EventTypeMeteoraDammV2RemoveLiquidity             EventType = "MeteoraDammV2RemoveLiquidity"
 	EventTypeMeteoraDammV2ClaimPositionFee            EventType = "MeteoraDammV2ClaimPositionFee"
+	EventTypeMeteoraDammV2ClaimReward                 EventType = "MeteoraDammV2ClaimReward"
+	EventTypeMeteoraDlmmClaimReward                   EventType = "MeteoraDlmmClaimReward"
 	EventTypeMeteoraDammV2CreatePosition              EventType = "MeteoraDammV2CreatePosition"
 	EventTypeMeteoraDammV2ClosePosition               EventType = "MeteoraDammV2ClosePosition"
 	EventTypeMeteoraDammV2InitializePool              EventType = "MeteoraDammV2InitializePool"
@@ -280,6 +282,7 @@ var (
 		EventTypeMeteoraDammV2AddLiquidity,
 		EventTypeMeteoraDammV2CreatePosition,
 		EventTypeMeteoraDammV2ClaimPositionFee,
+		EventTypeMeteoraDammV2ClaimReward,
 		EventTypeMeteoraDammV2ClosePosition,
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2RemoveLiquidity,
@@ -310,6 +313,7 @@ var (
 		EventTypeMeteoraDlmmCreatePosition,
 		EventTypeMeteoraDlmmClosePosition,
 		EventTypeMeteoraDlmmClaimFee,
+		EventTypeMeteoraDlmmClaimReward,
 	}
 	raydiumClmmFilterTypes = []EventType{
 		EventTypeRaydiumClmmSwap,
@@ -931,6 +935,8 @@ func AllEventTypes() []EventType {
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2CreatePosition,
 		EventTypeMeteoraDammV2ClaimPositionFee,
+		EventTypeMeteoraDammV2ClaimReward,
+		EventTypeMeteoraDlmmClaimReward,
 		EventTypeMeteoraDammV2ClosePosition,
 		EventTypeMeteoraDammV2UpdateDelegatePermission,
 		EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,

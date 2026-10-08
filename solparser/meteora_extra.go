@@ -31,6 +31,8 @@ func parseMeteoraDammFromDiscriminator(d uint64, data []byte, meta EventMetadata
 		return parseDammSwap2(data, meta)
 	case discDammClaimPositionFee:
 		return parseDammClaimPositionFee(data, meta)
+	case discDammClaimReward:
+		return parseDammClaimReward(data, meta)
 	case discDammCreatePosition:
 		return parseDammCreatePosition(data, meta)
 	case discDammClosePosition:
@@ -755,4 +757,26 @@ func parseDammClaimPositionFee(data []byte, meta EventMetadata) DexEvent {
 	owner, _ := readPubkey(data, 64)
 	return DexEvent{Type: EventTypeMeteoraDammV2ClaimPositionFee, Data: &MeteoraDammV2ClaimPositionFeeEvent{
 		Metadata: meta, Pool: pool, Position: position, Owner: owner, FeeAClaimed: binary.LittleEndian.Uint64(data[96:104]), FeeBClaimed: binary.LittleEndian.Uint64(data[104:112])}}
+}
+
+func parseDammClaimReward(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 137 {
+		return DexEvent{}
+	}
+	pool, _ := readPubkey(data, 0)
+	position, _ := readPubkey(data, 32)
+	owner, _ := readPubkey(data, 64)
+	mint, _ := readPubkey(data, 96)
+	return DexEvent{Type: EventTypeMeteoraDammV2ClaimReward, Data: &MeteoraDammV2ClaimRewardEvent{
+		Metadata: meta, Pool: pool, Position: position, Owner: owner, MintReward: mint, RewardIndex: data[128], TotalReward: binary.LittleEndian.Uint64(data[129:137])}}
+}
+
+func parseDlmmClaimReward(data []byte, meta EventMetadata) DexEvent {
+	if len(data) < 116 {
+		return DexEvent{}
+	}
+	pool, _ := readPubkey(data, 0)
+	position, _ := readPubkey(data, 32)
+	owner, _ := readPubkey(data, 64)
+	return DexEvent{Type: EventTypeMeteoraDlmmClaimReward, Data: &MeteoraDlmmClaimRewardEvent{Metadata: meta, Pool: pool, Position: position, Owner: owner, RewardIndex: binary.LittleEndian.Uint64(data[96:104]), TotalReward: binary.LittleEndian.Uint64(data[104:112]), ActiveBinId: int32(binary.LittleEndian.Uint32(data[112:116]))}}
 }

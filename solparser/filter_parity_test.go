@@ -498,6 +498,8 @@ func TestAllEventTypesMatchesRustInventory(t *testing.T) {
 		EventTypeMeteoraDammV2InitializePool,
 		EventTypeMeteoraDammV2CreatePosition,
 		EventTypeMeteoraDammV2ClaimPositionFee,
+		EventTypeMeteoraDammV2ClaimReward,
+		EventTypeMeteoraDlmmClaimReward,
 		EventTypeMeteoraDammV2ClosePosition,
 		EventTypeMeteoraDammV2UpdateDelegatePermission,
 		EventTypeMeteoraDammV2WithdrawDeadLiquidityReward,

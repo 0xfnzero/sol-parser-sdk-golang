@@ -2314,3 +2314,35 @@ func (e *MeteoraDammV2ClaimPositionFeeEvent) EventType() EventType {
 	return EventTypeMeteoraDammV2ClaimPositionFee
 }
 func (e *MeteoraDammV2ClaimPositionFeeEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// MeteoraDammV2ClaimRewardEvent contains gross claims before transfer fees.
+type MeteoraDammV2ClaimRewardEvent struct {
+	Metadata    EventMetadata `json:"metadata"`
+	Pool        string        `json:"pool"`
+	Position    string        `json:"position"`
+	Owner       string        `json:"owner"`
+	MintReward  string        `json:"mint_reward"`
+	RewardIndex uint8         `json:"reward_index"`
+	TotalReward uint64        `json:"total_reward"`
+}
+
+func (e *MeteoraDammV2ClaimRewardEvent) EventType() EventType {
+	return EventTypeMeteoraDammV2ClaimReward
+}
+func (e *MeteoraDammV2ClaimRewardEvent) GetMetadata() EventMetadata { return e.Metadata }
+
+// MeteoraDlmmClaimRewardEvent contains gross claims before transfer fees.
+type MeteoraDlmmClaimRewardEvent struct {
+	Metadata    EventMetadata `json:"metadata"`
+	Pool        string        `json:"pool"`
+	Position    string        `json:"position"`
+	Owner       string        `json:"owner"`
+	RewardIndex uint64        `json:"reward_index"`
+	ActiveBinId int32         `json:"active_bin_id"`
+	TotalReward uint64        `json:"total_reward"`
+}
+
+func (e *MeteoraDlmmClaimRewardEvent) EventType() EventType {
+	return EventTypeMeteoraDlmmClaimReward
+}
+func (e *MeteoraDlmmClaimRewardEvent) GetMetadata() EventMetadata { return e.Metadata }

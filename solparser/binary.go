@@ -249,6 +249,7 @@ var (
 	// 别名（用于 meteora_extra.go）
 	discDammCreatePosition   = discDammCreate
 	discDammClaimPositionFee = binary.LittleEndian.Uint64([]byte{198, 182, 183, 52, 97, 12, 49, 56})
+	discDammClaimReward      = binary.LittleEndian.Uint64([]byte{218, 86, 147, 200, 235, 188, 215, 231})
 	discDammClosePosition    = discDammClose
 	discDammAddLiquidity     = discDammAdd
 	discDammRemoveLiq        = discDammRem
@@ -300,3 +301,5 @@ var (
 	instrDlmmSwapWithPriceImpact   = disc8(56, 173, 230, 208, 173, 228, 156, 205)
 	instrDlmmSwapWithPriceImpact2  = disc8(74, 98, 192, 214, 177, 51, 75, 51)
 )
+
+var discDlmmClaimReward2 = binary.LittleEndian.Uint64([]byte{27, 143, 244, 33, 80, 43, 110, 146})

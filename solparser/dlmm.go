@@ -37,6 +37,8 @@ func parseDlmmEventData(d uint64, data []byte, meta EventMetadata) DexEvent {
 		return parseDlmmLegacyClosePositionData(data, meta)
 	case dlmmClaimFee, dlmmLegacyClaimFee:
 		return parseDlmmClaimFeeData(data, meta)
+	case discDlmmClaimReward2:
+		return parseDlmmClaimReward(data, meta)
 	case dlmmClaimFee2:
 		return parseDlmmClaimFee2Data(data, meta)
 	default:

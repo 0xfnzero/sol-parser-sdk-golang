@@ -142,6 +142,8 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDammV2CreatePosition, true
 	case discDammClaimPositionFee:
 		return EventTypeMeteoraDammV2ClaimPositionFee, true
+	case discDammClaimReward:
+		return EventTypeMeteoraDammV2ClaimReward, true
 	case discDammClose:
 		return EventTypeMeteoraDammV2ClosePosition, true
 	case discDammUpdateDelegatePermission:
@@ -168,6 +170,8 @@ func logDiscriminatorEventType(disc uint64) (EventType, bool) {
 		return EventTypeMeteoraDlmmCreatePosition, true
 	case dlmmClosePos, dlmmLegacyClosePos:
 		return EventTypeMeteoraDlmmClosePosition, true
+	case discDlmmClaimReward2:
+		return EventTypeMeteoraDlmmClaimReward, true
 	case dlmmClaimFee, dlmmClaimFee2, dlmmLegacyClaimFee:
 		return EventTypeMeteoraDlmmClaimFee, true
 	default:
@@ -348,6 +352,8 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 			return EventTypeMeteoraDammV2CreatePosition, true
 		case discDammClaimPositionFee:
 			return EventTypeMeteoraDammV2ClaimPositionFee, true
+		case discDammClaimReward:
+			return EventTypeMeteoraDammV2ClaimReward, true
 		case discDammClose:
 			return EventTypeMeteoraDammV2ClosePosition, true
 		case discDammUpdateDelegatePermission:
@@ -388,6 +394,8 @@ func programScopedLogDiscriminatorEventType(programID string, disc uint64) (Even
 			return EventTypeMeteoraDlmmCreatePosition, true
 		case dlmmClosePos, dlmmLegacyClosePos:
 			return EventTypeMeteoraDlmmClosePosition, true
+		case discDlmmClaimReward2:
+			return EventTypeMeteoraDlmmClaimReward, true
 		case dlmmClaimFee, dlmmClaimFee2, dlmmLegacyClaimFee:
 			return EventTypeMeteoraDlmmClaimFee, true
 		default:
@@ -928,6 +936,7 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 	// Meteora DAMM v2
 	case discDammSwap, discDammSwap2, discDammAdd, discDammRem, discDammLiquidityChange,
 		discDammInit, discDammCreate, discDammClose, discDammClaimPositionFee,
+		discDammInit, discDammCreate, discDammClose, discDammClaimReward,
 		discDammUpdateDelegatePermission, discDammWithdrawDeadLiquidityReward,
 		discDammCreateConfig, discDammCreateDynamicConfig:
 		return applyActualEventTypeFilter(ParseMeteoraDammLog(log, signature, slot, txIndex, blockTimeUs, grpcRecvUs), eventFilter)
