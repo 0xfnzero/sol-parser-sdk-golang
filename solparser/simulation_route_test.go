@@ -40,6 +40,7 @@ func simulationCasesFile(t *testing.T, file string) []simulationCase {
 func TestSimulationMainnetEvidence(t *testing.T) {
 	cases := append(simulationCases(t), simulationCasesFile(t, "simulation_routes_live_20261002.json")...)
 	cases = append(cases, simulationCasesFile(t, "account_lifecycle_20261008.json")...)
+	cases = append(cases, simulationCasesFile(t, "native_settlement_20261008.json")...)
 	cases = append(cases, simulationCasesFile(t, "simulation_ata_20261002.json")...)
 	cases = append(cases, simulationCasesFile(t, "pumpswap_mainnet_simulations_20261004.json")...)
 	cases = append(cases, simulationCasesFile(t, "damm_v2_mainnet_simulations_20261004.json")...)
