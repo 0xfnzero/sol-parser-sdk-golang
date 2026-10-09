@@ -3,17 +3,44 @@ package solparser
 import (
 	"encoding/base64"
 	"encoding/binary"
+	"strconv"
 	"strings"
 )
 
-// 与 Rust `optimized_matcher::detect_pumpfun_create` 一致：日志中出现 PumpFun Create 的 Program data 前缀。
-const pumpfunCreateLogPrefix = "Program data: G3KpTd7rY3Y"
+// Pump Create's base64 discriminator ends mid-byte; payload bits vary the next character.
+const pumpfunCreateLogPrefix = "Program data: G3KpTd7rY3"
 
-// DetectPumpfunCreateFromLogs 若任一日志行包含 PumpFun Create 的 base64 前缀则返回 true（用于 inner trade 的 is_created_buy，与 Rust `parse_instructions_enhanced` 一致）。
+// DetectPumpfunCreateFromLogs classifies the whole transaction from a decoded,
+// program-scoped Create log, independently of the caller's event output filter.
 func DetectPumpfunCreateFromLogs(logs []string) bool {
+	stack := make([]string, 0, 8)
 	for _, log := range logs {
-		if strings.Contains(log, pumpfunCreateLogPrefix) {
-			return true
+		if programID, depth, ok := ParseInvokeInfo(log); ok &&
+			log == "Program "+programID+" invoke ["+strconv.Itoa(depth)+"]" {
+			if depth-1 < len(stack) {
+				stack = stack[:depth-1]
+			}
+			stack = append(stack, programID)
+			continue
+		}
+		if len(stack) > 0 && stack[len(stack)-1] == PUMPFUN_PROGRAM_ID && strings.HasPrefix(log, pumpfunCreateLogPrefix) {
+			encoded := strings.TrimPrefix(log, "Program data: ")
+			decoded, err := base64.StdEncoding.DecodeString(encoded)
+			if err == nil && base64.StdEncoding.EncodeToString(decoded) == encoded {
+				event := ParseLogOptimizedWithProgramID(log, "", 0, 0, nil, 0, nil, false, "", PUMPFUN_PROGRAM_ID)
+				if event.Type == EventTypePumpFunCreate || event.Type == EventTypePumpFunCreateV2 {
+					return true
+				}
+			}
+		}
+		if completed, ok := ParseProgramCompleteInfo(log); ok &&
+			(log == "Program "+completed+" success" || strings.HasPrefix(log, "Program "+completed+" failed: ")) {
+			for index := len(stack) - 1; index >= 0; index-- {
+				if stack[index] == completed {
+					stack = stack[:index]
+					break
+				}
+			}
 		}
 	}
 	return false
@@ -657,13 +684,42 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 			return parseAmmRayLogSwap(data, meta)
 		}
 	}
-	buf := decodeProgramDataLine(log)
-	if len(buf) < 8 {
-		return DexEvent{}
+	var buf []byte
+	var disc uint64
+	prefiltered := false
+	if eventFilter != nil {
+		start := strings.Index(log, programDataPrefix)
+		if start < 0 {
+			return DexEvent{}
+		}
+		start += len(programDataPrefix)
+		if len(log)-start >= 12 {
+			prefix := log[start : start+12]
+			canonical := true
+			for i := 0; i < 12; i++ {
+				c := prefix[i]
+				if !(c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '+' || c == '/') {
+					canonical = false
+					break
+				}
+			}
+			if canonical {
+				var decoded [9]byte
+				_, err := base64.StdEncoding.Decode(decoded[:], []byte(prefix))
+				if err == nil {
+					disc = binary.LittleEndian.Uint64(decoded[:8])
+					prefiltered = true
+				}
+			}
+		}
 	}
-	disc := binary.LittleEndian.Uint64(buf[:8])
-	data := buf[8:]
-	meta := makeMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs, recentB58)
+	if !prefiltered {
+		buf = decodeProgramDataLine(log)
+		if len(buf) < 8 {
+			return DexEvent{}
+		}
+		disc = binary.LittleEndian.Uint64(buf[:8])
+	}
 	if eventFilter != nil {
 		unscopedShared := programID == "" && (disc == discPumpTrade || disc == discCpmmSwapIn)
 		eventType, ok := logDiscriminatorEventType(disc)
@@ -689,6 +745,14 @@ func ParseLogOptimizedWithProgramID(log, signature string, slot, txIndex uint64,
 		}
 	}
 
+	if buf == nil {
+		buf = decodeProgramDataLine(log)
+		if len(buf) < 8 {
+			return DexEvent{}
+		}
+	}
+	data := buf[8:]
+	meta := makeMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs, recentB58)
 	if _, ok := pumpUpgradeEventType(disc, programID); ok {
 		return applyActualEventTypeFilter(parsePumpUpgradeEvent(disc, data, meta, programID), eventFilter)
 	}

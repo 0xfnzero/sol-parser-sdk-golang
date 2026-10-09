@@ -2,6 +2,7 @@ package solparser
 
 import (
 	"context"
+	"log"
 	"sort"
 	"sync"
 	"time"
@@ -19,14 +20,18 @@ type dexOrderDispatcher struct {
 	timeout       time.Duration
 	microBatchWin time.Duration
 
-	mu          sync.Mutex
-	slots       map[uint64][]dexEventBatch
-	watermarks  map[uint64]uint64
-	microBatch  []dexEventBatch
-	microStart  time.Time
-	lastFlush   time.Time
-	currentSlot uint64
-	seq         uint64
+	mu                      sync.Mutex
+	slots                   map[uint64][]dexEventBatch
+	watermarks              map[uint64]uint64
+	streamingPending        map[uint64]struct{}
+	microBatch              []dexEventBatch
+	microStart              time.Time
+	lastFlush               time.Time
+	currentSlot             uint64
+	seq                     uint64
+	orderedWatermark        dexEventBatch
+	hasOrderedWatermark     bool
+	orderedLateTransactions uint64
 
 	stopOnce sync.Once
 	stopCh   chan struct{}
@@ -42,13 +47,14 @@ func newDexOrderDispatcher(config ClientConfig) *dexOrderDispatcher {
 		microBatchUs = 100
 	}
 	return &dexOrderDispatcher{
-		mode:          config.OrderMode,
-		timeout:       time.Duration(timeoutMs) * time.Millisecond,
-		microBatchWin: time.Duration(microBatchUs) * time.Microsecond,
-		slots:         make(map[uint64][]dexEventBatch),
-		watermarks:    make(map[uint64]uint64),
-		lastFlush:     time.Now(),
-		stopCh:        make(chan struct{}),
+		mode:             config.OrderMode,
+		timeout:          time.Duration(timeoutMs) * time.Millisecond,
+		microBatchWin:    time.Duration(microBatchUs) * time.Microsecond,
+		slots:            make(map[uint64][]dexEventBatch),
+		watermarks:       make(map[uint64]uint64),
+		streamingPending: make(map[uint64]struct{}),
+		lastFlush:        time.Now(),
+		stopCh:           make(chan struct{}),
 	}
 }
 
@@ -138,7 +144,20 @@ func (d *dexOrderDispatcher) flushAll(emit func(DexEvent)) {
 	d.flushMicroBatchLocked(emit)
 }
 
+// Ordered closes older slots on a newer slot. Timeout flush retains an emitted
+// watermark; higher same-slot indexes remain valid. Late/replayed transactions
+// are dropped with a continuity warning; upstream completeness is not guaranteed.
 func (d *dexOrderDispatcher) pushOrderedLocked(batch dexEventBatch, emit func(DexEvent)) {
+	last := d.orderedWatermark
+	if batch.slot < d.currentSlot || (d.hasOrderedWatermark && (batch.slot < last.slot ||
+		(batch.slot == last.slot && batch.txIndex <= last.txIndex))) {
+		d.orderedLateTransactions++
+		dropped := d.orderedLateTransactions
+		if dropped <= 10 || dropped&(dropped-1) == 0 {
+			log.Printf("Ordered continuity break: dropped late transaction (%d,%d); total=%d", batch.slot, batch.txIndex, dropped)
+		}
+		return
+	}
 	if batch.slot > d.currentSlot && d.currentSlot > 0 {
 		d.flushBeforeLocked(batch.slot, emit)
 	}
@@ -149,7 +168,10 @@ func (d *dexOrderDispatcher) pushOrderedLocked(batch dexEventBatch, emit func(De
 }
 
 func (d *dexOrderDispatcher) pushStreamingLocked(batch dexEventBatch, emit func(DexEvent)) {
-	if batch.slot > d.currentSlot && d.currentSlot > 0 {
+	if batch.slot < d.currentSlot || batch.txIndex == ^uint64(0) {
+		return
+	}
+	if batch.slot > d.currentSlot {
 		d.flushBeforeLocked(batch.slot, emit)
 		for slot := range d.watermarks {
 			if slot < batch.slot {
@@ -159,6 +181,7 @@ func (d *dexOrderDispatcher) pushStreamingLocked(batch dexEventBatch, emit func(
 	}
 	if batch.slot > d.currentSlot {
 		d.currentSlot = batch.slot
+		clear(d.streamingPending)
 	}
 
 	expected := d.watermarks[batch.slot]
@@ -168,29 +191,28 @@ func (d *dexOrderDispatcher) pushStreamingLocked(batch dexEventBatch, emit func(
 		watermark := expected + 1
 		buffered := d.slots[batch.slot]
 		sortBatches(buffered)
-		for {
-			pos := -1
-			for i := range buffered {
-				if buffered[i].txIndex == watermark {
-					pos = i
-					break
-				}
-			}
-			if pos < 0 {
-				break
-			}
-			emitBatch(buffered[pos], emit)
-			buffered = append(buffered[:pos], buffered[pos+1:]...)
+		released := 0
+		for released < len(buffered) && buffered[released].txIndex == watermark {
+			emitBatch(buffered[released], emit)
+			delete(d.streamingPending, watermark)
+			released++
 			watermark++
 		}
-		if len(buffered) == 0 {
+		if released == len(buffered) {
 			delete(d.slots, batch.slot)
 		} else {
-			d.slots[batch.slot] = buffered
+			// Compact once and clear released events rather than retaining them.
+			remaining := copy(buffered, buffered[released:])
+			clear(buffered[remaining:])
+			d.slots[batch.slot] = buffered[:remaining]
 		}
 		d.watermarks[batch.slot] = watermark
 		d.lastFlush = time.Now()
 	case batch.txIndex > expected:
+		if _, duplicate := d.streamingPending[batch.txIndex]; duplicate {
+			return
+		}
+		d.streamingPending[batch.txIndex] = struct{}{}
 		d.slots[batch.slot] = append(d.slots[batch.slot], batch)
 	}
 }
@@ -217,6 +239,10 @@ func (d *dexOrderDispatcher) flushBeforeLocked(slot uint64, emit func(DexEvent))
 		batches := d.slots[s]
 		sortBatches(batches)
 		for _, batch := range batches {
+			if d.mode == OrderModeOrdered {
+				d.orderedWatermark = dexEventBatch{slot: batch.slot, txIndex: batch.txIndex}
+				d.hasOrderedWatermark = true
+			}
 			emitBatch(batch, emit)
 		}
 		delete(d.slots, s)
@@ -235,11 +261,30 @@ func (d *dexOrderDispatcher) flushAllSlotsLocked(emit func(DexEvent)) {
 		batches := d.slots[s]
 		sortBatches(batches)
 		for _, batch := range batches {
+			if d.mode == OrderModeOrdered {
+				d.orderedWatermark = dexEventBatch{slot: batch.slot, txIndex: batch.txIndex}
+				d.hasOrderedWatermark = true
+			}
 			emitBatch(batch, emit)
 		}
 		delete(d.slots, s)
-		delete(d.watermarks, s)
+		if d.mode == OrderModeStreamingOrdered && len(batches) > 0 {
+			next := batches[len(batches)-1].txIndex + 1
+			if next > d.watermarks[s] {
+				d.watermarks[s] = next
+			}
+		} else {
+			delete(d.watermarks, s)
+		}
 	}
+	if d.mode == OrderModeStreamingOrdered {
+		for slot := range d.watermarks {
+			if slot != d.currentSlot {
+				delete(d.watermarks, slot)
+			}
+		}
+	}
+	clear(d.streamingPending)
 	d.lastFlush = time.Now()
 }
 

@@ -200,14 +200,11 @@ func DecodeWireTransaction(data []byte, offset int, requireComplete bool) (*Nati
 	if r.err != nil {
 		return nil, 0, r.err
 	}
-	if int(h[0]) > len(m.AccountKeys) || h[1] > h[0] || int(h[2]) > len(m.AccountKeys)-int(h[0]) {
+	if int(h[0]) > len(m.AccountKeys) || h[1] >= h[0] || int(h[2]) > len(m.AccountKeys)-int(h[0]) {
 		return nil, 0, errors.New("invalid wire header")
 	}
 
 	if tx.Version == 1 {
-		if h[1] >= h[0] {
-			return nil, 0, errors.New("V1 requires a writable fee payer")
-		}
 		unique := map[string]bool{}
 		for _, key := range m.AccountKeys {
 			if unique[key] {
@@ -215,26 +212,19 @@ func DecodeWireTransaction(data []byte, offset int, requireComplete bool) (*Nati
 			}
 			unique[key] = true
 		}
-		for _, ix := range m.Instructions {
-			if ix.ProgramIDIndex == 0 || ix.ProgramIDIndex >= len(m.AccountKeys) {
-				return nil, 0, errors.New("invalid V1 program index")
-			}
-			for _, i := range ix.Accounts {
-				if i >= len(m.AccountKeys) {
-					return nil, 0, errors.New("invalid V1 account index")
-				}
-			}
-		}
 	}
 	accountCount := len(m.AccountKeys)
 	for _, l := range m.AddressTableLookups {
+		if len(l.WritableIndexes) == 0 && len(l.ReadonlyIndexes) == 0 {
+			return nil, 0, errors.New("empty address table lookup")
+		}
 		accountCount += len(l.WritableIndexes) + len(l.ReadonlyIndexes)
 	}
 	if accountCount > 256 {
 		return nil, 0, errors.New("too many resolved account keys")
 	}
 	for _, ix := range m.Instructions {
-		if ix.ProgramIDIndex >= len(m.AccountKeys) {
+		if ix.ProgramIDIndex == 0 || ix.ProgramIDIndex >= len(m.AccountKeys) {
 			return nil, 0, errors.New("invalid program index")
 		}
 		for _, i := range ix.Accounts {

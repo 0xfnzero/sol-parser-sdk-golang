@@ -42,7 +42,7 @@ func clmmOpenPositionInstruction(disc uint64, lower, upper int32, liquidity [16]
 }
 
 func clmmCreateCustomizablePoolInstruction(sqrtPriceX64 [16]byte) []byte {
-	data := make([]byte, 8+16)
+	data := make([]byte, 8+18)
 	binary.LittleEndian.PutUint64(data[:8], instrClmmCreateCustomizablePool)
 	copy(data[8:24], sqrtPriceX64[:])
 	return data
@@ -169,7 +169,7 @@ func TestParseRaydiumClmmCreateCustomizablePoolInstruction(t *testing.T) {
 	sqrtPriceX64 := u128ForTest(80, 999)
 	ev := ParseRaydiumClmmInstruction(
 		clmmCreateCustomizablePoolInstruction(sqrtPriceX64),
-		raydiumClmmTestAccounts(7),
+		raydiumClmmTestAccounts(13),
 		"sig",
 		1,
 		0,
@@ -358,5 +358,35 @@ func TestNonPumpAccountEventNamesDoNotEnableInstructionPrefilter(t *testing.T) {
 		EventTypeAccountOrcaWhirlpool,
 	}) {
 		t.Fatalf("account-only event filters should not enable instruction parsing")
+	}
+}
+
+func TestCustomizablePoolIDLBoundaries(t *testing.T) {
+	valid := clmmCreateCustomizablePoolInstruction(u128ForTest(80, 999))
+	parse := func(data []byte, n int) DexEvent {
+		return ParseRaydiumClmmInstruction(data, raydiumClmmTestAccounts(n), "sig", 1, 0, nil, 10)
+	}
+	for fee := byte(0); fee < 3; fee++ {
+		for dynamic := byte(0); dynamic < 2; dynamic++ {
+			valid[24], valid[25] = fee, dynamic
+			if parse(valid, 13).Type == "" {
+				t.Fatal("valid IDL flags rejected")
+			}
+		}
+	}
+	enumBad := append([]byte(nil), valid...)
+	enumBad[24] = 3
+	boolBad := append([]byte(nil), valid...)
+	boolBad[25] = 2
+	for _, data := range [][]byte{valid[:24], valid[:25], append(append([]byte(nil), valid...), 0), enumBad, boolBad} {
+		if parse(data, 13).Type != "" {
+			t.Fatal("invalid IDL body accepted")
+		}
+	}
+	if parse(valid, 12).Type != "" {
+		t.Fatal("short accounts accepted")
+	}
+	if parse(valid, 13).Type == "" {
+		t.Fatal("valid after malformed rejected")
 	}
 }

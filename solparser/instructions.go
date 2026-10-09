@@ -1711,7 +1711,7 @@ func ParseRaydiumClmmInstruction(
 			},
 		}
 	case instrClmmCreateCustomizablePool:
-		if len(payload) < 16 {
+		if len(payload) != 18 || len(accounts) < 13 || payload[16] > 2 || payload[17] > 1 {
 			return DexEvent{}
 		}
 		sqrt, _ := readU128LE(payload, 0)

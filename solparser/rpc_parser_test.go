@@ -63,6 +63,22 @@ func rpcPumpfunInnerTrade(ixName string) []byte {
 	return append(data, rpcPumpfunTradePayload(ixName)...)
 }
 
+func rpcPumpfunCreateLogForDetection(name string) string {
+	data := []byte{27, 114, 169, 77, 222, 235, 99, 118}
+	for _, value := range []string{name, "SDK", "https://example.invalid"} {
+		length := make([]byte, 4)
+		binary.LittleEndian.PutUint32(length, uint32(len(value)))
+		data = append(data, length...)
+		data = append(data, []byte(value)...)
+	}
+	for _, seed := range []byte{70, 80, 90} {
+		for index := 0; index < 32; index++ {
+			data = append(data, seed)
+		}
+	}
+	return "Program data: " + base64.StdEncoding.EncodeToString(data)
+}
+
 func rpcPumpfunTradeLog(ixName string) string {
 	data := make([]byte, 8, 8+256)
 	binary.LittleEndian.PutUint64(data[:8], discPumpTrade)
@@ -137,14 +153,14 @@ func TestParseRpcTransactionMarksPumpfunLogTradeCreatedBuyFromWholeTransaction(t
 			LogMessages: []string{
 				"Program " + PUMPFUN_PROGRAM_ID + " invoke [1]",
 				rpcPumpfunTradeLog("buy"),
-				"Program data: G3KpTd7rY3Y",
+				rpcPumpfunCreateLogForDetection("x"),
 				"Program " + PUMPFUN_PROGRAM_ID + " success",
 			},
 		},
 		Transaction: &RpcTransaction{Message: &RpcMessage{}},
 	}
 
-	events, parseErr := parseRpcTransactionImpl(tx, "sig", nil, 99)
+	events, parseErr := parseRpcTransactionImpl(tx, "sig", &IncludeOnlyFilter{IncludeOnly: []EventType{EventTypePumpFunBuy}}, 99)
 	if parseErr != nil {
 		t.Fatalf("unexpected parse error: %v", parseErr)
 	}
@@ -154,5 +170,53 @@ func TestParseRpcTransactionMarksPumpfunLogTradeCreatedBuyFromWholeTransaction(t
 	trade := events[0].Data.(*PumpFunTradeEvent)
 	if !trade.IsCreatedBuy {
 		t.Fatalf("expected is_created_buy from whole transaction create detection: %+v", trade)
+	}
+}
+
+func TestPumpCreateDetectionScopeAndTradeOnlyOutput(t *testing.T) {
+	const foreign = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+	create := rpcPumpfunCreateLogForDetection("x")
+	scope := func(program, line string) []string {
+		return []string{"Program " + program + " invoke [1]", line, "Program " + program + " success"}
+	}
+	cases := []struct {
+		name     string
+		prefix   []string
+		expected bool
+	}{
+		{"Memo text", scope(foreign, `Program log: Memo: "Program data: G3KpTd7rY3Y"`), false},
+		{"foreign data", scope(foreign, create), false},
+		{"unscoped data", []string{create}, false},
+		{"truncated", scope(PUMPFUN_PROGRAM_ID, "Program data: G3KpTd7rY3Y"), false},
+		{"malformed base64", scope(PUMPFUN_PROGRAM_ID, create+"!"), false},
+		{"nested Pump", []string{"Program " + foreign + " invoke [1]", "Program " + PUMPFUN_PROGRAM_ID + " invoke [2]", create, "Program " + PUMPFUN_PROGRAM_ID + " success", "Program " + foreign + " success"}, true},
+		{"Pump event CPI", []string{"Program " + PUMPFUN_PROGRAM_ID + " invoke [1]", "Program " + PUMPFUN_PROGRAM_ID + " invoke [2]", create, "Program " + PUMPFUN_PROGRAM_ID + " success", "Program " + PUMPFUN_PROGRAM_ID + " success"}, true},
+		{"foreign child", []string{"Program " + PUMPFUN_PROGRAM_ID + " invoke [1]", "Program " + foreign + " invoke [2]", create, "Program " + foreign + " success", "Program " + PUMPFUN_PROGRAM_ID + " success"}, false},
+		{"scope after failed child", []string{"Program " + PUMPFUN_PROGRAM_ID + " invoke [1]", "Program " + foreign + " invoke [2]", create, "Program " + foreign + " failed: custom program error: 1", create, "Program " + PUMPFUN_PROGRAM_ID + " success"}, true},
+		{"failed scope removed", []string{"Program " + PUMPFUN_PROGRAM_ID + " invoke [1]", "Program " + PUMPFUN_PROGRAM_ID + " failed: custom program error: 1", create}, false},
+		{"quoted invoke", []string{"Program log: Program " + PUMPFUN_PROGRAM_ID + " invoke [1]", create}, false},
+	}
+	for _, name := range []string{"", "x", "xx", "xxx"} {
+		cases = append(cases, struct {
+			name     string
+			prefix   []string
+			expected bool
+		}{"valid name:" + name, scope(PUMPFUN_PROGRAM_ID, rpcPumpfunCreateLogForDetection(name)), true})
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			if got := DetectPumpfunCreateFromLogs(test.prefix); got != test.expected {
+				t.Fatalf("detect=%v want=%v", got, test.expected)
+			}
+			logs := append(append([]string{}, test.prefix...), scope(PUMPFUN_PROGRAM_ID, rpcPumpfunTradeLog("buy"))...)
+			tx := &RpcTransactionResponse{Slot: 7, Meta: &RpcTransactionMeta{LogMessages: logs}, Transaction: &RpcTransaction{Message: &RpcMessage{}}}
+			events, err := ParseRpcTransaction(tx, "sig", &IncludeOnlyFilter{IncludeOnly: []EventType{EventTypePumpFunBuy}}, 0)
+			if err != nil || len(events) != 1 {
+				t.Fatalf("events=%+v err=%v", events, err)
+			}
+			if got := events[0].Data.(*PumpFunTradeEvent).IsCreatedBuy; got != test.expected {
+				t.Fatalf("buy flag=%v want=%v", got, test.expected)
+			}
+		})
 	}
 }

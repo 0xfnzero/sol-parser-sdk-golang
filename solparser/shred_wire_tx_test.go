@@ -18,7 +18,9 @@ func shredWireTestPubkey(seed byte) solana.PublicKey {
 func shredWireTestRawTx(t *testing.T, keys []solana.PublicKey, ixs ...solana.CompiledInstruction) []byte {
 	t.Helper()
 	tx := solana.Transaction{
+		Signatures: make([]solana.Signature, 1),
 		Message: solana.Message{
+			Header:          solana.MessageHeader{NumRequiredSignatures: 1},
 			AccountKeys:     keys,
 			RecentBlockhash: solana.Hash{},
 			Instructions:    ixs,
@@ -41,9 +43,10 @@ func shredWireClmmSwapInstruction() []byte {
 
 func TestDexEventsFromShredTransactionWireDefaultsAltLoadedAccounts(t *testing.T) {
 	pool := shredWireTestPubkey(1)
-	tx := solana.Transaction{Message: solana.Message{
-		AccountKeys:         []solana.PublicKey{solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), pool},
-		Instructions:        []solana.CompiledInstruction{{ProgramIDIndex: 0, Accounts: []uint16{2, 2, 1}, Data: solana.Base58(shredWireClmmSwapInstruction())}},
+	tx := solana.Transaction{Signatures: make([]solana.Signature, 1), Message: solana.Message{
+		Header:              solana.MessageHeader{NumRequiredSignatures: 1},
+		AccountKeys:         []solana.PublicKey{shredWireTestPubkey(3), solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), pool},
+		Instructions:        []solana.CompiledInstruction{{ProgramIDIndex: 1, Accounts: []uint16{3, 3, 2}, Data: solana.Base58(shredWireClmmSwapInstruction())}},
 		AddressTableLookups: solana.MessageAddressTableLookupSlice{{AccountKey: shredWireTestPubkey(9), WritableIndexes: []uint8{0}}},
 	}}
 	tx.Message.SetVersion(solana.MessageVersionV0)
@@ -88,10 +91,10 @@ func TestDexEventsFromShredTransactionWireRejectsInvalidProgramID(t *testing.T) 
 func TestDexEventsFromShredTransactionWireSkipsAccountOnlyFilter(t *testing.T) {
 	raw := shredWireTestRawTx(
 		t,
-		[]solana.PublicKey{solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), shredWireTestPubkey(1)},
+		[]solana.PublicKey{shredWireTestPubkey(3), solana.MustPublicKeyFromBase58(RAYDIUM_CLMM_PROGRAM_ID), shredWireTestPubkey(1)},
 		solana.CompiledInstruction{
-			ProgramIDIndex: 0,
-			Accounts:       []uint16{1},
+			ProgramIDIndex: 1,
+			Accounts:       []uint16{2},
 			Data:           solana.Base58(shredWireClmmSwapInstruction()),
 		},
 	)
