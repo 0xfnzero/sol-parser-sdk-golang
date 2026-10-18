@@ -30,6 +30,10 @@ type PumpRouteHop struct {
 	QuoteVault string `json:"quote_vault"`
 }
 type PumpRouteIntentEvent struct {
+	// Intended direction relative to the wrapper hop's base mint, not a fill.
+	IsBuy *bool `json:"is_buy"`
+	// Official underlying instruction encoded in the wrapper; nil when unknown.
+	IxName           *string        `json:"ix_name"`
 	Metadata         EventMetadata  `json:"metadata"`
 	Kind             string         `json:"kind"`
 	Program          string         `json:"program"`
@@ -134,7 +138,22 @@ func ParsePumpRoute(program string, data []byte, a []string, metadata EventMetad
 		}
 		hops = append(hops, PumpRouteHop{a[positions[0]], a[positions[1]], a[positions[2]], a[positions[3]], a[positions[4]]})
 	}
-	return &PumpRouteIntentEvent{metadata, kind, program, index, a[user], a[input], a[output], amount, minimum, hops, append([]byte(nil), data...)}
+	var isBuy *bool
+	var ixName *string
+	if kind == "RapidBuy" || kind == "BuyPumpDelta" {
+		buy := true
+		isBuy = &buy
+	}
+	if kind == "RapidBuy" {
+		name := "buy_exact_quote_in_v2"
+		ixName = &name
+	}
+	return &PumpRouteIntentEvent{
+		Metadata: metadata, Kind: kind, Program: program, InstructionIndex: index,
+		User: a[user], InputAccount: a[input], OutputAccount: a[output],
+		AmountIn: amount, MinAmountOut: minimum, Hops: hops,
+		InstructionData: append([]byte(nil), data...), IsBuy: isBuy, IxName: ixName,
+	}
 }
 
 func (e *PumpRouteIntentEvent) EventType() EventType { return EventTypePumpRouteIntent }

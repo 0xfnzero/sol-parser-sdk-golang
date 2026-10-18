@@ -91,6 +91,16 @@ func runReplay() int {
 			for i, event := range events {
 				e, ok := event.Data.(*sdk.PumpRouteIntentEvent)
 				check(ok, "expected route intent")
+				if e.Kind == "RapidBuy" || e.Kind == "BuyPumpDelta" {
+					check(e.IsBuy != nil && *e.IsBuy, "missing buy intent")
+				} else {
+					check(e.IsBuy == nil, "multi-hop direction must be unknown")
+				}
+				if e.Kind == "RapidBuy" {
+					check(e.IxName != nil && *e.IxName == "buy_exact_quote_in_v2", "IDL method mismatch")
+				} else {
+					check(e.IxName == nil, "unknown method must remain nil")
+				}
 				w := f.Expected[i]
 				payload, err := json.Marshal(event)
 				if err != nil {
@@ -103,6 +113,13 @@ func runReplay() int {
 					panic(err)
 				}
 				check(len(tagged["PumpRouteIntent"].Data) == len(e.InstructionData), "instruction byte JSON schema")
+				var roundtrip map[string]sdk.PumpRouteIntentEvent
+				check(json.Unmarshal(payload, &roundtrip) == nil, "route JSON roundtrip")
+				restored := roundtrip["PumpRouteIntent"]
+				check(reflect.DeepEqual(restored.IsBuy, e.IsBuy) && reflect.DeepEqual(restored.IxName, e.IxName), "route JSON hints")
+				var legacy sdk.PumpRouteIntentEvent
+				check(json.Unmarshal([]byte(`{"kind":"RapidBuy"}`), &legacy) == nil, "legacy JSON")
+				check(legacy.IsBuy == nil && legacy.IxName == nil, "legacy hints stay unknown")
 				check(e.Kind == w.Kind && e.InstructionIndex == w.Index && e.User == w.User && e.InputAccount == w.Input && e.OutputAccount == w.Output, "route fields mismatch")
 				check(reflect.DeepEqual(e.AmountIn, w.Amount) && reflect.DeepEqual(e.MinAmountOut, w.Minimum), "amount mismatch")
 				var hops [][]string
