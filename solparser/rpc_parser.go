@@ -305,6 +305,14 @@ func parseRpcTransactionImpl(
 }
 
 // parseRpcInstruction 解析 RPC 指令。inner=true 时使用 Rust 内层 16 字节 discriminator 路径（见 ParseInnerInstructionUnified）。
+// clearPumpInstructionExecutionAmounts keeps instruction limits separate from execution.
+func clearPumpInstructionExecutionAmounts(ev DexEvent) DexEvent {
+	if trade, ok := ev.Data.(*PumpFunTradeEvent); ok {
+		trade.SolAmount, trade.TokenAmount, trade.QuoteAmount = 0, 0, 0
+	}
+	return ev
+}
+
 func parseRpcInstruction(
 	ix RpcCompiledInstruction,
 	accountKeys []string,
@@ -336,11 +344,11 @@ func parseRpcInstruction(
 
 	if inner {
 		if ev := ParseInnerCompiledInstructionIfSupported(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId); ev.Type != "" {
-			return ev
+			return clearPumpInstructionExecutionAmounts(ev)
 		}
 		return ParseInnerInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId, isCreatedBuy)
 	}
-	return ParseInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId)
+	return clearPumpInstructionExecutionAmounts(ParseInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, programId))
 }
 
 // ConvertRpcToGrpc 将 RPC 格式转换为 gRPC 格式

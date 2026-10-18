@@ -465,7 +465,7 @@ func ParseInnerInstructionUnified(
 			return DexEvent{}
 		}
 		switch {
-		case bytes.Equal(disc, pumpfunInnerTradeEvent):
+		case bytes.Equal(disc, pumpfunInnerTradeEvent) || (bytes.Equal(disc[:8], eventCPIPrefix) && bytes.Equal(disc[8:], pumpfunInnerTradeEvent[:8])):
 			ev := parseTradeFromData(inner, meta, isCreatedBuy)
 			if ev.Type != "" {
 				if p, ok := ev.Data.(*PumpFunTradeEvent); ok {
@@ -473,9 +473,9 @@ func ParseInnerInstructionUnified(
 				}
 			}
 			return applyActualEventTypeFilter(ev, filter)
-		case bytes.Equal(disc, pumpfunInnerCreateToken):
+		case bytes.Equal(disc, pumpfunInnerCreateToken) || (bytes.Equal(disc[:8], eventCPIPrefix) && bytes.Equal(disc[8:], pumpfunInnerCreateToken[:8])):
 			return applyActualEventTypeFilter(parseCreateFromData(inner, meta), filter)
-		case bytes.Equal(disc, pumpfunInnerMigrateComplete):
+		case bytes.Equal(disc, pumpfunInnerMigrateComplete) || (bytes.Equal(disc[:8], eventCPIPrefix) && bytes.Equal(disc[8:], pumpfunInnerMigrateComplete[:8])):
 			return applyActualEventTypeFilter(parseMigrateFromData(inner, meta), filter)
 		default:
 			return DexEvent{}

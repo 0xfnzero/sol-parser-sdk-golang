@@ -107,9 +107,6 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 				break
 			}
 		}
-		if !resolved && !bestEffort {
-			continue
-		}
 		var data []byte
 		if binaryData != nil {
 			data = binaryData[index]
@@ -119,6 +116,36 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 			if err != nil {
 				continue
 			}
+		}
+		unknown := isUnknownShredProgram(pid)
+		explicitRaw := false
+		if f, ok := filter.(*IncludeOnlyFilter); ok {
+			explicitRaw = eventTypeSliceContains(f.IncludeOnly, EventTypeRawInstruction)
+		}
+		if pid != "" && (unknown || explicitRaw) && (filter == nil || filter.ShouldInclude(EventTypeRawInstruction)) {
+			accounts := make([]*string, len(ix.Accounts))
+			indices := make([]int, len(ix.Accounts))
+			for i, k := range ix.Accounts {
+				indices[i] = k
+				if k < len(keys) {
+					key := keys[k]
+					accounts[i] = &key
+				}
+			}
+			payload := make([]int, len(data))
+			for i, b := range data {
+				payload[i] = int(b)
+			}
+			out = append(out, DexEvent{Type: EventTypeRawInstruction, Data: &RawInstructionEvent{
+				Metadata:  makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash),
+				ProgramID: pid, InstructionIndex: index, Accounts: accounts, AccountIndices: indices, InstructionData: payload,
+			}})
+		}
+		if unknown {
+			continue
+		}
+		if !resolved && !bestEffort {
+			continue
 		}
 		route := MayParsePumpRoute(pid, data)
 		if route && (!resolved || !allowsPumpRoute(filter, pid)) {

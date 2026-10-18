@@ -80,6 +80,29 @@ func runReplay() int {
 				}
 				return e
 			}
+			if f.Expected[0].Kind == "RapidBuy" || f.Expected[0].Kind == "BuyPumpDelta" {
+				events := parse(nil)
+				check(len(events) == len(f.Expected), "raw count mismatch")
+				keys := append(append(append([]string{}, tx.Message.AccountKeys...), f.Writable...), f.Readonly...)
+				for _, event := range events {
+					e, ok := event.Data.(*sdk.RawInstructionEvent)
+					check(ok, "expected raw instruction")
+					ix := tx.Message.Instructions[e.InstructionIndex]
+					check(e.ProgramID == keys[ix.ProgramIDIndex], "raw program")
+					check(reflect.DeepEqual(e.AccountIndices, ix.Accounts), "raw indices")
+					for i, k := range ix.Accounts {
+						check(e.Accounts[i] != nil && *e.Accounts[i] == keys[k], "raw account")
+					}
+					data, _ := base58.Decode(ix.Data)
+					check(len(e.InstructionData) == len(data), "raw data length")
+					for i, b := range data {
+						check(e.InstructionData[i] == int(b), "raw byte")
+					}
+				}
+				check(len(parse(&sdk.IncludeOnlyFilter{IncludeOnly: []sdk.EventType{sdk.EventTypePumpFunTrade}})) == 0, "raw is not a trade")
+				trace = append(trace, events...)
+				continue
+			}
 			events := parse(&sdk.IncludeOnlyFilter{IncludeOnly: []sdk.EventType{sdk.EventTypePumpFunTrade, sdk.EventTypePumpFunCreate}})
 			check(len(events) == len(f.Expected), "event count mismatch")
 			count := len(events)
