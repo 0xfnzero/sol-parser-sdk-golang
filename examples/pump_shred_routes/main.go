@@ -99,7 +99,19 @@ func runReplay() int {
 						check(e.InstructionData[i] == int(b), "raw byte")
 					}
 				}
-				check(len(parse(&sdk.IncludeOnlyFilter{IncludeOnly: []sdk.EventType{sdk.EventTypePumpFunTrade}})) == 0, "raw is not a trade")
+				selected := parse(&sdk.IncludeOnlyFilter{IncludeOnly: []sdk.EventType{sdk.EventTypePumpFunTrade}})
+				check(len(selected) > 0, "PumpFun wrapper was dropped")
+				for _, event := range selected {
+					raw, ok := event.Data.(*sdk.RawInstructionEvent)
+					check(ok, "wrapper must remain raw")
+					pump := false
+					for _, dex := range raw.Dexes {
+						if dex.DexType == sdk.RawInstructionDexTypePumpFun {
+							pump = true
+						}
+					}
+					check(pump, "unrelated raw instruction leaked into PumpFun subscription")
+				}
 				trace = append(trace, events...)
 				continue
 			}

@@ -122,7 +122,7 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 		if f, ok := filter.(*IncludeOnlyFilter); ok {
 			explicitRaw = eventTypeSliceContains(f.IncludeOnly, EventTypeRawInstruction)
 		}
-		if pid != "" && (unknown || explicitRaw) && (filter == nil || filter.ShouldInclude(EventTypeRawInstruction)) {
+		if pid != "" && (unknown || explicitRaw) {
 			accounts := make([]*string, len(ix.Accounts))
 			indices := make([]int, len(ix.Accounts))
 			for i, k := range ix.Accounts {
@@ -136,10 +136,14 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 			for i, b := range data {
 				payload[i] = int(b)
 			}
-			out = append(out, DexEvent{Type: EventTypeRawInstruction, Data: &RawInstructionEvent{
-				Metadata:  makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash),
-				ProgramID: pid, InstructionIndex: index, Accounts: accounts, AccountIndices: indices, InstructionData: payload,
-			}})
+			dexes := rawInstructionDexes(pid, accounts)
+			if rawInstructionMatchesFilter(dexes, filter) {
+				out = append(out, DexEvent{Type: EventTypeRawInstruction, Data: &RawInstructionEvent{
+					Dexes:     dexes,
+					Metadata:  makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash),
+					ProgramID: pid, InstructionIndex: index, Accounts: accounts, AccountIndices: indices, InstructionData: payload,
+				}})
+			}
 		}
 		if unknown {
 			continue
