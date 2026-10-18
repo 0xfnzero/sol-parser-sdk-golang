@@ -7,10 +7,13 @@ import (
 )
 
 type EventMetadata struct {
-	Signature       string `json:"signature"`
-	Slot            uint64 `json:"slot"`
-	TxIndex         uint64 `json:"tx_index"`
-	BlockTimeUs     int64  `json:"block_time_us"`
+	Signature string `json:"signature"`
+	Slot      uint64 `json:"slot"`
+	// Caller-supplied position: node index for Yellowstone; message-local for Entries.
+	// Shred transaction deduplication must use signatures, not (slot, tx_index).
+	TxIndex     uint64 `json:"tx_index"`
+	BlockTimeUs int64  `json:"block_time_us"`
+	// Local receive time in microseconds, not chain execution order.
 	GrpcRecvUs      int64  `json:"grpc_recv_us"`
 	RecentBlockhash string `json:"recent_blockhash,omitempty"`
 }

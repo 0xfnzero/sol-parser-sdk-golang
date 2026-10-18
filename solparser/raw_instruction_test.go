@@ -43,6 +43,9 @@ func TestRawSignedInstructions(t *testing.T) {
 			if !ok {
 				t.Fatal("not raw")
 			}
+			if e.Metadata.TxIndex != 2 || e.Metadata.GrpcRecvUs != 3 {
+				t.Fatal("raw metadata was reset")
+			}
 			ix := tx.Message.Instructions[i]
 			if e.ProgramID != keys[ix.ProgramIDIndex] || !reflect.DeepEqual(e.AccountIndices, ix.Accounts) {
 				t.Fatal("instruction identity lost")
