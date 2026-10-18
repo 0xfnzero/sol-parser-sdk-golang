@@ -2,6 +2,7 @@ package solparser
 
 // Native Solana transaction decoding, including V1's message-first wire layout.
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"github.com/mr-tron/base58"
@@ -91,6 +92,21 @@ func (r *wireReader) indices(n int) []int {
 // DecodeWireTransaction returns the number of bytes consumed. Set requireComplete
 // false when decoding one transaction from a bincode Entry stream.
 func DecodeWireTransaction(data []byte, offset int, requireComplete bool) (*NativeWireTransaction, int, error) {
+	return decodeWireTransaction(data, offset, requireComplete, nil)
+}
+
+// The private shred path consumes owned binary instruction data directly. Public
+// decoding (including resolver callbacks) retains its Base58 string schema.
+func (r *wireReader) instructionData(n int, binaryData *[][]byte) string {
+	data := r.take(n)
+	if binaryData != nil {
+		*binaryData = append(*binaryData, bytes.Clone(data))
+		return ""
+	}
+	return base58.Encode(data)
+}
+
+func decodeWireTransaction(data []byte, offset int, requireComplete bool, binaryData *[][]byte) (*NativeWireTransaction, int, error) {
 	if offset < 0 || offset >= len(data) {
 		return nil, 0, errors.New("invalid wire offset")
 	}
@@ -138,11 +154,15 @@ func DecodeWireTransaction(data []byte, offset int, requireComplete bool) (*Nati
 			m.Config.HeapSize = &v
 		}
 		headers := make([][3]int, count)
+		if binaryData != nil {
+			*binaryData = make([][]byte, 0, count)
+			m.Instructions = make([]WireInstruction, 0, count)
+		}
 		for i := range headers {
 			headers[i] = [3]int{r.u8(), r.u8(), int(binary.LittleEndian.Uint16(r.take(2)))}
 		}
 		for _, v := range headers {
-			m.Instructions = append(m.Instructions, WireInstruction{v[0], r.indices(v[1]), base58.Encode(r.take(v[2]))})
+			m.Instructions = append(m.Instructions, WireInstruction{v[0], r.indices(v[1]), r.instructionData(v[2], binaryData)})
 		}
 		for i := 0; i < int(h[0]); i++ {
 			tx.Signatures = append(tx.Signatures, base58.Encode(r.take(64)))
@@ -178,10 +198,17 @@ func DecodeWireTransaction(data []byte, offset int, requireComplete bool) (*Nati
 		}
 		m.RecentBlockhash = base58.Encode(r.take(32))
 		count := r.short()
+		if binaryData != nil {
+			// Each instruction needs at least three wire bytes. Bound capacity by
+			// the actual packet so a malformed count cannot force a large allocation.
+			capacity := min(count, (len(data)-r.pos)/3)
+			*binaryData = make([][]byte, 0, capacity)
+			m.Instructions = make([]WireInstruction, 0, capacity)
+		}
 		for i := 0; i < count && r.err == nil; i++ {
 			p := r.u8()
 			a := r.indices(r.short())
-			d := base58.Encode(r.take(r.short()))
+			d := r.instructionData(r.short(), binaryData)
 			m.Instructions = append(m.Instructions, WireInstruction{p, a, d})
 		}
 		if tx.Version == 0 {

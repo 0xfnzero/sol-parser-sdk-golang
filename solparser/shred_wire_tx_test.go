@@ -55,7 +55,10 @@ func TestDexEventsFromShredTransactionWireDefaultsAltLoadedAccounts(t *testing.T
 		t.Fatal(err)
 	}
 
-	events := DexEventsFromShredTransactionWire(raw, "sig", 1, 0, nil, 10, nil)
+	if got := DexEventsFromShredTransactionWire(raw, "sig", 1, 0, nil, 10, nil); len(got) != 0 {
+		t.Fatal("strict mode guessed unresolved keys")
+	}
+	events := DexEventsFromShredTransactionWireBestEffort(raw, "sig", 1, 0, nil, 10, nil)
 	if len(events) != 1 || events[0].Type != EventTypeRaydiumClmmSwap {
 		t.Fatalf("expected one RaydiumClmmSwap event, got %+v", events)
 	}

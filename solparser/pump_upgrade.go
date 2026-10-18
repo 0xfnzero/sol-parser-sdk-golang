@@ -195,11 +195,8 @@ type PumpMultiHopIntent struct {
 type PumpMultiHopAccounts struct{ BaseMint, QuoteMint, Venue, BaseVault, QuoteVault string }
 
 func DecodePumpMultiHopIntent(program string, data []byte, accounts []string) *PumpMultiHopIntent {
-	if program != PUMPSWAP_PROGRAM_ID || len(data) != 24 || binary.LittleEndian.Uint64(data[:8]) != 10696039120939607083 || len(accounts) < 21 || (len(accounts)-16)%5 != 0 {
-		return nil
-	}
-	amount, minimum := binary.LittleEndian.Uint64(data[8:16]), binary.LittleEndian.Uint64(data[16:24])
-	if amount == 0 || minimum == 0 {
+	amount, minimum, ok := pumpMultiHopArgs(program, data, accounts)
+	if !ok {
 		return nil
 	}
 	result := &PumpMultiHopIntent{User: accounts[0], InputAccount: accounts[1], OutputAccount: accounts[2], AmountIn: amount, MinAmountOut: minimum}

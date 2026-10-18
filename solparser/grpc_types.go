@@ -369,6 +369,7 @@ var (
 		EventTypeRaydiumLaunchlabMigrateAmm,
 	}
 	instructionEventTypes = joinEventTypes(
+		[]EventType{EventTypePumpRouteIntent},
 		pumpfunFilterTypes,
 		pumpFeesFilterTypes,
 		pumpswapFilterTypes,
@@ -990,5 +991,6 @@ func AllEventTypes() []EventType {
 		EventTypeAccountOrcaFeeTier,
 		EventTypeAccountOrcaWhirlpoolsConfig,
 		EventTypeAccountLiquiditySnapshot, EventTypeAccountRawSnapshot,
+		EventTypePumpRouteIntent,
 	}
 }
