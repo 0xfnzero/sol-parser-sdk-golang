@@ -62,6 +62,9 @@ func TestPumpHolderBank(t *testing.T) {
 			}
 			for i, w := range c.Expected {
 				for k, v := range w {
+					if k == "ix_name" {
+						v = expectedPumpMethod(tx, v)
+					}
 					if fmt.Sprint(lp[i][k]) != v {
 						t.Fatal(k, lp[i][k], v)
 					}

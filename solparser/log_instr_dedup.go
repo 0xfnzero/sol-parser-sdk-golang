@@ -96,7 +96,9 @@ func dedupeKey(ev DexEvent, occurrenceCounts map[logInstrDedupKey]uint16) (logIn
 		}
 	case EventTypeRaydiumLaunchlabTrade:
 		if t, ok := ev.Data.(*RaydiumLaunchlabTradeEvent); ok && t != nil {
-			return logInstrDedupKey{kind: dedupRaydiumLaunchlabTrade, a: t.PoolState, b: t.User, flag: t.IsBuy}, true
+			key := logInstrDedupKey{kind: dedupRaydiumLaunchlabTrade, a: t.PoolState, b: t.User, flag: t.IsBuy}
+			key.occurrence = nextOccurrence(key, occurrenceCounts)
+			return key, true
 		}
 	case EventTypeMeteoraPoolsPoolCreated:
 		if p, ok := ev.Data.(*MeteoraPoolsPoolCreatedEvent); ok && p != nil && p.Pool != "" && p.Pool != "11111111111111111111111111111111" {
@@ -419,7 +421,7 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 			fillUint64IfDefault(&l.RealQuoteReserves, i.RealQuoteReserves)
 			fillUint64IfDefault(&l.HolderRewardsBps, i.HolderRewardsBps)
 			fillUint64IfDefault(&l.HolderRewards, i.HolderRewards)
-			if l.IxName == "" && i.IxName != "" {
+			if preferPumpInstructionName(l.IxName, i.IxName) {
 				l.IxName = i.IxName
 			}
 			l.IsCreatedBuy = l.IsCreatedBuy || i.IsCreatedBuy
@@ -644,7 +646,7 @@ func DedupeLogInstructionEvents(logEvents []DexEvent, instrEvents []DexEvent) []
 	for key := range idxByKey {
 		base := key
 		base.occurrence = 0
-		if (base.kind == dedupPumpFunTrade || base.kind == dedupPumpSwapBuy || base.kind == dedupPumpSwapSell || base.kind == dedupOrcaWhirlpoolLiquidityIncreased || base.kind == dedupOrcaWhirlpoolLiquidityDecreased || base.kind == dedupRaydiumClmmIncreaseLiquidity || base.kind == dedupRaydiumClmmDecreaseLiquidity) && logOccurrences[base] != ixOccurrences[base] {
+		if logOccurrences[base] != ixOccurrences[base] {
 			delete(idxByKey, key)
 		}
 	}

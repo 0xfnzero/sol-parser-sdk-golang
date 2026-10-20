@@ -37,13 +37,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			raw := []*sdk.RawInstructionEvent{}
-			for _, event := range events {
-				if e, ok := event.Data.(*sdk.RawInstructionEvent); ok {
-					raw = append(raw, e)
-				}
-			}
-			data, err := json.Marshal(map[string]any{"signature": c.Signature, "filter": kind, "raw_instructions": raw})
+			data, err := json.Marshal(map[string]any{"signature": c.Signature, "filter": kind, "events": events})
 			if err != nil {
 				panic(err)
 			}

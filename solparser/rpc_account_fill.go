@@ -58,6 +58,7 @@ func fillRpcDexEvents(events []DexEvent, msg *RpcMessage, meta *RpcTransactionMe
 		return
 	}
 	invokes := buildRpcProgramInvokes(msg, meta)
+	fillPumpCreationContext(events, msg, meta)
 	feesInv := invokes[GrpcPumpSwapFeesProgramID]
 
 	for i := range events {

@@ -21,7 +21,7 @@ func executionTrades(events []DexEvent) []map[string]any {
 		var all map[string]any
 		_ = dec.Decode(&all)
 		row := map[string]any{}
-		for _, k := range []string{"mint", "user", "pool", "is_buy", "token_amount", "quote_amount", "sol_amount", "base_amount_in", "base_amount_out", "quote_amount_in", "quote_amount_out"} {
+		for _, k := range []string{"mint", "user", "pool", "is_buy", "is_created_buy", "ix_name", "token_amount", "quote_amount", "sol_amount", "base_amount_in", "base_amount_out", "quote_amount_in", "quote_amount_out"} {
 			row[k] = all[k]
 		}
 		result = append(result, row)
@@ -30,7 +30,7 @@ func executionTrades(events []DexEvent) []map[string]any {
 }
 
 func TestPumpExecution(t *testing.T) {
-	for _, path := range []string{"testdata/pump_execution_20261019.json", "testdata/pump_routes_20261009.json"} {
+	for _, path := range []string{"testdata/pump_execution_20261019.json", "testdata/pump_routes_20261009.json", "testdata/wrapped_pumpfun_reported.json"} {
 		b, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

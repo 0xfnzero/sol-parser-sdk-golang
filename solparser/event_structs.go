@@ -17,7 +17,12 @@ type DexEventInterface interface {
 // ============================================================
 
 // PumpFunTradeEvent PumpFun 交易事件
+// ThirdProgram is retained as a compatibility alias.
+type ThirdProgram = RawInstructionPayload
+
 type PumpFunTradeEvent struct {
+	ParseStatus                        TradeParseStatus      `json:"parse_status,omitempty"`
+	ThirdProgram                       *ThirdProgram         `json:"third_program,omitempty"`
 	CreatorFeeUnclaimed                uint64                `json:"creator_fee_unclaimed"`
 	Metadata                           EventMetadata         `json:"metadata"`
 	Mint                               string                `json:"mint"`
@@ -537,61 +542,63 @@ func (e *PumpFunMigrateBondingCurveCreatorEvent) GetMetadata() EventMetadata { r
 
 // PumpSwapBuyEvent PumpSwap 买入事件
 type PumpSwapBuyEvent struct {
-	CreatorFeeUnclaimed              uint64        `json:"creator_fee_unclaimed"`
-	Metadata                         EventMetadata `json:"metadata"`
-	Timestamp                        int64         `json:"timestamp"`
-	BaseAmountOut                    uint64        `json:"base_amount_out"`
-	MaxQuoteAmountIn                 uint64        `json:"max_quote_amount_in"`
-	UserBaseTokenReserves            uint64        `json:"user_base_token_reserves"`
-	UserQuoteTokenReserves           uint64        `json:"user_quote_token_reserves"`
-	PoolBaseTokenReserves            uint64        `json:"pool_base_token_reserves"`
-	PoolQuoteTokenReserves           uint64        `json:"pool_quote_token_reserves"`
-	QuoteAmountIn                    uint64        `json:"quote_amount_in"`
-	LpFeeBasisPoints                 uint64        `json:"lp_fee_basis_points"`
-	LpFee                            uint64        `json:"lp_fee"`
-	ProtocolFeeBasisPoints           uint64        `json:"protocol_fee_basis_points"`
-	ProtocolFee                      uint64        `json:"protocol_fee"`
-	QuoteAmountInWithLpFee           uint64        `json:"quote_amount_in_with_lp_fee"`
-	UserQuoteAmountIn                uint64        `json:"user_quote_amount_in"`
-	Pool                             string        `json:"pool"`
-	User                             string        `json:"user"`
-	UserBaseTokenAccount             string        `json:"user_base_token_account"`
-	UserQuoteTokenAccount            string        `json:"user_quote_token_account"`
-	ProtocolFeeRecipient             string        `json:"protocol_fee_recipient"`
-	ProtocolFeeRecipientTokenAccount string        `json:"protocol_fee_recipient_token_account"`
-	CoinCreator                      string        `json:"coin_creator"`
-	CoinCreatorFeeBasisPoints        uint64        `json:"coin_creator_fee_basis_points"`
-	CoinCreatorFee                   uint64        `json:"coin_creator_fee"`
-	TrackVolume                      bool          `json:"track_volume"`
-	TotalUnclaimedTokens             uint64        `json:"total_unclaimed_tokens"`
-	TotalClaimedTokens               uint64        `json:"total_claimed_tokens"`
-	CurrentSolVolume                 uint64        `json:"current_sol_volume"`
-	LastUpdateTimestamp              int64         `json:"last_update_timestamp"`
-	MinBaseAmountOut                 uint64        `json:"min_base_amount_out"`
-	IxName                           string        `json:"ix_name"`
-	MayhemMode                       bool          `json:"mayhem_mode"`
-	CashbackFeeBasisPoints           uint64        `json:"cashback_fee_basis_points"`
-	Cashback                         uint64        `json:"cashback"`
-	BuybackFeeBasisPoints            uint64        `json:"buyback_fee_basis_points"`
-	BuybackFee                       uint64        `json:"buyback_fee"`
-	VirtualQuoteReserves             string        `json:"virtual_quote_reserves"`
-	CanBoost                         bool          `json:"can_boost"`
-	BaseSupply                       uint64        `json:"base_supply"`
-	HolderRewardsBps                 uint64        `json:"holder_rewards_bps"`
-	HolderRewards                    uint64        `json:"holder_rewards"`
-	IsCashbackCoin                   bool          `json:"is_cashback_coin"`
-	BaseMint                         string        `json:"base_mint"`
-	QuoteMint                        string        `json:"quote_mint"`
-	PoolBaseTokenAccount             string        `json:"pool_base_token_account"`
-	PoolQuoteTokenAccount            string        `json:"pool_quote_token_account"`
-	CoinCreatorVaultAta              string        `json:"coin_creator_vault_ata"`
-	CoinCreatorVaultAuthority        string        `json:"coin_creator_vault_authority"`
-	BaseTokenProgram                 string        `json:"base_token_program"`
-	QuoteTokenProgram                string        `json:"quote_token_program"`
-	PoolV2                           string        `json:"pool_v2"`
-	FeeRecipient                     string        `json:"fee_recipient"`
-	FeeRecipientQuoteTokenAccount    string        `json:"fee_recipient_quote_token_account"`
-	IsPumpPool                       bool          `json:"is_pump_pool"`
+	ParseStatus                      TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram                     *RawInstructionPayload `json:"third_program,omitempty"`
+	CreatorFeeUnclaimed              uint64                 `json:"creator_fee_unclaimed"`
+	Metadata                         EventMetadata          `json:"metadata"`
+	Timestamp                        int64                  `json:"timestamp"`
+	BaseAmountOut                    uint64                 `json:"base_amount_out"`
+	MaxQuoteAmountIn                 uint64                 `json:"max_quote_amount_in"`
+	UserBaseTokenReserves            uint64                 `json:"user_base_token_reserves"`
+	UserQuoteTokenReserves           uint64                 `json:"user_quote_token_reserves"`
+	PoolBaseTokenReserves            uint64                 `json:"pool_base_token_reserves"`
+	PoolQuoteTokenReserves           uint64                 `json:"pool_quote_token_reserves"`
+	QuoteAmountIn                    uint64                 `json:"quote_amount_in"`
+	LpFeeBasisPoints                 uint64                 `json:"lp_fee_basis_points"`
+	LpFee                            uint64                 `json:"lp_fee"`
+	ProtocolFeeBasisPoints           uint64                 `json:"protocol_fee_basis_points"`
+	ProtocolFee                      uint64                 `json:"protocol_fee"`
+	QuoteAmountInWithLpFee           uint64                 `json:"quote_amount_in_with_lp_fee"`
+	UserQuoteAmountIn                uint64                 `json:"user_quote_amount_in"`
+	Pool                             string                 `json:"pool"`
+	User                             string                 `json:"user"`
+	UserBaseTokenAccount             string                 `json:"user_base_token_account"`
+	UserQuoteTokenAccount            string                 `json:"user_quote_token_account"`
+	ProtocolFeeRecipient             string                 `json:"protocol_fee_recipient"`
+	ProtocolFeeRecipientTokenAccount string                 `json:"protocol_fee_recipient_token_account"`
+	CoinCreator                      string                 `json:"coin_creator"`
+	CoinCreatorFeeBasisPoints        uint64                 `json:"coin_creator_fee_basis_points"`
+	CoinCreatorFee                   uint64                 `json:"coin_creator_fee"`
+	TrackVolume                      bool                   `json:"track_volume"`
+	TotalUnclaimedTokens             uint64                 `json:"total_unclaimed_tokens"`
+	TotalClaimedTokens               uint64                 `json:"total_claimed_tokens"`
+	CurrentSolVolume                 uint64                 `json:"current_sol_volume"`
+	LastUpdateTimestamp              int64                  `json:"last_update_timestamp"`
+	MinBaseAmountOut                 uint64                 `json:"min_base_amount_out"`
+	IxName                           string                 `json:"ix_name"`
+	MayhemMode                       bool                   `json:"mayhem_mode"`
+	CashbackFeeBasisPoints           uint64                 `json:"cashback_fee_basis_points"`
+	Cashback                         uint64                 `json:"cashback"`
+	BuybackFeeBasisPoints            uint64                 `json:"buyback_fee_basis_points"`
+	BuybackFee                       uint64                 `json:"buyback_fee"`
+	VirtualQuoteReserves             string                 `json:"virtual_quote_reserves"`
+	CanBoost                         bool                   `json:"can_boost"`
+	BaseSupply                       uint64                 `json:"base_supply"`
+	HolderRewardsBps                 uint64                 `json:"holder_rewards_bps"`
+	HolderRewards                    uint64                 `json:"holder_rewards"`
+	IsCashbackCoin                   bool                   `json:"is_cashback_coin"`
+	BaseMint                         string                 `json:"base_mint"`
+	QuoteMint                        string                 `json:"quote_mint"`
+	PoolBaseTokenAccount             string                 `json:"pool_base_token_account"`
+	PoolQuoteTokenAccount            string                 `json:"pool_quote_token_account"`
+	CoinCreatorVaultAta              string                 `json:"coin_creator_vault_ata"`
+	CoinCreatorVaultAuthority        string                 `json:"coin_creator_vault_authority"`
+	BaseTokenProgram                 string                 `json:"base_token_program"`
+	QuoteTokenProgram                string                 `json:"quote_token_program"`
+	PoolV2                           string                 `json:"pool_v2"`
+	FeeRecipient                     string                 `json:"fee_recipient"`
+	FeeRecipientQuoteTokenAccount    string                 `json:"fee_recipient_quote_token_account"`
+	IsPumpPool                       bool                   `json:"is_pump_pool"`
 }
 
 func (e *PumpSwapBuyEvent) EventType() EventType       { return EventTypePumpSwapBuy }
@@ -599,52 +606,54 @@ func (e *PumpSwapBuyEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // PumpSwapSellEvent PumpSwap 卖出事件
 type PumpSwapSellEvent struct {
-	CreatorFeeUnclaimed              uint64        `json:"creator_fee_unclaimed"`
-	Metadata                         EventMetadata `json:"metadata"`
-	Timestamp                        int64         `json:"timestamp"`
-	BaseAmountIn                     uint64        `json:"base_amount_in"`
-	MinQuoteAmountOut                uint64        `json:"min_quote_amount_out"`
-	UserBaseTokenReserves            uint64        `json:"user_base_token_reserves"`
-	UserQuoteTokenReserves           uint64        `json:"user_quote_token_reserves"`
-	PoolBaseTokenReserves            uint64        `json:"pool_base_token_reserves"`
-	PoolQuoteTokenReserves           uint64        `json:"pool_quote_token_reserves"`
-	QuoteAmountOut                   uint64        `json:"quote_amount_out"`
-	LpFeeBasisPoints                 uint64        `json:"lp_fee_basis_points"`
-	LpFee                            uint64        `json:"lp_fee"`
-	ProtocolFeeBasisPoints           uint64        `json:"protocol_fee_basis_points"`
-	ProtocolFee                      uint64        `json:"protocol_fee"`
-	QuoteAmountOutWithoutLpFee       uint64        `json:"quote_amount_out_without_lp_fee"`
-	UserQuoteAmountOut               uint64        `json:"user_quote_amount_out"`
-	Pool                             string        `json:"pool"`
-	User                             string        `json:"user"`
-	UserBaseTokenAccount             string        `json:"user_base_token_account"`
-	UserQuoteTokenAccount            string        `json:"user_quote_token_account"`
-	ProtocolFeeRecipient             string        `json:"protocol_fee_recipient"`
-	ProtocolFeeRecipientTokenAccount string        `json:"protocol_fee_recipient_token_account"`
-	CoinCreator                      string        `json:"coin_creator"`
-	CoinCreatorFeeBasisPoints        uint64        `json:"coin_creator_fee_basis_points"`
-	CoinCreatorFee                   uint64        `json:"coin_creator_fee"`
-	CashbackFeeBasisPoints           uint64        `json:"cashback_fee_basis_points"`
-	Cashback                         uint64        `json:"cashback"`
-	BuybackFeeBasisPoints            uint64        `json:"buyback_fee_basis_points"`
-	BuybackFee                       uint64        `json:"buyback_fee"`
-	VirtualQuoteReserves             string        `json:"virtual_quote_reserves"`
-	CanBoost                         bool          `json:"can_boost"`
-	BaseSupply                       uint64        `json:"base_supply"`
-	HolderRewardsBps                 uint64        `json:"holder_rewards_bps"`
-	HolderRewards                    uint64        `json:"holder_rewards"`
-	BaseMint                         string        `json:"base_mint"`
-	QuoteMint                        string        `json:"quote_mint"`
-	PoolBaseTokenAccount             string        `json:"pool_base_token_account"`
-	PoolQuoteTokenAccount            string        `json:"pool_quote_token_account"`
-	CoinCreatorVaultAta              string        `json:"coin_creator_vault_ata"`
-	CoinCreatorVaultAuthority        string        `json:"coin_creator_vault_authority"`
-	BaseTokenProgram                 string        `json:"base_token_program"`
-	QuoteTokenProgram                string        `json:"quote_token_program"`
-	PoolV2                           string        `json:"pool_v2"`
-	FeeRecipient                     string        `json:"fee_recipient"`
-	FeeRecipientQuoteTokenAccount    string        `json:"fee_recipient_quote_token_account"`
-	IsPumpPool                       bool          `json:"is_pump_pool"`
+	ParseStatus                      TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram                     *RawInstructionPayload `json:"third_program,omitempty"`
+	CreatorFeeUnclaimed              uint64                 `json:"creator_fee_unclaimed"`
+	Metadata                         EventMetadata          `json:"metadata"`
+	Timestamp                        int64                  `json:"timestamp"`
+	BaseAmountIn                     uint64                 `json:"base_amount_in"`
+	MinQuoteAmountOut                uint64                 `json:"min_quote_amount_out"`
+	UserBaseTokenReserves            uint64                 `json:"user_base_token_reserves"`
+	UserQuoteTokenReserves           uint64                 `json:"user_quote_token_reserves"`
+	PoolBaseTokenReserves            uint64                 `json:"pool_base_token_reserves"`
+	PoolQuoteTokenReserves           uint64                 `json:"pool_quote_token_reserves"`
+	QuoteAmountOut                   uint64                 `json:"quote_amount_out"`
+	LpFeeBasisPoints                 uint64                 `json:"lp_fee_basis_points"`
+	LpFee                            uint64                 `json:"lp_fee"`
+	ProtocolFeeBasisPoints           uint64                 `json:"protocol_fee_basis_points"`
+	ProtocolFee                      uint64                 `json:"protocol_fee"`
+	QuoteAmountOutWithoutLpFee       uint64                 `json:"quote_amount_out_without_lp_fee"`
+	UserQuoteAmountOut               uint64                 `json:"user_quote_amount_out"`
+	Pool                             string                 `json:"pool"`
+	User                             string                 `json:"user"`
+	UserBaseTokenAccount             string                 `json:"user_base_token_account"`
+	UserQuoteTokenAccount            string                 `json:"user_quote_token_account"`
+	ProtocolFeeRecipient             string                 `json:"protocol_fee_recipient"`
+	ProtocolFeeRecipientTokenAccount string                 `json:"protocol_fee_recipient_token_account"`
+	CoinCreator                      string                 `json:"coin_creator"`
+	CoinCreatorFeeBasisPoints        uint64                 `json:"coin_creator_fee_basis_points"`
+	CoinCreatorFee                   uint64                 `json:"coin_creator_fee"`
+	CashbackFeeBasisPoints           uint64                 `json:"cashback_fee_basis_points"`
+	Cashback                         uint64                 `json:"cashback"`
+	BuybackFeeBasisPoints            uint64                 `json:"buyback_fee_basis_points"`
+	BuybackFee                       uint64                 `json:"buyback_fee"`
+	VirtualQuoteReserves             string                 `json:"virtual_quote_reserves"`
+	CanBoost                         bool                   `json:"can_boost"`
+	BaseSupply                       uint64                 `json:"base_supply"`
+	HolderRewardsBps                 uint64                 `json:"holder_rewards_bps"`
+	HolderRewards                    uint64                 `json:"holder_rewards"`
+	BaseMint                         string                 `json:"base_mint"`
+	QuoteMint                        string                 `json:"quote_mint"`
+	PoolBaseTokenAccount             string                 `json:"pool_base_token_account"`
+	PoolQuoteTokenAccount            string                 `json:"pool_quote_token_account"`
+	CoinCreatorVaultAta              string                 `json:"coin_creator_vault_ata"`
+	CoinCreatorVaultAuthority        string                 `json:"coin_creator_vault_authority"`
+	BaseTokenProgram                 string                 `json:"base_token_program"`
+	QuoteTokenProgram                string                 `json:"quote_token_program"`
+	PoolV2                           string                 `json:"pool_v2"`
+	FeeRecipient                     string                 `json:"fee_recipient"`
+	FeeRecipientQuoteTokenAccount    string                 `json:"fee_recipient_quote_token_account"`
+	IsPumpPool                       bool                   `json:"is_pump_pool"`
 }
 
 func (e *PumpSwapSellEvent) EventType() EventType       { return EventTypePumpSwapSell }
@@ -739,19 +748,23 @@ func (e *PumpSwapLiquidityRemovedEvent) GetMetadata() EventMetadata { return e.M
 
 // RaydiumClmmSwapEvent Raydium CLMM 交换事件
 type RaydiumClmmSwapEvent struct {
-	Metadata      EventMetadata `json:"metadata"`
-	PoolState     string        `json:"pool_state"`
-	Sender        string        `json:"sender"`
-	TokenAccount0 string        `json:"token_account_0"`
-	TokenAccount1 string        `json:"token_account_1"`
-	Amount0       uint64        `json:"amount_0"`
-	Amount1       uint64        `json:"amount_1"`
-	ZeroForOne    bool          `json:"zero_for_one"`
-	SqrtPriceX64  string        `json:"sqrt_price_x64"`
-	Liquidity     string        `json:"liquidity"`
-	TransferFee0  uint64        `json:"transfer_fee_0"`
-	TransferFee1  uint64        `json:"transfer_fee_1"`
-	Tick          int32         `json:"tick"`
+	InputMint     string                 `json:"input_mint"`
+	OutputMint    string                 `json:"output_mint"`
+	ParseStatus   TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram  *RawInstructionPayload `json:"third_program,omitempty"`
+	Metadata      EventMetadata          `json:"metadata"`
+	PoolState     string                 `json:"pool_state"`
+	Sender        string                 `json:"sender"`
+	TokenAccount0 string                 `json:"token_account_0"`
+	TokenAccount1 string                 `json:"token_account_1"`
+	Amount0       uint64                 `json:"amount_0"`
+	Amount1       uint64                 `json:"amount_1"`
+	ZeroForOne    bool                   `json:"zero_for_one"`
+	SqrtPriceX64  string                 `json:"sqrt_price_x64"`
+	Liquidity     string                 `json:"liquidity"`
+	TransferFee0  uint64                 `json:"transfer_fee_0"`
+	TransferFee1  uint64                 `json:"transfer_fee_1"`
+	Tick          int32                  `json:"tick"`
 }
 
 func (e *RaydiumClmmSwapEvent) EventType() EventType       { return EventTypeRaydiumClmmSwap }
@@ -1030,28 +1043,30 @@ func (e *RaydiumClmmUpdateRewardInfosEvent) GetMetadata() EventMetadata { return
 
 // RaydiumAmmV4SwapEvent Raydium AMM v4 交换事件
 type RaydiumAmmV4SwapEvent struct {
-	Metadata                    EventMetadata `json:"metadata"`
-	Amm                         string        `json:"amm"`
-	UserSourceOwner             string        `json:"user_source_owner"`
-	AmountIn                    uint64        `json:"amount_in"`
-	MinimumAmountOut            uint64        `json:"minimum_amount_out"`
-	MaxAmountIn                 uint64        `json:"max_amount_in"`
-	AmountOut                   uint64        `json:"amount_out"`
-	TokenProgram                string        `json:"token_program"`
-	AmmAuthority                string        `json:"amm_authority"`
-	AmmOpenOrders               string        `json:"amm_open_orders"`
-	PoolCoinTokenAccount        string        `json:"pool_coin_token_account"`
-	PoolPcTokenAccount          string        `json:"pool_pc_token_account"`
-	SerumProgram                string        `json:"serum_program"`
-	SerumMarket                 string        `json:"serum_market"`
-	SerumBids                   string        `json:"serum_bids"`
-	SerumAsks                   string        `json:"serum_asks"`
-	SerumEventQueue             string        `json:"serum_event_queue"`
-	SerumCoinVaultAccount       string        `json:"serum_coin_vault_account"`
-	SerumPcVaultAccount         string        `json:"serum_pc_vault_account"`
-	SerumVaultSigner            string        `json:"serum_vault_signer"`
-	UserSourceTokenAccount      string        `json:"user_source_token_account"`
-	UserDestinationTokenAccount string        `json:"user_destination_token_account"`
+	ParseStatus                 TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram                *RawInstructionPayload `json:"third_program,omitempty"`
+	Metadata                    EventMetadata          `json:"metadata"`
+	Amm                         string                 `json:"amm"`
+	UserSourceOwner             string                 `json:"user_source_owner"`
+	AmountIn                    uint64                 `json:"amount_in"`
+	MinimumAmountOut            uint64                 `json:"minimum_amount_out"`
+	MaxAmountIn                 uint64                 `json:"max_amount_in"`
+	AmountOut                   uint64                 `json:"amount_out"`
+	TokenProgram                string                 `json:"token_program"`
+	AmmAuthority                string                 `json:"amm_authority"`
+	AmmOpenOrders               string                 `json:"amm_open_orders"`
+	PoolCoinTokenAccount        string                 `json:"pool_coin_token_account"`
+	PoolPcTokenAccount          string                 `json:"pool_pc_token_account"`
+	SerumProgram                string                 `json:"serum_program"`
+	SerumMarket                 string                 `json:"serum_market"`
+	SerumBids                   string                 `json:"serum_bids"`
+	SerumAsks                   string                 `json:"serum_asks"`
+	SerumEventQueue             string                 `json:"serum_event_queue"`
+	SerumCoinVaultAccount       string                 `json:"serum_coin_vault_account"`
+	SerumPcVaultAccount         string                 `json:"serum_pc_vault_account"`
+	SerumVaultSigner            string                 `json:"serum_vault_signer"`
+	UserSourceTokenAccount      string                 `json:"user_source_token_account"`
+	UserDestinationTokenAccount string                 `json:"user_destination_token_account"`
 }
 
 func (e *RaydiumAmmV4SwapEvent) EventType() EventType       { return EventTypeRaydiumAmmV4Swap }
@@ -1119,20 +1134,22 @@ func (e *RaydiumAmmV4WithdrawEvent) GetMetadata() EventMetadata { return e.Metad
 
 // RaydiumCpmmSwapEvent Raydium CPMM 交换事件
 type RaydiumCpmmSwapEvent struct {
-	Metadata          EventMetadata `json:"metadata"`
-	PoolID            string        `json:"pool_id"`
-	InputAmount       uint64        `json:"input_amount"`
-	OutputAmount      uint64        `json:"output_amount"`
-	InputVaultBefore  uint64        `json:"input_vault_before"`
-	OutputVaultBefore uint64        `json:"output_vault_before"`
-	InputTransferFee  uint64        `json:"input_transfer_fee"`
-	OutputTransferFee uint64        `json:"output_transfer_fee"`
-	BaseInput         bool          `json:"base_input"`
-	InputMint         string        `json:"input_mint"`
-	OutputMint        string        `json:"output_mint"`
-	TradeFee          uint64        `json:"trade_fee"`
-	CreatorFee        uint64        `json:"creator_fee"`
-	CreatorFeeOnInput bool          `json:"creator_fee_on_input"`
+	ParseStatus       TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram      *RawInstructionPayload `json:"third_program,omitempty"`
+	Metadata          EventMetadata          `json:"metadata"`
+	PoolID            string                 `json:"pool_id"`
+	InputAmount       uint64                 `json:"input_amount"`
+	OutputAmount      uint64                 `json:"output_amount"`
+	InputVaultBefore  uint64                 `json:"input_vault_before"`
+	OutputVaultBefore uint64                 `json:"output_vault_before"`
+	InputTransferFee  uint64                 `json:"input_transfer_fee"`
+	OutputTransferFee uint64                 `json:"output_transfer_fee"`
+	BaseInput         bool                   `json:"base_input"`
+	InputMint         string                 `json:"input_mint"`
+	OutputMint        string                 `json:"output_mint"`
+	TradeFee          uint64                 `json:"trade_fee"`
+	CreatorFee        uint64                 `json:"creator_fee"`
+	CreatorFeeOnInput bool                   `json:"creator_fee_on_input"`
 }
 
 func (e *RaydiumCpmmSwapEvent) EventType() EventType       { return EventTypeRaydiumCpmmSwap }
@@ -1182,17 +1199,21 @@ func (e *RaydiumCpmmInitializeEvent) GetMetadata() EventMetadata { return e.Meta
 
 // OrcaWhirlpoolSwapEvent Orca Whirlpool 交换事件
 type OrcaWhirlpoolSwapEvent struct {
-	Metadata          EventMetadata `json:"metadata"`
-	Whirlpool         string        `json:"whirlpool"`
-	AToB              bool          `json:"a_to_b"`
-	PreSqrtPrice      string        `json:"pre_sqrt_price"`
-	PostSqrtPrice     string        `json:"post_sqrt_price"`
-	InputAmount       uint64        `json:"input_amount"`
-	OutputAmount      uint64        `json:"output_amount"`
-	InputTransferFee  uint64        `json:"input_transfer_fee"`
-	OutputTransferFee uint64        `json:"output_transfer_fee"`
-	LpFee             uint64        `json:"lp_fee"`
-	ProtocolFee       uint64        `json:"protocol_fee"`
+	TokenMintA        string                 `json:"token_mint_a"`
+	TokenMintB        string                 `json:"token_mint_b"`
+	ParseStatus       TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram      *RawInstructionPayload `json:"third_program,omitempty"`
+	Metadata          EventMetadata          `json:"metadata"`
+	Whirlpool         string                 `json:"whirlpool"`
+	AToB              bool                   `json:"a_to_b"`
+	PreSqrtPrice      string                 `json:"pre_sqrt_price"`
+	PostSqrtPrice     string                 `json:"post_sqrt_price"`
+	InputAmount       uint64                 `json:"input_amount"`
+	OutputAmount      uint64                 `json:"output_amount"`
+	InputTransferFee  uint64                 `json:"input_transfer_fee"`
+	OutputTransferFee uint64                 `json:"output_transfer_fee"`
+	LpFee             uint64                 `json:"lp_fee"`
+	ProtocolFee       uint64                 `json:"protocol_fee"`
 }
 
 func (e *OrcaWhirlpoolSwapEvent) EventType() EventType       { return EventTypeOrcaWhirlpoolSwap }
@@ -1262,29 +1283,31 @@ func (e *OrcaWhirlpoolPoolInitializedEvent) GetMetadata() EventMetadata { return
 
 // MeteoraDlmmSwapEvent Meteora DLMM 交换事件
 type MeteoraDlmmSwapEvent struct {
-	Metadata      EventMetadata `json:"metadata"`
-	TokenXMint    string        `json:"token_x_mint"`
-	TokenYMint    string        `json:"token_y_mint"`
-	UserTokenIn   string        `json:"user_token_in"`
-	UserTokenOut  string        `json:"user_token_out"`
-	MinAmountOut  uint64        `json:"min_amount_out"`
-	Pool          string        `json:"pool"`
-	From          string        `json:"from"`
-	StartBinID    int32         `json:"start_bin_id"`
-	EndBinID      int32         `json:"end_bin_id"`
-	AmountIn      uint64        `json:"amount_in"`
-	AmountOut     uint64        `json:"amount_out"`
-	SwapForY      bool          `json:"swap_for_y"`
-	Fee           uint64        `json:"fee"`
-	ProtocolFee   uint64        `json:"protocol_fee"`
-	FeeBps        string        `json:"fee_bps"`
-	HostFee       uint64        `json:"host_fee"`
-	EventVersion  uint8         `json:"event_version"`
-	AmountLeft    uint64        `json:"amount_left"`
-	MmFee         uint64        `json:"mm_fee"`
-	LimitOrderFee uint64        `json:"limit_order_fee"`
-	FeesOnInput   bool          `json:"fees_on_input"`
-	FeesOnTokenX  bool          `json:"fees_on_token_x"`
+	ParseStatus   TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram  *RawInstructionPayload `json:"third_program,omitempty"`
+	Metadata      EventMetadata          `json:"metadata"`
+	TokenXMint    string                 `json:"token_x_mint"`
+	TokenYMint    string                 `json:"token_y_mint"`
+	UserTokenIn   string                 `json:"user_token_in"`
+	UserTokenOut  string                 `json:"user_token_out"`
+	MinAmountOut  uint64                 `json:"min_amount_out"`
+	Pool          string                 `json:"pool"`
+	From          string                 `json:"from"`
+	StartBinID    int32                  `json:"start_bin_id"`
+	EndBinID      int32                  `json:"end_bin_id"`
+	AmountIn      uint64                 `json:"amount_in"`
+	AmountOut     uint64                 `json:"amount_out"`
+	SwapForY      bool                   `json:"swap_for_y"`
+	Fee           uint64                 `json:"fee"`
+	ProtocolFee   uint64                 `json:"protocol_fee"`
+	FeeBps        string                 `json:"fee_bps"`
+	HostFee       uint64                 `json:"host_fee"`
+	EventVersion  uint8                  `json:"event_version"`
+	AmountLeft    uint64                 `json:"amount_left"`
+	MmFee         uint64                 `json:"mm_fee"`
+	LimitOrderFee uint64                 `json:"limit_order_fee"`
+	FeesOnInput   bool                   `json:"fees_on_input"`
+	FeesOnTokenX  bool                   `json:"fees_on_token_x"`
 }
 
 func (e *MeteoraDlmmSwapEvent) EventType() EventType       { return EventTypeMeteoraDlmmSwap }
@@ -1392,6 +1415,8 @@ func (e *MeteoraDlmmClaimFeeEvent) GetMetadata() EventMetadata { return e.Metada
 
 // MeteoraPoolsSwapEvent Meteora Pools 交换事件
 type MeteoraPoolsSwapEvent struct {
+	ParseStatus  TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram *RawInstructionPayload `json:"third_program,omitempty"`
 	// Instruction intent, separate from executed InAmount/OutAmount.
 	AmountIn         uint64        `json:"amount_in,omitempty"`
 	MinimumOutAmount uint64        `json:"minimum_out_amount,omitempty"`
@@ -1478,39 +1503,41 @@ func (e *MeteoraPoolsSetPoolFeesEvent) GetMetadata() EventMetadata { return e.Me
 
 // MeteoraDammV2SwapEvent Meteora DAMM v2 交换事件
 type MeteoraDammV2SwapEvent struct {
-	Metadata                     EventMetadata `json:"metadata"`
-	Pool                         string        `json:"pool"`
-	TradeDirection               uint8         `json:"trade_direction"`
-	CollectFeeMode               uint8         `json:"collect_fee_mode"`
-	HasReferral                  bool          `json:"has_referral"`
-	Amount0                      uint64        `json:"amount_0"`
-	Amount1                      uint64        `json:"amount_1"`
-	SwapMode                     uint8         `json:"swap_mode"`
-	AmountIn                     uint64        `json:"amount_in"`
-	MinimumAmountOut             uint64        `json:"minimum_amount_out"`
-	OutputAmount                 uint64        `json:"output_amount"`
-	NextSqrtPrice                string        `json:"next_sqrt_price"`
-	LpFee                        uint64        `json:"lp_fee"`
-	ProtocolFee                  uint64        `json:"protocol_fee"`
-	PartnerFee                   uint64        `json:"partner_fee"`
-	ReferralFee                  uint64        `json:"referral_fee"`
-	ActualAmountIn               uint64        `json:"actual_amount_in"`
-	ExcludedFeeInputAmount       uint64        `json:"excluded_fee_input_amount"`
-	AmountLeft                   uint64        `json:"amount_left"`
-	ClaimingFee                  uint64        `json:"claiming_fee"`
-	CompoundingFee               uint64        `json:"compounding_fee"`
-	IncludedTransferFeeAmountIn  uint64        `json:"included_transfer_fee_amount_in"`
-	IncludedTransferFeeAmountOut uint64        `json:"included_transfer_fee_amount_out"`
-	ExcludedTransferFeeAmountOut uint64        `json:"excluded_transfer_fee_amount_out"`
-	CurrentTimestamp             uint64        `json:"current_timestamp"`
-	ReserveAAmount               uint64        `json:"reserve_a_amount"`
-	ReserveBAmount               uint64        `json:"reserve_b_amount"`
-	TokenAVault                  string        `json:"token_a_vault"`
-	TokenBVault                  string        `json:"token_b_vault"`
-	TokenAMint                   string        `json:"token_a_mint"`
-	TokenBMint                   string        `json:"token_b_mint"`
-	TokenAProgram                string        `json:"token_a_program"`
-	TokenBProgram                string        `json:"token_b_program"`
+	ParseStatus                  TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram                 *RawInstructionPayload `json:"third_program,omitempty"`
+	Metadata                     EventMetadata          `json:"metadata"`
+	Pool                         string                 `json:"pool"`
+	TradeDirection               uint8                  `json:"trade_direction"`
+	CollectFeeMode               uint8                  `json:"collect_fee_mode"`
+	HasReferral                  bool                   `json:"has_referral"`
+	Amount0                      uint64                 `json:"amount_0"`
+	Amount1                      uint64                 `json:"amount_1"`
+	SwapMode                     uint8                  `json:"swap_mode"`
+	AmountIn                     uint64                 `json:"amount_in"`
+	MinimumAmountOut             uint64                 `json:"minimum_amount_out"`
+	OutputAmount                 uint64                 `json:"output_amount"`
+	NextSqrtPrice                string                 `json:"next_sqrt_price"`
+	LpFee                        uint64                 `json:"lp_fee"`
+	ProtocolFee                  uint64                 `json:"protocol_fee"`
+	PartnerFee                   uint64                 `json:"partner_fee"`
+	ReferralFee                  uint64                 `json:"referral_fee"`
+	ActualAmountIn               uint64                 `json:"actual_amount_in"`
+	ExcludedFeeInputAmount       uint64                 `json:"excluded_fee_input_amount"`
+	AmountLeft                   uint64                 `json:"amount_left"`
+	ClaimingFee                  uint64                 `json:"claiming_fee"`
+	CompoundingFee               uint64                 `json:"compounding_fee"`
+	IncludedTransferFeeAmountIn  uint64                 `json:"included_transfer_fee_amount_in"`
+	IncludedTransferFeeAmountOut uint64                 `json:"included_transfer_fee_amount_out"`
+	ExcludedTransferFeeAmountOut uint64                 `json:"excluded_transfer_fee_amount_out"`
+	CurrentTimestamp             uint64                 `json:"current_timestamp"`
+	ReserveAAmount               uint64                 `json:"reserve_a_amount"`
+	ReserveBAmount               uint64                 `json:"reserve_b_amount"`
+	TokenAVault                  string                 `json:"token_a_vault"`
+	TokenBVault                  string                 `json:"token_b_vault"`
+	TokenAMint                   string                 `json:"token_a_mint"`
+	TokenBMint                   string                 `json:"token_b_mint"`
+	TokenAProgram                string                 `json:"token_a_program"`
+	TokenBProgram                string                 `json:"token_b_program"`
 }
 
 func (e *MeteoraDammV2SwapEvent) EventType() EventType       { return EventTypeMeteoraDammV2Swap }
@@ -1782,12 +1809,14 @@ func (e *MeteoraDammV2CreateDynamicConfigEvent) GetMetadata() EventMetadata { re
 
 // MeteoraDbcSwapEvent Meteora DBC 交易事件
 type MeteoraDbcSwapEvent struct {
-	EventVersion           uint8  `json:"event_version"`
-	SwapMode               uint8  `json:"swap_mode"`
-	Amount0                uint64 `json:"amount_0"`
-	Amount1                uint64 `json:"amount_1"`
-	MaximumAmountIn        uint64 `json:"maximum_amount_in"`
-	IncludedFeeInputAmount uint64 `json:"included_fee_input_amount"`
+	ParseStatus            TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram           *RawInstructionPayload `json:"third_program,omitempty"`
+	EventVersion           uint8                  `json:"event_version"`
+	SwapMode               uint8                  `json:"swap_mode"`
+	Amount0                uint64                 `json:"amount_0"`
+	Amount1                uint64                 `json:"amount_1"`
+	MaximumAmountIn        uint64                 `json:"maximum_amount_in"`
+	IncludedFeeInputAmount uint64                 `json:"included_fee_input_amount"`
 	// Curve remainder uses fee-excluded units with input fees; not gross unspent wallet funding.
 	AmountLeft         uint64 `json:"amount_left"`
 	QuoteReserveAmount uint64 `json:"quote_reserve_amount"`
@@ -1849,39 +1878,41 @@ func (e *MeteoraDbcCurveCompleteEvent) GetMetadata() EventMetadata { return e.Me
 
 // RaydiumLaunchlabTradeEvent RaydiumLaunchlab 交易事件
 type RaydiumLaunchlabTradeEvent struct {
-	Metadata                  EventMetadata `json:"metadata"`
-	PoolState                 string        `json:"pool_state"`
-	User                      string        `json:"user"`
-	AmountIn                  uint64        `json:"amount_in"`
-	AmountOut                 uint64        `json:"amount_out"`
-	IsBuy                     bool          `json:"is_buy"`
-	TradeDirection            string        `json:"trade_direction"`
-	ExactIn                   bool          `json:"exact_in"`
-	GlobalConfig              string        `json:"global_config"`
-	PlatformConfig            string        `json:"platform_config"`
-	UserBaseToken             string        `json:"user_base_token"`
-	UserQuoteToken            string        `json:"user_quote_token"`
-	BaseVault                 string        `json:"base_vault"`
-	QuoteVault                string        `json:"quote_vault"`
-	BaseMint                  string        `json:"base_mint"`
-	QuoteMint                 string        `json:"quote_mint"`
-	BaseTokenProgram          string        `json:"base_token_program"`
-	QuoteTokenProgram         string        `json:"quote_token_program"`
-	TotalBaseSell             uint64        `json:"total_base_sell"`
-	VirtualBase               uint64        `json:"virtual_base"`
-	VirtualQuote              uint64        `json:"virtual_quote"`
-	RealBaseBefore            uint64        `json:"real_base_before"`
-	RealQuoteBefore           uint64        `json:"real_quote_before"`
-	RealBaseAfter             uint64        `json:"real_base_after"`
-	RealQuoteAfter            uint64        `json:"real_quote_after"`
-	ProtocolFee               uint64        `json:"protocol_fee"`
-	PlatformFee               uint64        `json:"platform_fee"`
-	CreatorFee                uint64        `json:"creator_fee"`
-	ShareFee                  uint64        `json:"share_fee"`
-	PoolStatus                string        `json:"pool_status"`
-	SystemProgram             string        `json:"system_program"`
-	PlatformAssociatedAccount string        `json:"platform_associated_account"`
-	CreatorAssociatedAccount  string        `json:"creator_associated_account"`
+	ParseStatus               TradeParseStatus       `json:"parse_status,omitempty"`
+	ThirdProgram              *RawInstructionPayload `json:"third_program,omitempty"`
+	Metadata                  EventMetadata          `json:"metadata"`
+	PoolState                 string                 `json:"pool_state"`
+	User                      string                 `json:"user"`
+	AmountIn                  uint64                 `json:"amount_in"`
+	AmountOut                 uint64                 `json:"amount_out"`
+	IsBuy                     bool                   `json:"is_buy"`
+	TradeDirection            string                 `json:"trade_direction"`
+	ExactIn                   bool                   `json:"exact_in"`
+	GlobalConfig              string                 `json:"global_config"`
+	PlatformConfig            string                 `json:"platform_config"`
+	UserBaseToken             string                 `json:"user_base_token"`
+	UserQuoteToken            string                 `json:"user_quote_token"`
+	BaseVault                 string                 `json:"base_vault"`
+	QuoteVault                string                 `json:"quote_vault"`
+	BaseMint                  string                 `json:"base_mint"`
+	QuoteMint                 string                 `json:"quote_mint"`
+	BaseTokenProgram          string                 `json:"base_token_program"`
+	QuoteTokenProgram         string                 `json:"quote_token_program"`
+	TotalBaseSell             uint64                 `json:"total_base_sell"`
+	VirtualBase               uint64                 `json:"virtual_base"`
+	VirtualQuote              uint64                 `json:"virtual_quote"`
+	RealBaseBefore            uint64                 `json:"real_base_before"`
+	RealQuoteBefore           uint64                 `json:"real_quote_before"`
+	RealBaseAfter             uint64                 `json:"real_base_after"`
+	RealQuoteAfter            uint64                 `json:"real_quote_after"`
+	ProtocolFee               uint64                 `json:"protocol_fee"`
+	PlatformFee               uint64                 `json:"platform_fee"`
+	CreatorFee                uint64                 `json:"creator_fee"`
+	ShareFee                  uint64                 `json:"share_fee"`
+	PoolStatus                string                 `json:"pool_status"`
+	SystemProgram             string                 `json:"system_program"`
+	PlatformAssociatedAccount string                 `json:"platform_associated_account"`
+	CreatorAssociatedAccount  string                 `json:"creator_associated_account"`
 }
 
 func (e *RaydiumLaunchlabTradeEvent) EventType() EventType       { return EventTypeRaydiumLaunchlabTrade }

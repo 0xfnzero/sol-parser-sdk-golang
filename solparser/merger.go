@@ -439,7 +439,9 @@ func mergePumpfunTrade(base, inner *PumpFunTradeEvent) {
 		base.TotalClaimedTokens = inner.TotalClaimedTokens
 		base.CurrentSolVolume = inner.CurrentSolVolume
 		base.LastUpdateTimestamp = inner.LastUpdateTimestamp
-		putStringIfSet(&base.IxName, inner.IxName)
+		if preferPumpInstructionName(base.IxName, inner.IxName) {
+			base.IxName = inner.IxName
+		}
 		base.MayhemMode = inner.MayhemMode
 		putUint64IfNonzero(&base.CashbackFeeBasisPoints, inner.CashbackFeeBasisPoints)
 		putUint64IfNonzero(&base.Cashback, inner.Cashback)
@@ -482,7 +484,9 @@ func mergePumpfunTrade(base, inner *PumpFunTradeEvent) {
 		putUint64IfNonzero(&base.HolderRewards, inner.HolderRewards)
 		putInt64IfNonzero(&base.Timestamp, inner.Timestamp)
 		putInt64IfNonzero(&base.LastUpdateTimestamp, inner.LastUpdateTimestamp)
-		putStringIfSet(&base.IxName, inner.IxName)
+		if preferPumpInstructionName(base.IxName, inner.IxName) {
+			base.IxName = inner.IxName
+		}
 		if inner.TrackVolume {
 			base.TrackVolume = true
 		}

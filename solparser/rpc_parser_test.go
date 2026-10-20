@@ -145,7 +145,7 @@ func TestParseRpcTransactionMergesOuterAndInnerPumpfunInstructions(t *testing.T)
 	}
 }
 
-func TestParseRpcTransactionMarksPumpfunLogTradeCreatedBuyFromWholeTransaction(t *testing.T) {
+func TestParseRpcTransactionDoesNotInferCreationFromLogsAlone(t *testing.T) {
 	tx := &RpcTransactionResponse{
 		Slot:             7,
 		TransactionIndex: 7,
@@ -168,8 +168,8 @@ func TestParseRpcTransactionMarksPumpfunLogTradeCreatedBuyFromWholeTransaction(t
 		t.Fatalf("expected one PumpFunBuy event, got %+v", events)
 	}
 	trade := events[0].Data.(*PumpFunTradeEvent)
-	if !trade.IsCreatedBuy {
-		t.Fatalf("expected is_created_buy from whole transaction create detection: %+v", trade)
+	if trade.IsCreatedBuy {
+		t.Fatalf("create instruction required for same-mint creation: %+v", trade)
 	}
 }
 
@@ -214,8 +214,8 @@ func TestPumpCreateDetectionScopeAndTradeOnlyOutput(t *testing.T) {
 			if err != nil || len(events) != 1 {
 				t.Fatalf("events=%+v err=%v", events, err)
 			}
-			if got := events[0].Data.(*PumpFunTradeEvent).IsCreatedBuy; got != test.expected {
-				t.Fatalf("buy flag=%v want=%v", got, test.expected)
+			if got := events[0].Data.(*PumpFunTradeEvent).IsCreatedBuy; got {
+				t.Fatal("create log without a matching native create instruction must not mark the buy")
 			}
 		})
 	}

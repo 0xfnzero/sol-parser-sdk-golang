@@ -137,12 +137,27 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 				payload[i] = int(b)
 			}
 			dexes := rawInstructionDexes(pid, accounts)
-			if rawInstructionMatchesFilter(dexes, filter) {
-				out = append(out, DexEvent{Type: EventTypeRawInstruction, Data: &RawInstructionEvent{
+			{
+				raw := &RawInstructionEvent{
 					Dexes:     dexes,
 					Metadata:  makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash),
 					ProgramID: pid, InstructionIndex: index, Accounts: accounts, AccountIndices: indices, InstructionData: payload,
-				}})
+				}
+				if explicitRaw && rawInstructionMatchesFilter(dexes, filter) {
+					out = append(out, DexEvent{Type: EventTypeRawInstruction, Data: raw})
+				}
+				includeUnresolved := filter == nil || filter.ShouldInclude(EventTypePumpFunTrade)
+				if f, ok := filter.(*IncludeOnlyFilter); ok {
+					includeUnresolved = includeUnresolved && eventTypeSliceContains(f.IncludeOnly, EventTypePumpFunTrade)
+				}
+				if unknown && includeUnresolved {
+					for _, dex := range dexes {
+						if dex.ProgramID == PUMPFUN_PROGRAM_ID {
+							out = append(out, DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: raw.Metadata, ThirdProgram: rawInstructionPayload(raw), ParseStatus: TradeParseUnresolved}})
+							break
+						}
+					}
+				}
 			}
 		}
 		if unknown {
@@ -187,6 +202,10 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 	}
 	enrichPumpfunSameTxPostMerge(out)
 	for i := range out {
+		_, status, _ := tradeSource(out[i])
+		if status != nil && *status == "" {
+			*status = TradeParseInstructionDecoded
+		}
 		out[i].SetRecentBlockhash(tx.Message.RecentBlockhash)
 	}
 	return out

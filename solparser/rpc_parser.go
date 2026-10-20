@@ -240,6 +240,7 @@ func parseRpcTransactionImpl(
 		}
 	}
 
+	for _, item := range ixEvents { markTradeExecutionSource(item.Event, item.OuterIdx, msg, fullKeys, meta) }
 	instrEvents := mergeRpcInstructionEvents(ixEvents)
 	recentBlockhash := ""
 	if msg.RecentBlockhash != "" {
@@ -253,7 +254,8 @@ func parseRpcTransactionImpl(
 	logEvents := make([]DexEvent, 0)
 	activeProgramStack := make([]string, 0, 8)
 
-	for _, log := range meta.LogMessages {
+	sourceIndices := logOuterIndices(meta.LogMessages, msg, fullKeys)
+	for logIndex, log := range meta.LogMessages {
 		if programID, depth, ok := ParseInvokeInfo(log); ok {
 			keep := depth - 1
 			if keep < 0 {
@@ -282,6 +284,7 @@ func parseRpcTransactionImpl(
 			currentProgram,
 		)
 		if ev.Type != "" {
+			markTradeExecutionSource(ev, sourceIndices[logIndex], msg, fullKeys, meta)
 			logEvents = append(logEvents, ev)
 		}
 		if completed, ok := ParseProgramCompleteInfo(log); ok {

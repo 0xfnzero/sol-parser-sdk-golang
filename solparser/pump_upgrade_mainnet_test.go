@@ -152,6 +152,9 @@ func TestCapturedPumpUpgradeMainnet(t *testing.T) {
 					t.Fatalf("expected one %s, got %d", expected.Name, len(matches))
 				}
 				for k, v := range expected.Data {
+					if k == "ix_name" {
+						v = expectedPumpMethod(tx, fmt.Sprint(v))
+					}
 					if k == "shareholders" {
 						continue
 					}

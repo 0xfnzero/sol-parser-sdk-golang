@@ -98,6 +98,17 @@ func run() error {
 		if err = json.Unmarshal(b, &fixture); err != nil {
 			return err
 		}
+		b, err = os.ReadFile("solparser/testdata/wrapped_pumpfun_reported.json")
+		if err != nil {
+			return err
+		}
+		var reported struct {
+			Cases []struct{ Raw json.RawMessage }
+		}
+		if err = json.Unmarshal(b, &reported); err != nil {
+			return err
+		}
+		fixture.Cases = append(fixture.Cases, reported.Cases...)
 	}
 	for _, c := range fixture.Cases {
 		tx, err := decode(c.Raw)

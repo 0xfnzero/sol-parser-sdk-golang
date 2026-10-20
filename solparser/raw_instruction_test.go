@@ -70,36 +70,24 @@ func TestRawSignedInstructions(t *testing.T) {
 				t.Fatal("JSON roundtrip")
 			}
 		}
-		if f.RawInstructionCount != nil {
-			parsed, err := DexEventsFromShredTransactionWireWithLoadedAddresses(wire, f.LoadedWritable, f.LoadedReadonly, "", 1, 2, nil, 3, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			count := 0
-			for _, e := range parsed {
-				if e.Type == EventTypeRawInstruction {
-					count++
-				}
-				if _, ok := e.Data.(*PumpFunTradeEvent); ok {
-					t.Fatal("wrapper inferred as trade")
-				}
-			}
-			if count != *f.RawInstructionCount {
-				t.Fatal("raw count", count)
-			}
+		defaults, err := DexEventsFromShredTransactionWireWithLoadedAddresses(wire, f.LoadedWritable, f.LoadedReadonly, "", 1, 2, nil, 3, nil)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if f.Signature[:4] == "3nMX" || f.Signature[:4] == "2r4u" {
-			events = DexEventsFromShredTransactionWire(wire, "", 1, 2, nil, 3, nil)
-			want := 3
-			if f.Signature[:4] == "3nMX" {
-				want = 2
+		for _, event := range defaults {
+			if event.Type == EventTypeRawInstruction {
+				t.Fatal("raw requires explicit subscription")
 			}
-			if len(events) != want {
-				t.Fatal("default wrapper count")
-			}
-			for _, event := range events {
-				if event.Type != EventTypeRawInstruction {
-					t.Fatal("inferred wrapper")
+			if e, ok := event.Data.(*PumpFunTradeEvent); ok && e.ThirdProgram != nil {
+				if e.ParseStatus != TradeParseUnresolved || e.SolAmount != 0 {
+					t.Fatal("invented execution")
+				}
+				raw := e.ThirdProgram
+				data, _ := base58.Decode(tx.Message.Instructions[raw.InstructionIndex].Data)
+				for j, b := range data {
+					if raw.InstructionData[j] != int(b) {
+						t.Fatal("changed payload")
+					}
 				}
 			}
 		}
@@ -122,7 +110,7 @@ func TestRawUnknownChangedInstruction(t *testing.T) {
 	ix.Data = base58.Encode([]byte{255, 0, 1})
 	tx.Message.Instructions = tx.Message.Instructions[:1]
 	tx.Message.Instructions[0] = ix
-	events := parseShredKeys(tx, tx.Message.AccountKeys, "", 1, 2, nil, 3, nil, false, nil)
+	events := parseShredKeys(tx, tx.Message.AccountKeys, "", 1, 2, nil, 3, EventTypeFilterIncludeOnly([]EventType{EventTypeRawInstruction}), false, nil)
 	if len(events) != 1 {
 		t.Fatal("unknown instruction dropped")
 	}
@@ -157,24 +145,35 @@ func TestRawDexSubscriptionScope(t *testing.T) {
 		event   EventType
 		indices []int
 	}{
-		{EventTypePumpFunTrade, []int{0, 3}}, {EventTypeRaydiumCpmmSwap, []int{1, 3}}, {EventTypePumpFunBuy, []int{}}, {EventTypeRawInstruction, []int{0, 1, 2, 3, 4}},
+		{EventTypePumpFunTrade, []int{0, 3}}, {EventTypeRaydiumCpmmSwap, []int{}}, {EventTypePumpFunBuy, []int{}}, {EventTypeRawInstruction, []int{0, 1, 2, 3, 4}},
 	} {
 		events := parseShredKeys(tx, tx.Message.AccountKeys, "", 1, 2, nil, 3, EventTypeFilterIncludeOnly([]EventType{test.event}), false, nil)
 		indices := []int{}
 		for _, event := range events {
-			indices = append(indices, event.Data.(*RawInstructionEvent).InstructionIndex)
+			switch e := event.Data.(type) {
+			case *RawInstructionEvent:
+				indices = append(indices, e.InstructionIndex)
+			case *PumpFunTradeEvent:
+				indices = append(indices, e.ThirdProgram.InstructionIndex)
+			default:
+				t.Fatal("unexpected event")
+			}
 		}
 		if !reflect.DeepEqual(indices, test.indices) {
 			t.Fatalf("%s: got %v want %v", test.event, indices, test.indices)
 		}
 	}
 	events := parseShredKeys(tx, tx.Message.AccountKeys, "", 1, 2, nil, 3, nil, false, nil)
-	raw := events[3].Data.(*RawInstructionEvent)
-	if len(raw.Dexes) != 2 || raw.Dexes[0].DexType != "pumpfun" || raw.Dexes[1].DexType != "raydium_cpmm" || raw.Dexes[0].Pool != nil || raw.Accounts[2] != nil {
-		t.Fatal(raw)
+	if len(events) != 2 {
+		t.Fatal("wrong candidate count")
 	}
-	if rawInstructionMatchesFilter(raw.Dexes, EventTypeFilterExclude([]EventType{EventTypeRawInstruction})) {
-		t.Fatal("raw exclusion ignored")
+	raw := events[1].Data.(*PumpFunTradeEvent).ThirdProgram
+	if raw.Accounts[2] != nil {
+		t.Fatal("missing ALT must remain null")
+	}
+	excluded := parseShredKeys(tx, tx.Message.AccountKeys, "", 1, 2, nil, 3, EventTypeFilterExclude([]EventType{EventTypeRawInstruction}), false, nil)
+	if len(excluded) != 2 {
+		t.Fatal("raw exclusion must not suppress Pump callback")
 	}
 }
 

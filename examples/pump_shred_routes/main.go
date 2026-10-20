@@ -85,8 +85,9 @@ func runReplay() int {
 				check(len(events) == len(f.Expected), "raw count mismatch")
 				keys := append(append(append([]string{}, tx.Message.AccountKeys...), f.Writable...), f.Readonly...)
 				for _, event := range events {
-					e, ok := event.Data.(*sdk.RawInstructionEvent)
-					check(ok, "expected raw instruction")
+					trade, ok := event.Data.(*sdk.PumpFunTradeEvent)
+					check(ok && trade.ThirdProgram != nil && trade.ParseStatus == sdk.TradeParseUnresolved && trade.SolAmount == 0, "expected unresolved wrapper")
+					e := trade.ThirdProgram
 					ix := tx.Message.Instructions[e.InstructionIndex]
 					check(e.ProgramID == keys[ix.ProgramIDIndex], "raw program")
 					check(reflect.DeepEqual(e.AccountIndices, ix.Accounts), "raw indices")
@@ -102,15 +103,8 @@ func runReplay() int {
 				selected := parse(&sdk.IncludeOnlyFilter{IncludeOnly: []sdk.EventType{sdk.EventTypePumpFunTrade}})
 				check(len(selected) > 0, "PumpFun wrapper was dropped")
 				for _, event := range selected {
-					raw, ok := event.Data.(*sdk.RawInstructionEvent)
-					check(ok, "wrapper must remain raw")
-					pump := false
-					for _, dex := range raw.Dexes {
-						if dex.DexType == sdk.RawInstructionDexTypePumpFun {
-							pump = true
-						}
-					}
-					check(pump, "unrelated raw instruction leaked into PumpFun subscription")
+					trade, ok := event.Data.(*sdk.PumpFunTradeEvent)
+					check(ok && trade.ThirdProgram != nil, "missing wrapper payload")
 				}
 				trace = append(trace, events...)
 				continue
