@@ -53,7 +53,12 @@ func TestCapturedStockPrices(t *testing.T) {
 				}
 			}
 		}
-		if count != 1 {
+		// The captured ABNB pool no longer belongs to the default catalog.
+		expectedCount := 1
+		if c.Name == "ABNB.US" {
+			expectedCount = 0
+		}
+		if count != expectedCount {
 			t.Fatal(c.Name, count)
 		}
 		tracker.Reset()

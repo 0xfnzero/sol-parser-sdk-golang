@@ -1,4 +1,4 @@
-# Cross-language synchronization (v0.9.0)
+# Cross-language synchronization (v0.9.1)
 
 The SDK and examples use their own language. All replays below run offline; no parser, price tracker, or cached quote hot path requests RPC.
 
