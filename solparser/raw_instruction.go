@@ -5,23 +5,6 @@ import (
 	"fmt"
 )
 
-const EventTypeRawInstruction EventType = "RawInstruction"
-
-// RawInstructionEvent describes only signed outer instruction data, not a CPI or fill.
-type RawInstructionEvent struct {
-	Dexes            []RawInstructionDex `json:"dexes"`
-	Metadata         EventMetadata       `json:"metadata"`
-	ProgramID        string              `json:"program_id"`
-	InstructionIndex int                 `json:"instruction_index"`
-	// Preserve order and duplicate keys. nil means an unresolved ALT address.
-	Accounts        []*string `json:"accounts"`
-	AccountIndices  []int     `json:"account_indices"`
-	InstructionData []int     `json:"instruction_data"`
-}
-
-func (e *RawInstructionEvent) GetMetadata() EventMetadata { return e.Metadata }
-func (e *RawInstructionEvent) EventType() EventType       { return EventTypeRawInstruction }
-
 var infrastructurePrograms = map[string]bool{
 	"11111111111111111111111111111111":             true,
 	"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA":  true,
@@ -66,13 +49,6 @@ const (
 	RawInstructionDexTypeMeteoraDbc       RawInstructionDexType = "meteora_dbc"
 )
 
-// RawInstructionDex is a program reference, not an executed CPI or known pool.
-type RawInstructionDex struct {
-	DexType   RawInstructionDexType `json:"dex_type"`
-	ProgramID string                `json:"program_id"`
-	Pool      *string               `json:"pool"`
-}
-
 var rawDexPrograms = []struct {
 	name    RawInstructionDexType
 	program string
@@ -89,45 +65,6 @@ var rawDexPrograms = []struct {
 	{RawInstructionDexTypeMeteoraDammV2, METEORA_DAMM_V2_PROGRAM_ID, EventTypeMeteoraDammV2Swap},
 	{RawInstructionDexTypeMeteoraDlmm, METEORA_DLMM_PROGRAM_ID, EventTypeMeteoraDlmmSwap},
 	{RawInstructionDexTypeMeteoraDbc, METEORA_DBC_PROGRAM_ID, EventTypeMeteoraDbcSwap},
-}
-
-func rawInstructionDexes(program string, accounts []*string) []RawInstructionDex {
-	out := []RawInstructionDex{}
-	for _, dex := range rawDexPrograms {
-		found := program == dex.program
-		for _, account := range accounts {
-			if account != nil && *account == dex.program {
-				found = true
-			}
-		}
-		if found {
-			out = append(out, RawInstructionDex{DexType: dex.name, ProgramID: dex.program})
-		}
-	}
-	return out
-}
-func rawInstructionMatchesFilter(dexes []RawInstructionDex, filter EventTypeFilter) bool {
-	if filter == nil {
-		return true
-	}
-	if f, ok := filter.(*ExcludeFilter); ok && eventTypeSliceContains(f.ExcludeTypes, EventTypeRawInstruction) {
-		return false
-	}
-	included, limited := filter.(*IncludeOnlyFilter)
-	if limited && eventTypeSliceContains(included.IncludeOnly, EventTypeRawInstruction) {
-		return true
-	}
-	if len(dexes) == 0 {
-		return !limited && filter.ShouldInclude(EventTypeRawInstruction)
-	}
-	for _, dex := range dexes {
-		for _, known := range rawDexPrograms {
-			if dex.DexType == known.name && (!limited || eventTypeSliceContains(included.IncludeOnly, known.event)) && filter.ShouldInclude(known.event) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func (d *RawInstructionDexType) UnmarshalJSON(data []byte) error {

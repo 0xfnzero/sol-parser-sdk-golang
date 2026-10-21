@@ -1,4 +1,6 @@
 // Offline captured execution replay. Optional signature fetch uses SOLANA_RPC_URL.
+// Inspect third_program and parse_status. Execution metadata is unavailable to
+// Shred; one outer wrapper can produce several fills with different event counts.
 package main
 
 import (
@@ -132,7 +134,7 @@ func run() error {
 			if parseErr != nil {
 				return parseErr
 			}
-			out, err := json.Marshal(map[string]any{"mode": mode, "slot": tx.Slot, "signature": tx.Transaction.Signatures[0], "events": events})
+			out, err := json.Marshal(map[string]any{"source": "execution_replay", "mode": mode, "event_count": len(events), "slot": tx.Slot, "signature": tx.Transaction.Signatures[0], "events": events})
 			if err != nil {
 				return err
 			}

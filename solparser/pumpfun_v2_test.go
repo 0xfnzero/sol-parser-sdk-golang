@@ -2,6 +2,7 @@ package solparser
 
 import (
 	"encoding/binary"
+	"reflect"
 	"testing"
 )
 
@@ -11,6 +12,23 @@ func pumpfunV2TestAccounts(n int) []string {
 		accounts[i] = "account_" + string(rune('A'+i))
 	}
 	return accounts
+}
+
+func TestV3RemainingAccountsPreserveRolesAndMetadata(t *testing.T) {
+	for _, disc := range [][8]byte{{7, 5, 29, 196, 245, 23, 101, 80}, {225, 247, 80, 30, 213, 179, 132, 136}, {28, 146, 222, 119, 38, 196, 105, 213}} {
+		data := pumpfunV2Instruction(binary.LittleEndian.Uint64(disc[:]), 100, 7)
+		parse := func(n int) DexEvent {
+			return ParsePumpfunInstruction(data, pumpfunV2TestAccounts(n), "sig", 123, 71, nil, 999)
+		}
+		event := parse(19)
+		if !reflect.DeepEqual(event, parse(17)) || !reflect.DeepEqual(parse(16), DexEvent{}) {
+			t.Fatal("V3 fixed account boundary changed")
+		}
+		trade, ok := event.Data.(*PumpFunTradeEvent)
+		if !ok || trade.Metadata.TxIndex != 71 || trade.Metadata.GrpcRecvUs != 999 {
+			t.Fatalf("metadata lost: %+v", event)
+		}
+	}
 }
 
 func pumpfunV2Instruction(disc uint64, first, second uint64) []byte {

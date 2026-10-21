@@ -118,56 +118,33 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 			}
 		}
 		unknown := isUnknownShredProgram(pid)
-		explicitRaw := false
-		if f, ok := filter.(*IncludeOnlyFilter); ok {
-			explicitRaw = eventTypeSliceContains(f.IncludeOnly, EventTypeRawInstruction)
-		}
-		if pid != "" && (unknown || explicitRaw) {
-			accounts := make([]*string, len(ix.Accounts))
-			indices := make([]int, len(ix.Accounts))
-			for i, k := range ix.Accounts {
-				indices[i] = k
-				if k < len(keys) {
-					key := keys[k]
-					accounts[i] = &key
+		if unknown && (filter == nil || filter.ShouldInclude(EventTypePumpFunTrade)) {
+			for _, k := range ix.Accounts {
+				if k < 0 || k >= len(keys) || keys[k] != PUMPFUN_PROGRAM_ID {
+					continue
 				}
-			}
-			payload := make([]int, len(data))
-			for i, b := range data {
-				payload[i] = int(b)
-			}
-			dexes := rawInstructionDexes(pid, accounts)
-			{
-				raw := &RawInstructionEvent{
-					Dexes:     dexes,
-					Metadata:  makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash),
-					ProgramID: pid, InstructionIndex: index, Accounts: accounts, AccountIndices: indices, InstructionData: payload,
-				}
-				if explicitRaw && rawInstructionMatchesFilter(dexes, filter) {
-					out = append(out, DexEvent{Type: EventTypeRawInstruction, Data: raw})
-				}
-				includeUnresolved := filter == nil || filter.ShouldInclude(EventTypePumpFunTrade)
-				if f, ok := filter.(*IncludeOnlyFilter); ok {
-					includeUnresolved = includeUnresolved && eventTypeSliceContains(f.IncludeOnly, EventTypePumpFunTrade)
-				}
-				if unknown && includeUnresolved {
-					for _, dex := range dexes {
-						if dex.ProgramID == PUMPFUN_PROGRAM_ID {
-							out = append(out, DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{Metadata: raw.Metadata, ThirdProgram: rawInstructionPayload(raw), ParseStatus: TradeParseUnresolved}})
-							break
-						}
+				raw := &RawInstructionPayload{ProgramID: pid, InstructionIndex: index,
+					Accounts:       make([]*string, len(ix.Accounts)),
+					AccountIndices: append([]int{}, ix.Accounts...), InstructionData: make([]int, len(data))}
+				for i, keyIndex := range ix.Accounts {
+					if keyIndex >= 0 && keyIndex < len(keys) {
+						key := keys[keyIndex]
+						raw.Accounts[i] = &key
 					}
 				}
+				for i, b := range data {
+					raw.InstructionData[i] = int(b)
+				}
+				out = append(out, DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{
+					Metadata:     makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash),
+					ThirdProgram: raw, ParseStatus: TradeParseUnresolved}})
+				break
 			}
 		}
 		if unknown {
 			continue
 		}
 		if !resolved && !bestEffort {
-			continue
-		}
-		route := MayParsePumpRoute(pid, data)
-		if route && (!resolved || !allowsPumpRoute(filter, pid)) {
 			continue
 		}
 		accounts := make([]string, len(ix.Accounts))
@@ -177,13 +154,6 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 			} else {
 				accounts[i] = zeroPubkey
 			}
-		}
-		if route {
-			meta := makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash)
-			if e := ParsePumpRoute(pid, data, accounts, meta, index, filter); e != nil {
-				out = append(out, DexEvent{Type: EventTypePumpRouteIntent, Data: e})
-			}
-			continue
 		}
 		if pid == "" {
 			for _, candidate := range shredUnknownProgramCandidates {

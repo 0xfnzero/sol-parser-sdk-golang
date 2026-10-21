@@ -1,4 +1,4 @@
-# Cross-language synchronization (v0.6.0)
+# Cross-language synchronization (v0.9.0)
 
 The SDK and examples use their own language. All replays below run offline; no parser, price tracker, or cached quote hot path requests RPC.
 
@@ -10,9 +10,9 @@ For unknown Shred wrappers whose own account list references Pump.fun, the defau
 
 `third_program` contains the outer `program_id`, `instruction_index`, ordered `accounts` (including duplicates/nulls), original `account_indices`, and byte-array `instruction_data`. Event metadata retains transaction position and receive time. Entries positions are local to a message, not slot-wide execution ordering.
 
-Direction-only subscriptions do not receive unresolved candidates. Excluding `RawInstruction` does not exclude Pump.fun callbacks. Explicit `RawInstruction` subscription remains a compatibility API for all outer instructions. An unknown non-Pump router is not turned into a confirmed swap solely from account references. RPC/gRPC can decode supported native CPI swaps under those routers normally.
+Direction-only subscriptions do not receive unresolved candidates. RawInstruction and PumpRouteIntent callbacks have been removed; subscribe to PumpFunTrade and inspect third_program and parse_status. Unknown non-Pump routers do not become confirmed swaps from account references alone. RPC/gRPC decodes supported native CPI swaps normally.
 
-Optional wrapper rules remain explicit, offline-reviewed helpers. Their restored input fields carry `InstructionDecoded`; they do not establish fills. Rules are never installed automatically and are never applied to gRPC execution events.
+Wrapper input remains opaque. The SDK does not reconstruct third-party instruction arguments or install wrapper rules. See [callback and migration details](wrapped-pumpfun.md).
 
 ## Stock catalog and prices
 
@@ -37,8 +37,7 @@ Run from the repository root after installing its development dependencies:
 ```sh
 go run ./examples/stock_price_replay
 go run ./examples/stock_route_replay
-go run ./examples/raw_instruction_filter
-go run ./examples/pump_shred_routes
+go run ./examples/pump_execution_replay
 ```
 
 Stock examples accept `--fixture FILE`. Parser captures are dated 2026-10-20; trade examples replay normalized legs from those same signatures. Historical wrapper captures remain regression evidence and are not labeled live transactions.

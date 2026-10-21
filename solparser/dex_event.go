@@ -231,10 +231,6 @@ func (e *DexEvent) SetRecentBlockhash(h string) {
 		return
 	}
 	switch d := e.Data.(type) {
-	case *PumpRouteIntentEvent:
-		d.Metadata.RecentBlockhash = h
-	case *RawInstructionEvent:
-		d.Metadata.RecentBlockhash = h
 	case *PumpFunTradeEvent:
 		d.Metadata.RecentBlockhash = h
 	case *PumpFunCreateEvent:

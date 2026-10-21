@@ -4,11 +4,11 @@ package solparser
 
 func normalizePumpfunIxName(ixName string) string {
 	switch ixName {
-	case "buy_v2":
+	case "buy_v2", "buy_v3":
 		return "buy"
-	case "sell_v2":
+	case "sell_v2", "sell_v3":
 		return "sell"
-	case "buy_exact_quote_in_v2":
+	case "buy_exact_quote_in_v2", "buy_exact_quote_in_v3":
 		return "buy_exact_quote_in"
 	default:
 		return ixName

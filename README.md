@@ -1,158 +1,53 @@
-Current version: **0.6.0**. SDK, native-language tests, examples and documentation are synchronized in this release. See [RELEASE_NOTES.md](RELEASE_NOTES.md) for migration details.
-
-[v0.6.0: SDK、原生 examples、股票目录与交易来源同步说明](docs/cross-language-sync.md)
-
 <div align="center">
-
-[Wrapped Pump.fun: offline rules, hot-path boundaries, and real-transaction replays](docs/wrapped-pumpfun.md)
-
-## v0.5.17 — Shred metadata passthrough and ordering scope
-
-Preserve and verify transaction position and receive time through raw instruction callbacks. Entries indexes are message-local, unlike Yellowstone node indexes; use signatures for cross-message deduplication. This release clarifies API documentation and adds regression protection without changing metadata fields or numbering behavior.
-
-
-## v0.5.17 — DEX-scoped RawInstruction and typed DEX identifiers
-
-Raw instructions now respect DEX subscriptions using programs referenced by each instruction. `RawInstructionDexType` provides typed identifiers with unchanged JSON strings. Unknown router layouts do not establish pool addresses, trade direction, or method versions.
-
-
-## v0.5.17 — Pump execution replay
-
-Current Anchor TradeEvent CPI decoding is supported alongside the historical encoding. RPC/gRPC instruction budgets and minimum outputs remain in instruction fields. Execution fields `sol_amount`, `quote_amount`, and `token_amount` come from execution events; without logs or event CPIs they remain zero (unavailable, not a proven zero fill).
-
-Run `go run ./examples/pump_execution_replay` from this repository to replay real transactions fetched on 2026-10-19 offline. The example prints full/no-log/truncated-log results. Append a recent signature for online replay. Set `SOLANA_RPC_URL` for your RPC; transaction v1 is supported.
-
-The current Delta sell signature is `4ARos3Yq1SMNE3izDpy9YdKrRgMmD7UCDxvnVrBRaGCJHiifPHSmQWc4DPfjUaEUcxS7puGmEN64K7EZdeXLJaj2` (slot 458542546). The dated fixture also includes Rapid create/buy, BuyV3, and PumpSwap buy with their full signatures and slots. Older five-combination multi-hop fixtures are retained as regression tests, not labeled as new mainnet captures.
-
-## v0.5.17 — raw Shred instructions
-
-Default Shred parsing emits unresolved `PumpFunTrade` candidates for unknown wrappers referencing Pump.fun. Their `third_program` preserves raw input; direction, amounts and internal methods are not inferred. Official Pump/PumpSwap multi-hop instructions retain `PumpRouteIntent`.
-
-The payload contains `program_id`, `instruction_index`, `accounts`, `account_indices`, `instruction_data`, and transaction metadata. Account order and duplicates are preserved. Unresolved ALT addresses are null/None, with original indices retained; supply cached loaded addresses or a resolver. No hot-path RPC is performed. Data is copied verbatim without requiring a known layout.
-
-Run `go run ./examples/raw_instruction_filter` to compare PumpFun-only, Raydium CPMM-only, and all-raw subscriptions against signed offline transactions; the output includes `dexes`.
-
-The raw event retains `metadata.tx_index` and `metadata.grpc_recv_us` from the parser arguments (streamer names the receive field `metadata.recv_us`). The default Entries client index is local to one received Entries message and restarts at zero for the next message; it is not a confirmed slot-wide transaction index. `instruction_index` orders outer instructions within a transaction. Receive time is a local microsecond timestamp, not an execution-order guarantee. Standalone replay APIs may default these values to zero; pass the upstream values when available.
-
-Default and `PumpFunTrade` subscriptions receive unresolved Pump.fun candidates. Direction-only subscriptions do not. Explicit `RawInstruction` requests all outer instructions for compatibility; excluding it does not suppress Pump.fun callbacks. Unknown wrappers referencing other DEXes require explicit raw subscription in Shred; gRPC uses actual supported CPI instructions. See the [current evidence and filtering contract](docs/cross-language-sync.md).
-
-Wrapper adapter functions remain explicit compatibility helpers only; default Shred parsing does not call them. The released-version history below describes previous behavior.
-
-    <h1>⚡ Sol Parser SDK - Go</h1>
-    <h3><em>High-performance Solana DEX event parser for Go</em></h3>
+    <h1>Sol Parser SDK — Go</h1>
+    <p>Solana DEX event parsing for Go</p>
+    <a href="https://pkg.go.dev/github.com/0xfnzero/sol-parser-sdk-golang"><img src="https://pkg.go.dev/badge/github.com/0xfnzero/sol-parser-sdk-golang.svg" alt="sol-parser-sdk-golang"></a>
+    <a href="#license"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
 </div>
 
 <p align="center">
-    <a href="https://github.com/0xfnzero/sol-parser-sdk-golang"><img src="https://img.shields.io/badge/go-sol--parser--sdk--golang-00ADD8.svg" alt="Go"></a>
-    <a href="https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+    <a href="README.md">English</a> · <a href="README_CN.md">中文</a> ·
+    <a href="#examples">Examples</a> ·
+    <a href="docs/USAGE.md">Documentation</a> ·
+    <a href="RELEASE_NOTES.md">Release and migration</a> ·
+    <a href="#sdk-versions-and-related-sdks">Related SDKs</a>
 </p>
 
-<p align="center">
-    <a href="./README_CN.md">中文</a> |
-    <a href="./README.md">English</a> |
-    <a href="https://fnzero.dev/">Website</a> |
-    <a href="https://t.me/fnzero_group">Telegram</a> |
-    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
-</p>
+Parse typed events from gRPC, ShredStream, RPC transactions and protocol accounts for indexing, monitoring and trading systems.
 
----
+Current version: **0.9.0**. Read the [migration notes](RELEASE_NOTES.md) before upgrading; see the [changelog](CHANGELOG.md) for historical changes.
+
+## Contents
+
+- [SDK Versions and Related SDKs](#sdk-versions-and-related-sdks)
+- [How to use](#how-to-use)
+- [What This SDK Is For](#what-this-sdk-is-for)
+- [Trade provenance and parsing boundaries](#trade-provenance-and-parsing-boundaries)
+- [Examples](#examples)
+- [Protocols](#protocols)
+- [Documentation](#documentation)
+
+<a id="sdk-versions-and-related-sdks"></a>
 
 ## 📦 SDK Versions and Related SDKs
 
-Parser SDK language versions and related Rust SDKs:
+Repositories are versioned independently; follow each SDK’s installation guide for compatible dependencies.
 
-| Language | Repository | Description | Version |
+| Language | Repository | Purpose | Version |
 |----------|------------|-------------|---------|
-| Rust | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | Solana DEX transaction and account event parsing | `v0.8.0` |
-| Node.js | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript for Node.js | `v0.6.0` |
-| Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | Async/await native support | `v0.6.0` |
-| Go | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | Go transaction and account event parsing | `v0.6.0` |
-| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Raw Solana shred decoding and ShredStream DEX event parsing | `v5.0.0` |
-| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX trade construction and transaction execution | `v8.0.0` |
+| Rust | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | DEX transaction and account event parsing | `v0.9.0` |
+| Node.js | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | DEX transaction and account event parsing | `v0.9.0` |
+| Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | DEX transaction and account event parsing | `v0.9.0` |
+| Go | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | DEX transaction and account event parsing | `v0.9.0` |
+| Rust | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Transaction building, signing and multi-channel submission | `v9.0.0` |
+| Node.js | [sol-trade-sdk-nodejs](https://github.com/0xfnzero/sol-trade-sdk-nodejs) | Transaction building, signing and multi-channel submission | `v9.0.0` |
+| Python | [sol-trade-sdk-python](https://github.com/0xfnzero/sol-trade-sdk-python) | Transaction building, signing and multi-channel submission | `v9.0.0` |
+| Go | [sol-trade-sdk-golang](https://github.com/0xfnzero/sol-trade-sdk-golang) | Transaction building, signing and multi-channel submission | `v9.0.0` |
+| Rust | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Raw shred decoding and ShredStream instruction events | `v6.0.0` |
+| Rust | [solana-streamer](https://github.com/0xfnzero/solana-streamer) | gRPC / ShredStream subscriptions and event streaming | `v5.0.0` |
+| Rust | [sol-trade-router-sdk](https://github.com/0xfnzero/sol-trade-router-sdk) | On-chain multi-hop router and client SDK | `v0.3.0` |
 
-## v0.5.14 — Pump route direction and instruction names
-
-Route intents now expose `is_buy` and `ix_name`, following existing trade field names and official IDL instruction names. RapidBuy reports a buy intent and `buy_exact_quote_in_v2`; BuyPumpDelta reports only a buy intent. Multi-hop direction and unknown methods remain null. Read currencies from `hops[].base_mint` / `quote_mint`. These hints do not confirm execution, and filters do not convert intents into trades.
-
-Older JSON without the fields remains readable as unknown. Rust struct literals must supply the new fields; Go uses pointers and Node.js/Python use null/None for unknown values. Streamer now forwards `DexEvent::PumpRouteIntentEvent` with protocol and event filtering.
-
-## v0.5.13 — Pump routes and offline replay
-
-Adds native Pump route-intent parsing for official multi-hop instructions and the exact RapidBuy/BuyPumpDelta wrapper layouts captured in reported transactions. Adds locally cached ALT resolution and rejects unresolved account identities by default, with explicit best-effort compatibility APIs where supported. Route intents expose instruction constraints and hop identities; confirmed execution amounts require execution metadata.
-
-Includes the latest complete implementation, signed transaction fixtures, native offline-bank regression examples and reproducible local hot-path benchmarks. Unknown wrapper layouts are not inferred from embedded bytes. Local tests do not measure production network latency.
-
-## v0.5.12 — Pump depth-2 compatibility
-
-Adds signed Pump depth-2 create-event replay coverage, including ALT-loaded accounts and executed logs. Existing event layouts and public parsing interfaces remain unchanged.
-
-Validation includes official Pump SDK 4.1.0 instruction comparisons, signed local LiteSVM simulations and SDK regressions. Local simulation state/config is synthetic; no funded transactions were broadcast and production latency was not measured.
-
-## v0.5.11 — Signed transaction and hot-path hardening
-
-Hardens signed transaction sanitization, loaded-address boundaries, ordered stream filtering and parser lifecycle. Aligns CLMM and DEX instruction/event layouts, nested CPI route attribution and liquidity/reward accounting. Adds independently signed wire fixtures, ALT failure cases and offline bank regressions.
-
-Validation includes local CPU benchmarks and offline signed-bank scenarios. Measured hot paths use cached inputs without RPC. Benchmarks do not establish production network or transaction-landing latency. No funded mainnet transactions were broadcast.
-
-## What This SDK Is For
-
-Run `go run ./examples/hotpath_latency` from the repository root for a native,
-offline hot-path benchmark. Edit `examples/hotpath_latency/config.json` to set
-warmup, samples and batch size; an alternate config path is optional. It reports
-p50/p95/p99 nanoseconds and allocation counts per batch of six saved signed
-wrapped-route/ALT transactions. Fixture loading is outside measurement. No RPC
-or transaction submission occurs; CPU timings do not measure network landing.
-
-This is the Go implementation of the FnZero Solana DEX parser SDK for bots, indexers, copy-trading systems, sniper pipelines, and backend services that need normalized real-time DEX events.
-
-| Area | Coverage |
-|------|----------|
-| Parser inputs | Yellowstone gRPC, ShredStream, RPC transactions, encoded transactions, protocol account data |
-| DEX protocols | PumpFun, PumpSwap, Pump Fees, Raydium LaunchLab, Raydium CPMM, Raydium CLMM, Raydium AMM V4, Meteora DAMM v2, Meteora DLMM, Meteora DBC, Orca Whirlpool |
-| Use cases | Real-time DEX event parsing, token launch monitoring, copy trading, sniper bots, account filling, JSON event pipelines |
-| Runtime | Go 1.22+, backend services, workers, low-latency bot infrastructure |
-
-## Release notes
-
-### v0.5.10
-
-- Matches PumpFun create/create_v2 accounts by the actual instruction discriminator and event mint, including CPI calls; ambiguous matches are left unspecified.
-- Stops inferring quote mint/vault/token-program fields from arbitrary remaining create_v2 accounts and preserves authoritative decoded fields.
-- Restores historical CreateEvent decoding and verifies successful and failed transactions using saved mainnet fixtures.
-- Suppresses rolled-back DEX events from failed transactions and preserves failure status through RPC/gRPC adapters.
-
-### v0.5.9
-
-- Adds native gRPC lifecycle and block metadata support, instruction-level route analysis and StonkFun registry/snapshot examples.
-- Improves exact metadata serialization, account matching and wire transaction bounds validation.
-- Includes native alignment evidence and simulation route fixtures. These language releases do not yet implement the new CPMM creator-fee collection event API.
-
-### v0.5.8
-
-- Syncs with Rust sol-parser-sdk **0.7.3**, including the current PumpFun, PumpSwap, and Pump Fees protocol definitions.
-- Adds Meteora DAMM v2 events: UpdateDelegatePermission, WithdrawDeadLiquidityReward, CreateConfig, CreateDynamicConfig.
-- Aligns EvtSwap2 180-byte layout with slot-gated claiming/compounding fees and swap modes; routes EvtLiquidityChange to Add/Remove.
-- Adds DLMM swap account context fields, PumpFun pre/post balance snapshots, and LaunchLab trade quote context.
-- Adds current PumpFun/PumpSwap creator-fee and holder-reward fields across instruction, log, account, gRPC, and JSON event paths.
-- Rejects truncated known PumpSwap trade and CreatePool tails while retaining complete historical layouts.
-
-### v0.5.6
-
-- Adds Meteora DBC log parsing with program-context routing and filter parity.
-- Adds Raydium CLMM/CPMM and Orca account parsers.
-- Preserves block transaction indexes in RPC and Geyser-to-RPC conversion.
-- Skips ShredStream instruction parsing early for account-only or empty include-only filters.
-- Tightens RPC log active-program tracking for low-latency parser correctness.
-
-### v0.5.5
-
-- Aligns ShredStream wire-transaction parsing with Rust/Node.js/Python.
-- Uses default pubkey placeholders for V0 ALT-loaded instruction accounts instead of dropping the instruction.
-- Adds discriminator fallback when the ShredStream outer program id is ALT-loaded.
-- Improves Pump.fun v2 short-account parsing, same-transaction post-merge enrichment, and multi-protocol routing parity.
-- Adds regression coverage for ShredStream ALT account and ALT program-id fallback.
-
----
+<a id="how-to-use"></a>
 
 ## How to use
 
@@ -171,7 +66,7 @@ go mod tidy
 **Use in another module**
 
 ```bash
-go get github.com/0xfnzero/sol-parser-sdk-golang@v0.6.0
+go get github.com/0xfnzero/sol-parser-sdk-golang@v0.9.0
 ```
 
 (Or use `replace github.com/0xfnzero/sol-parser-sdk-golang => ../sol-parser-sdk-golang` for local development.)
@@ -228,9 +123,37 @@ export SHRED_URL="http://127.0.0.1:10800"
 go run examples/shredstream_entries.go
 ```
 
-The example decodes `Entry.entries`, optionally parses outer instructions to **`DexEvent` JSON** via **`DexEventsFromShredTransactionWire`**. This hot path strictly parses static accounts by default. Supply cached loaded addresses or a slot-aware cache resolver for ALT instructions; unresolved instructions are skipped. The explicit `DexEventsFromShredTransactionWireBestEffort` API retains legacy placeholder behavior. Recognized routes emit `PumpRouteIntent`; arbitrary CPI cannot be reconstructed from raw wires. Inner CPI/log-only events still require Yellowstone/RPC paths.
+The example decodes `Entry.entries`, optionally parses outer instructions to **`DexEvent` JSON** via **`DexEventsFromShredTransactionWire`**. This hot path strictly parses static accounts by default. Supply cached loaded addresses or a slot-aware cache resolver for ALT instructions; unresolved instructions are skipped. The explicit `DexEventsFromShredTransactionWireBestEffort` API retains legacy placeholder behavior. Unknown Pump.fun wrappers emit unresolved PumpFunTrade candidates with third_program; arbitrary CPI cannot be reconstructed from raw wires. Inner CPI/log-only events still require Yellowstone/RPC paths.
 
----
+<a id="what-this-sdk-is-for"></a>
+
+## What This SDK Is For
+
+Run `go run ./examples/hotpath_latency` from the repository root for a native,
+offline hot-path benchmark. Edit `examples/hotpath_latency/config.json` to set
+warmup, samples and batch size; an alternate config path is optional. It reports
+p50/p95/p99 nanoseconds and allocation counts per batch of six saved signed
+wrapped-route/ALT transactions. Fixture loading is outside measurement. No RPC
+or transaction submission occurs; CPU timings do not measure network landing.
+
+This is the Go implementation of the FnZero Solana DEX parser SDK for bots, indexers, copy-trading systems, sniper pipelines, and backend services that need normalized real-time DEX events.
+
+| Area | Coverage |
+|------|----------|
+| Parser inputs | Yellowstone gRPC, ShredStream, RPC transactions, encoded transactions, protocol account data |
+| DEX protocols | PumpFun, PumpSwap, Pump Fees, Raydium LaunchLab, Raydium CPMM, Raydium CLMM, Raydium AMM V4, Meteora DAMM v2, Meteora DLMM, Meteora DBC, Orca Whirlpool |
+| Use cases | Real-time DEX event parsing, token launch monitoring, copy trading, sniper bots, account filling, JSON event pipelines |
+| Runtime | Go 1.22+, backend services, workers, low-latency bot infrastructure |
+
+<a id="trade-provenance-and-parsing-boundaries"></a>
+
+## Trade provenance and parsing boundaries
+
+gRPC/RPC use supplied execution metadata and actual CPI instructions; Shred sees outer instructions and locally resolved accounts. An unknown third-party instruction referencing Pump.fun in its own accounts can produce a `PumpFunTrade` candidate with the original input in `third_program` and `Unresolved` status. This does not establish execution, direction or amounts. Buy/sell-only filters do not treat an unknown direction as a fill.
+
+The parsing hot path performs no RPC. Check `parse_status` before interpreting defaults as amounts. Original account order and instruction bytes remain in `third_program`; transaction position and receive time remain in event metadata. A local Shred index is not confirmed slot-wide execution order. See [wrapped transactions](docs/wrapped-pumpfun.md) and [cross-language contracts](docs/cross-language-sync.md).
+
+<a id="examples"></a>
 
 ## Examples
 
@@ -239,30 +162,30 @@ Run from the **repository root** after `go mod tidy`. One row per source file (l
 | Description | Run command | Source |
 |-------------|-------------|--------|
 | **PumpFun** | | |
-| PumpFun `DexEvent` + metrics | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_with_metrics.go` | [pumpfun_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_with_metrics.go) | `v0.6.0` |
-| PumpFun trade filter | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_trade_filter.go` | [pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) | `v0.6.0` |
-| Quick connection test | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_quick_test.go` | [pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) | `v0.6.0` |
+| PumpFun `DexEvent` + metrics | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_with_metrics.go` | [pumpfun_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_with_metrics.go) | `v0.9.0` |
+| PumpFun trade filter | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_trade_filter.go` | [pumpfun_trade_filter.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_trade_filter.go) | `v0.9.0` |
+| Quick connection test | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpfun_quick_test.go` | [pumpfun_quick_test.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpfun_quick_test.go) | `v0.9.0` |
 | **PumpSwap** | | |
-| PumpSwap + metrics | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_with_metrics.go` | [pumpswap_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_with_metrics.go) | `v0.6.0` |
-| Ultra-low latency | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_low_latency.go` | [pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) | `v0.6.0` |
+| PumpSwap + metrics | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_with_metrics.go` | [pumpswap_with_metrics.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_with_metrics.go) | `v0.9.0` |
+| Ultra-low latency | `GRPC_URL=… GRPC_TOKEN=… go run examples/pumpswap_low_latency.go` | [pumpswap_low_latency.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/pumpswap_low_latency.go) | `v0.9.0` |
 | **Meteora DAMM** | | |
-| Meteora DAMM V2 | `GRPC_URL=… GRPC_TOKEN=… go run examples/meteora_damm_grpc.go` | [meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) | `v0.6.0` |
+| Meteora DAMM V2 | `GRPC_URL=… GRPC_TOKEN=… go run examples/meteora_damm_grpc.go` | [meteora_damm_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/meteora_damm_grpc.go) | `v0.9.0` |
 | **ShredStream** (see **step 5** above) | | |
-| SubscribeEntries + decode + optional `DexEvent` JSON | `SHRED_URL=http://host:port go run examples/shredstream_entries.go` | [shredstream_entries.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/shredstream_entries.go) | `v0.6.0` |
+| SubscribeEntries + decode + optional `DexEvent` JSON | `SHRED_URL=http://host:port go run examples/shredstream_entries.go` | [shredstream_entries.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/shredstream_entries.go) | `v0.9.0` |
 | **Yellowstone** | | |
-| Geyser subscribe + `ParseSubscribeTransaction` | `GRPC_URL=… GRPC_TOKEN=… go run examples/yellowstone_grpc_parse.go` | [yellowstone_grpc_parse.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/yellowstone_grpc_parse.go) | `v0.6.0` |
+| Geyser subscribe + `ParseSubscribeTransaction` | `GRPC_URL=… GRPC_TOKEN=… go run examples/yellowstone_grpc_parse.go` | [yellowstone_grpc_parse.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/yellowstone_grpc_parse.go) | `v0.9.0` |
 | **Multi-protocol** | | |
-| All supported DEX programs | `GRPC_URL=… GRPC_TOKEN=… go run examples/multi_protocol_grpc.go` | [multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) | `v0.6.0` |
+| All supported DEX programs | `GRPC_URL=… GRPC_TOKEN=… go run examples/multi_protocol_grpc.go` | [multi_protocol_grpc.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/multi_protocol_grpc.go) | `v0.9.0` |
 | **Utility** | | |
-| Parse tx by signature (RPC, not gRPC stream) | `TX_SIGNATURE=… RPC_URL=… go run examples/parse_tx_by_signature.go` | [parse_tx_by_signature.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/parse_tx_by_signature.go) | `v0.6.0` |
+| Parse tx by signature (RPC, not gRPC stream) | `TX_SIGNATURE=… RPC_URL=… go run examples/parse_tx_by_signature.go` | [parse_tx_by_signature.go](https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/examples/parse_tx_by_signature.go) | `v0.9.0` |
 
----
+<a id="protocols"></a>
 
 ## Protocols
 
 PumpFun, PumpSwap, Raydium AMM V4 / CLMM / CPMM, Orca Whirlpool, Meteora DAMM V2 / DLMM, Raydium LaunchLab (see `solparser/`).
 
----
+<a id="useful-exports"></a>
 
 ## Useful exports
 
@@ -273,7 +196,7 @@ PumpFun, PumpSwap, Raydium AMM V4 / CLMM / CPMM, Orca Whirlpool, Meteora DAMM V2
 - **`DecodeGRPCEntry`** / **`DecodeEntriesBincode`** — ShredStream `Entry.entries` bytes → `DecodedTransaction` slices.
 - **`DexEvent`** — `json.Marshal` for `{ "PumpSwapBuy": { … } }` style output.
 
----
+<a id="development"></a>
 
 ## Development
 
@@ -283,11 +206,7 @@ go build ./...
 go vet ./...
 ```
 
----
-
-## License
-
-MIT — https://github.com/0xfnzero/sol-parser-sdk-golang
+<a id="api-compatibility"></a>
 
 ## API compatibility
 
@@ -298,10 +217,28 @@ Full cross-language API parity is still in progress. See the [API migration guid
 `solparser.AnalyzeSimulationRoutes(wire, simulationResponseJSON, graduatedPools)` accepts original transaction bytes and a complete `simulateTransaction` JSON response. It makes no RPC calls. Parsed SPL transfers, compiled CPI, execution failure, and unknown Token-2022 net credits are preserved. See [docs/USAGE.md#simulation-routes](docs/USAGE.md#simulation-routes) and `go run ./examples/simulation_routes solparser/testdata/cached_tip_routes_20261002.json route-buy`.
 
 
-实时 parser → trade 接入使用 Yellowstone **gRPC**；见 [gRPC 缓存接入与三语言示例](docs/USAGE.md#grpc-cache)。此路径不使用 WebSocket，报价和构建热路径不调用 RPC。
+Live parser-to-trade integration uses Yellowstone **gRPC**. See [gRPC cache integration and language examples](docs/USAGE.md#grpc-cache). Quoting and construction read cached state without hot-path RPC.
 
 Shared PumpFun create/create_v2 mainnet fixtures, replay instructions and verification limits are documented in the [validation guide](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007).
 
 ### Offline Pump ShredStream regressions
 
-Pump route intents, strict cached ALT resolution and native signed replay/SBF simulation examples are documented in [examples/offline_bank/README.md](examples/offline_bank/README.md). Run the language-native examples and tests from this repository; no other-language test driver or RPC endpoint is needed. Unresolved instructions now skip by default; use the explicit best-effort API only for legacy behavior. Route intents must not be treated as confirmed fills.
+User examples live in examples; automated regression tests are maintained separately. Obsolete route-intent simulation entry points and their unused snapshots have been removed. See [wrapped transaction replay and filters](docs/wrapped-pumpfun.md). Shred decodes resolved outer instructions; third-party candidates retain original input in PumpFunTrade.third_program and are not confirmed fills. No RPC runs in the parser hot path.
+
+<a id="documentation"></a>
+
+## Documentation
+
+- [Release and migration](RELEASE_NOTES.md)
+- [Usage guide](docs/USAGE.md)
+- [Cross-language support and boundaries](docs/cross-language-sync.md)
+
+
+<a id="license"></a>
+
+## License
+
+MIT — https://github.com/0xfnzero/sol-parser-sdk-golang
+
+
+Shared stock bridges: 34 official stock/ETF mints and 63 pools. See [eleven-SDK catalog and routing alignment](docs/STOCK_BRIDGE_SYNC.md) for configuration, USDC routing and cache-only boundaries.

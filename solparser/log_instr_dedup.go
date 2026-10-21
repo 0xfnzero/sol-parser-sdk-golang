@@ -668,6 +668,29 @@ func DedupeLogInstructionEvents(logEvents []DexEvent, instrEvents []DexEvent) []
 		out = append(out, ev)
 	}
 
+	for i := 1; i < len(out); i++ {
+		var mint string
+		switch create := out[i].Data.(type) {
+		case *PumpFunCreateEvent:
+			mint = create.Mint
+		case *PumpFunCreateV2TokenEvent:
+			mint = create.Mint
+		default:
+			continue
+		}
+		if mint == "" || mint == zeroPubkey {
+			continue
+		}
+		for j := 0; j < i; j++ {
+			trade, ok := out[j].Data.(*PumpFunTradeEvent)
+			if ok && trade.Mint == mint {
+				create := out[i]
+				copy(out[j+1:i+1], out[j:i])
+				out[j] = create
+				break
+			}
+		}
+	}
 	return preferCurrentDbcEvents(out)
 }
 

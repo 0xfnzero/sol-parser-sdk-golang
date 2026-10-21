@@ -84,7 +84,7 @@ func markTradeExecutionSource(event DexEvent, index int, message *RpcMessage, ke
 	if program == native {
 		return
 	}
-	raw := &RawInstructionEvent{ProgramID: program, InstructionIndex: index, Accounts: make([]*string, len(ix.Accounts))}
+	raw := &RawInstructionPayload{ProgramID: program, InstructionIndex: index, Accounts: make([]*string, len(ix.Accounts))}
 	for i, k := range ix.Accounts {
 		raw.AccountIndices = append(raw.AccountIndices, int(k))
 		if int(k) < len(keys) {
@@ -95,7 +95,7 @@ func markTradeExecutionSource(event DexEvent, index int, message *RpcMessage, ke
 	for _, b := range ix.Data {
 		raw.InstructionData = append(raw.InstructionData, int(b))
 	}
-	*source = rawInstructionPayload(raw)
+	*source = raw
 }
 
 func executionMintPair(index int, message *RpcMessage, keys []string, meta *RpcTransactionMeta, program, pool string, poolIndex, aIndex, bIndex int) (string, string) {
@@ -175,17 +175,4 @@ type RawInstructionPayload struct {
 	Accounts         []*string `json:"accounts"`
 	AccountIndices   []int     `json:"account_indices"`
 	InstructionData  []int     `json:"instruction_data"`
-	RuleID           string    `json:"rule_id,omitempty"`
-}
-
-func rawInstructionPayload(raw *RawInstructionEvent) *RawInstructionPayload {
-	accounts := make([]*string, len(raw.Accounts))
-	for i, key := range raw.Accounts {
-		if key != nil {
-			value := *key
-			accounts[i] = &value
-		}
-	}
-	return &RawInstructionPayload{ProgramID: raw.ProgramID, InstructionIndex: raw.InstructionIndex,
-		Accounts: accounts, AccountIndices: append([]int{}, raw.AccountIndices...), InstructionData: append([]int{}, raw.InstructionData...)}
 }

@@ -719,7 +719,7 @@ func ParsePumpfunInstruction(
 	meta := makeInstrMetadata(signature, slot, txIndex, blockTimeUs, grpcRecvUs)
 	outer := binary.LittleEndian.Uint64(data[:8])
 	if outer == disc8(7, 5, 29, 196, 245, 23, 101, 80) {
-		if len(accounts) != 17 || len(data) < 24 || len(data) > 25 || (len(data) == 25 && data[24] > 1) {
+		if len(accounts) < 17 || len(data) < 24 || len(data) > 25 || (len(data) == 25 && data[24] > 1) {
 			return DexEvent{}
 		}
 		mapped := make([]string, 27)
@@ -747,7 +747,7 @@ func ParsePumpfunInstruction(
 		return ev
 	}
 	if outer == disc8(225, 247, 80, 30, 213, 179, 132, 136) {
-		if len(accounts) != 17 || len(data) < 24 || len(data) > 25 || (len(data) == 25 && data[24] > 1) {
+		if len(accounts) < 17 || len(data) < 24 || len(data) > 25 || (len(data) == 25 && data[24] > 1) {
 			return DexEvent{}
 		}
 		mapped := make([]string, 27)
@@ -775,7 +775,7 @@ func ParsePumpfunInstruction(
 		return ev
 	}
 	if outer == disc8(28, 146, 222, 119, 38, 196, 105, 213) {
-		if len(accounts) != 17 || len(data) < 24 || len(data) > 25 || len(data) != 24 {
+		if len(accounts) < 17 || len(data) < 24 || len(data) > 25 || len(data) != 24 {
 			return DexEvent{}
 		}
 		mapped := make([]string, 27)

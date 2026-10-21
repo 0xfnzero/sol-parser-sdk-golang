@@ -185,23 +185,3 @@ func parsePumpUpgradeEvent(disc uint64, data []byte, meta EventMetadata, program
 	}
 	return DexEvent{}
 }
-
-// PumpMultiHopIntent contains instruction limits. Executed amounts are per-hop trade events.
-type PumpMultiHopIntent struct {
-	User, InputAccount, OutputAccount string
-	AmountIn, MinAmountOut            uint64
-	Hops                              []PumpMultiHopAccounts
-}
-type PumpMultiHopAccounts struct{ BaseMint, QuoteMint, Venue, BaseVault, QuoteVault string }
-
-func DecodePumpMultiHopIntent(program string, data []byte, accounts []string) *PumpMultiHopIntent {
-	amount, minimum, ok := pumpMultiHopArgs(program, data, accounts)
-	if !ok {
-		return nil
-	}
-	result := &PumpMultiHopIntent{User: accounts[0], InputAccount: accounts[1], OutputAccount: accounts[2], AmountIn: amount, MinAmountOut: minimum}
-	for i := 16; i < len(accounts); i += 5 {
-		result.Hops = append(result.Hops, PumpMultiHopAccounts{accounts[i], accounts[i+1], accounts[i+2], accounts[i+3], accounts[i+4]})
-	}
-	return result
-}
