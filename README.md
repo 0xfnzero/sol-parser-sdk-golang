@@ -1,19 +1,30 @@
 <div align="center">
-    <h1>Sol Parser SDK — Go</h1>
-    <p>Solana DEX event parsing for Go</p>
-    <a href="https://pkg.go.dev/github.com/0xfnzero/sol-parser-sdk-golang"><img src="https://pkg.go.dev/badge/github.com/0xfnzero/sol-parser-sdk-golang.svg" alt="sol-parser-sdk-golang"></a>
-    <a href="#license"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+    <h1>⚡ Sol Parser SDK - Go</h1>
+    <h3><em>High-performance Solana DEX event parser for Go</em></h3>
 </div>
 
 <p align="center">
-    <a href="README.md">English</a> · <a href="README_CN.md">中文</a> ·
-    <a href="#examples">Examples</a> ·
-    <a href="docs/USAGE.md">Documentation</a> ·
-    <a href="RELEASE_NOTES.md">Release and migration</a> ·
-    <a href="#sdk-versions-and-related-sdks">Related SDKs</a>
+    <strong>Parse typed events from gRPC, ShredStream, RPC transactions and protocol accounts for indexing, monitoring and trading systems.</strong>
 </p>
 
-Parse typed events from gRPC, ShredStream, RPC transactions and protocol accounts for indexing, monitoring and trading systems.
+<p align="center">
+    <a href="https://pkg.go.dev/github.com/0xfnzero/sol-parser-sdk-golang"><img src="https://pkg.go.dev/badge/github.com/0xfnzero/sol-parser-sdk-golang.svg" alt="sol-parser-sdk-golang"></a>
+    <a href="#license"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+</p>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&amp;logo=go&amp;logoColor=white" alt="Go">
+    <img src="https://img.shields.io/badge/Solana-9945FF?style=for-the-badge&amp;logo=solana&amp;logoColor=white" alt="Solana">
+    <img src="https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&amp;logo=grpc&amp;logoColor=white" alt="gRPC">
+</p>
+
+<p align="center">
+    <a href="https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/README_CN.md">中文</a> |
+    <a href="https://github.com/0xfnzero/sol-parser-sdk-golang/blob/main/README.md">English</a> |
+    <a href="https://fnzero.dev/">Website</a> |
+    <a href="https://t.me/fnzero_group">Telegram</a> |
+    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
+</p>
 
 Current version: **0.9.1**. Read the [migration notes](RELEASE_NOTES.md) before upgrading; see the [changelog](CHANGELOG.md) for historical changes.
 
