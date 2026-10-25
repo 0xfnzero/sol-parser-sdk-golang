@@ -6,8 +6,6 @@ import (
 )
 
 func expectedPumpMethod(tx *RpcTransactionResponse, legacy string) string {
-	method := legacy + "_v3"
-	disc := sha256.Sum256([]byte("global:" + method))
 	keys := append([]string{}, tx.Transaction.Message.AccountKeys...)
 	if tx.Meta.LoadedAddresses != nil {
 		keys = append(keys, tx.Meta.LoadedAddresses.Writable...)
@@ -17,9 +15,12 @@ func expectedPumpMethod(tx *RpcTransactionResponse, legacy string) string {
 	for _, g := range tx.Meta.InnerInstructions {
 		instructions = append(instructions, g.Instructions...)
 	}
-	for _, ix := range instructions {
-		if int(ix.ProgramIDIndex) < len(keys) && keys[ix.ProgramIDIndex] == PUMPFUN_PROGRAM_ID && len(ix.Data) >= 8 && bytes.Equal(ix.Data[:8], disc[:8]) {
-			return method
+	for _, method := range []string{legacy + "_v3", legacy + "_v2"} {
+		disc := sha256.Sum256([]byte("global:" + method))
+		for _, ix := range instructions {
+			if int(ix.ProgramIDIndex) < len(keys) && keys[ix.ProgramIDIndex] == PUMPFUN_PROGRAM_ID && len(ix.Data) >= 8 && bytes.Equal(ix.Data[:8], disc[:8]) {
+				return method
+			}
 		}
 	}
 	return legacy

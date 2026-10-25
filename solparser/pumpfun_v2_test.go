@@ -323,7 +323,7 @@ func TestParsePumpfunBuyV2UsesRustAccountIndexes(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected PumpFunTradeEvent, got %T", ev.Data)
 	}
-	if tr.IxName != "buy" {
+	if tr.IxName != "buy_v2" {
 		t.Fatalf("ix_name: %q", tr.IxName)
 	}
 	if tr.Mint != "account_B" || tr.FeeRecipient != "account_G" ||
@@ -471,7 +471,7 @@ func TestParsePumpfunBuyExactQuoteInV2UsesQuoteAmountFields(t *testing.T) {
 	if ev.Type != EventTypePumpFunBuy || !ok {
 		t.Fatalf("expected PumpFunBuy event, got %q %T", ev.Type, ev.Data)
 	}
-	if tr.IxName != "buy_exact_quote_in" || tr.Amount != 888 ||
+	if tr.IxName != "buy_exact_quote_in_v2" || tr.Amount != 888 ||
 		tr.MaxSolCost != 0 || tr.QuoteAmount != 777 ||
 		tr.SpendableQuoteIn != 777 || tr.MinTokensOut != 888 ||
 		tr.QuoteMint != "account_C" {
@@ -493,7 +493,7 @@ func TestParsePumpfunSellV2ReturnsSellEventType(t *testing.T) {
 	if ev.Type != EventTypePumpFunSell || !ok {
 		t.Fatalf("expected PumpFunSell event, got %q %T", ev.Type, ev.Data)
 	}
-	if tr.IxName != "sell" || tr.Amount != 333 || tr.MinSolOutput != 444 || tr.MaxSolCost != 0 {
+	if tr.IxName != "sell_v2" || tr.Amount != 333 || tr.MinSolOutput != 444 || tr.MaxSolCost != 0 {
 		t.Fatalf("unexpected sell_v2 fields: %+v", tr)
 	}
 }

@@ -1,4 +1,4 @@
-# Cross-language synchronization (v0.9.1)
+# Cross-language synchronization (v0.10.0)
 
 The SDK and examples use their own language. All replays below run offline; no parser, price tracker, or cached quote hot path requests RPC.
 
@@ -13,6 +13,8 @@ For unknown Shred wrappers whose own account list references Pump.fun, the defau
 Direction-only subscriptions do not receive unresolved candidates. RawInstruction and PumpRouteIntent callbacks have been removed; subscribe to PumpFunTrade and inspect third_program and parse_status. Unknown non-Pump routers do not become confirmed swaps from account references alone. RPC/gRPC decodes supported native CPI swaps normally.
 
 Wrapper input remains opaque. The SDK does not reconstruct third-party instruction arguments or install wrapper rules. See [callback and migration details](wrapped-pumpfun.md).
+
+Native Pump.fun ALT inputs remain parseable without resolving every declared address. Missing quote/token-program fields stay unknown. The existing `PumpFunCreateV2` language variant retains `ix_name=create_v2`; a raw create scan preserves `is_created_buy` even with a trade-only filter. Official PumpSwap `multi_hop_swap` emits one input-only PumpFunTrade per canonical bonding-curve hop. A fixed Pump program account alone is insufficient: all-AMM routes must not emit curve trades. Direction follows unambiguous connected mint pairs; ambiguous direction remains Unresolved. Route budgets and minimums are not per-hop fills. Original route inputs remain in third_program.
 
 ## Stock catalog and prices
 
@@ -31,6 +33,8 @@ Trade SDKs expose a reusable `CandidateRouteGraph`: construct once when pool ide
 Observed snapshots provide a separate observation watermark without changing actual account slot/write version. Only attest observation after a coherent baseline and continuous provider coverage of every dependency. Account replay, local time and unrelated slot heartbeats do not establish this. Readiness loss invalidates snapshots. Ordinary snapshots retain their conservative age checks.
 
 ## Native examples
+
+Pump.fun ALT and official multi-hop replay: `go run ./examples/pump_execution_replay`. The offline default includes the three reported `create_v2` transactions and the official `multi_hop_swap` transaction. Pass a signature to fetch a different transaction. Static-key Shred, resolved-ALT Shred, and execution replay are printed separately; `tx_index=888` and receive time in this example are caller-supplied demonstration values. Creation callbacks precede their buys, including when the subscription uses the generic create/trade filter. This language retains the `PumpFunCreateV2` event name with `ix_name=create_v2`. Identifiable curve hops emit `PumpFunTrade`, `ix_name=multi_hop_swap`, and the original route in `third_program`. Shred has no per-hop execution amounts, so those fields stay zero. gRPC/RPC retain actual fills and non-SOL `quote_amount`; `sol_amount=0` is valid for a non-SOL quote.
 
 Run from the repository root after installing its development dependencies:
 

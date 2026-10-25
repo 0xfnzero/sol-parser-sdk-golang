@@ -1009,7 +1009,6 @@ func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, met
 		maxSolCost = 0
 		minSolOutput = second
 	}
-	normalizedIxName := normalizePumpfunIxName(ixName)
 	eventType := EventTypePumpFunBuy
 	if ixName == "sell_v2" {
 		eventType = EventTypePumpFunSell
@@ -1033,7 +1032,7 @@ func parsePumpFunTradeV2Instr(ixName string, data []byte, accounts []string, met
 			MinTokensOut:                       minTokensOut,
 			FeeRecipient:                       getAccountSafe(accounts, 6),
 			IsBuy:                              ixName != "sell_v2",
-			IxName:                             normalizedIxName,
+			IxName:                             ixName,
 			AssociatedBondingCurve:             getAccountSafe(accounts, 11),
 			AssociatedUser:                     getAccountSafe(accounts, 14),
 			SystemProgram:                      getAccountSafe(accounts, mapBoolIndex(ixName == "sell_v2", 23, 24)),

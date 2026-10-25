@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	sdk "github.com/0xfnzero/sol-parser-sdk-golang/solparser"
@@ -61,9 +62,14 @@ func decode(raw json.RawMessage) (*sdk.RpcTransactionResponse, error) {
 	return &tx, err
 }
 
+type replayCase struct {
+	Raw     json.RawMessage
+	WireRPC json.RawMessage `json:"wire_rpc"`
+}
+
 func run() error {
 	var fixture struct {
-		Cases []struct{ Raw json.RawMessage }
+		Cases []replayCase
 	}
 	if len(os.Args) > 1 {
 		url := os.Getenv("SOLANA_RPC_URL")
@@ -91,31 +97,71 @@ func run() error {
 		if response.Error != nil || len(response.Result) == 0 || string(response.Result) == "null" {
 			return fmt.Errorf("RPC transaction unavailable: %s", b)
 		}
-		fixture.Cases = append(fixture.Cases, struct{ Raw json.RawMessage }{response.Result})
+		wireBody, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "getTransaction", "params": []any{os.Args[1], map[string]any{"encoding": "base64", "maxSupportedTransactionVersion": 1}}})
+		wireRes, err := client.Post(url, "application/json", bytes.NewReader(wireBody))
+		if err != nil {
+			return err
+		}
+		defer wireRes.Body.Close()
+		var wireResponse struct {
+			Result json.RawMessage
+			Error  any
+		}
+		if err = json.NewDecoder(wireRes.Body).Decode(&wireResponse); err != nil {
+			return err
+		}
+		if wireResponse.Error != nil || len(wireResponse.Result) == 0 || string(wireResponse.Result) == "null" {
+			return fmt.Errorf("wire transaction unavailable")
+		}
+		fixture.Cases = append(fixture.Cases, replayCase{Raw: response.Result, WireRPC: wireResponse.Result})
 	} else {
-		b, err := os.ReadFile("solparser/testdata/pump_execution_20261019.json")
-		if err != nil {
-			return err
+		for _, name := range []string{"pump_create_alt_20261026.json", "pump_multi_hop_20261025.json", "wrapped_pumpfun_reported.json"} {
+			b, err := os.ReadFile("solparser/testdata/" + name)
+			if err != nil {
+				return err
+			}
+			var part struct{ Cases []replayCase }
+			if err = json.Unmarshal(b, &part); err != nil {
+				return err
+			}
+			fixture.Cases = append(fixture.Cases, part.Cases...)
 		}
-		if err = json.Unmarshal(b, &fixture); err != nil {
-			return err
-		}
-		b, err = os.ReadFile("solparser/testdata/wrapped_pumpfun_reported.json")
-		if err != nil {
-			return err
-		}
-		var reported struct {
-			Cases []struct{ Raw json.RawMessage }
-		}
-		if err = json.Unmarshal(b, &reported); err != nil {
-			return err
-		}
-		fixture.Cases = append(fixture.Cases, reported.Cases...)
 	}
 	for _, c := range fixture.Cases {
 		tx, err := decode(c.Raw)
 		if err != nil {
 			return err
+		}
+		if len(c.WireRPC) > 0 {
+			var captured struct{ Transaction []json.RawMessage }
+			if err = json.Unmarshal(c.WireRPC, &captured); err != nil {
+				return err
+			}
+			var encoded string
+			if err = json.Unmarshal(captured.Transaction[0], &encoded); err != nil {
+				return err
+			}
+			wire, err := base64.StdEncoding.DecodeString(encoded)
+			if err != nil {
+				return err
+			}
+			filter := &sdk.IncludeOnlyFilter{IncludeOnly: []sdk.EventType{sdk.EventTypePumpFunCreate, sdk.EventTypePumpFunTrade}}
+			static := sdk.DexEventsFromShredTransactionWire(wire, "", tx.Slot, 888, nil, 123456, filter)
+			loaded := tx.Meta.LoadedAddresses
+			full, err := sdk.DexEventsFromShredTransactionWireWithLoadedAddresses(wire, loaded.Writable, loaded.Readonly, "", tx.Slot, 888, nil, 123456, filter)
+			if err != nil {
+				return err
+			}
+			for _, v := range []struct {
+				Mode   string
+				Events []sdk.DexEvent
+			}{{"static_keys", static}, {"resolved_alt", full}} {
+				out, err := json.Marshal(map[string]any{"source": "shred", "mode": v.Mode, "signature": tx.Transaction.Signatures[0], "events": v.Events})
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(out))
+			}
 		}
 		logs := tx.Meta.LogMessages
 		for _, mode := range []string{"full", "no_logs", "truncated_logs"} {

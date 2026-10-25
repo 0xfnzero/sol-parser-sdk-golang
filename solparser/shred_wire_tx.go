@@ -1,6 +1,7 @@
 package solparser
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mr-tron/base58"
 )
@@ -19,7 +20,7 @@ var shredUnknownProgramCandidates = []string{
 	METEORA_DLMM_PROGRAM_ID,
 }
 
-// DexEventsFromShredTransactionWire parses only fully resolved static instructions. No RPC.
+// DexEventsFromShredTransactionWire preserves known Pump.fun inputs with unresolved ALT addresses. No RPC.
 func DexEventsFromShredTransactionWire(raw []byte, signature string, slot uint64, txIndex uint32, blockTimeUs *int64, grpcRecvUs int64, filter EventTypeFilter) []DexEvent {
 	var binaryData [][]byte
 	tx, _, err := decodeWireTransaction(raw, 0, true, &binaryData)
@@ -80,7 +81,7 @@ func parseShredLoaded(tx *NativeWireTransaction, writable, readonly []string, si
 			return nil, fmt.Errorf("unresolved program index")
 		}
 		for _, i := range ix.Accounts {
-			if i >= len(keys) {
+			if i < 0 || i >= len(keys) {
 				return nil, fmt.Errorf("unresolved account index")
 			}
 		}
@@ -94,15 +95,49 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 	if signature == "" {
 		signature = tx.Signatures[0]
 	}
+	created, mayhem := map[string]bool{}, map[string]bool{}
+	// Scan raw create instructions even when creation events are filtered out.
+	if filter == nil || EventTypeFilterIncludesPumpfun(filter) {
+		for index, ix := range tx.Message.Instructions {
+			if ix.ProgramIDIndex < 0 || ix.ProgramIDIndex >= len(keys) || keys[ix.ProgramIDIndex] != PUMPFUN_PROGRAM_ID || len(ix.Accounts) == 0 {
+				continue
+			}
+			mintIndex := ix.Accounts[0]
+			if mintIndex < 0 || mintIndex >= len(keys) || keys[mintIndex] == zeroPubkey {
+				continue
+			}
+			var data []byte
+			if binaryData != nil {
+				data = binaryData[index]
+			} else {
+				data, _ = base58.Decode(ix.Data)
+			}
+			if len(data) < 8 || (!bytes.Equal(data[:8], []byte{24, 30, 200, 40, 5, 28, 7, 119}) && !bytes.Equal(data[:8], []byte{214, 144, 76, 236, 95, 139, 49, 180})) {
+				continue
+			}
+			created[keys[mintIndex]] = true
+			if bytes.Equal(data[:8], []byte{214, 144, 76, 236, 95, 139, 49, 180}) {
+				// Borsh name, symbol, uri, creator, is_mayhem_mode.
+				offset := 8
+				for i := 0; i < 3 && offset+4 <= len(data); i++ {
+					size := int(uint32(data[offset]) | uint32(data[offset+1])<<8 | uint32(data[offset+2])<<16 | uint32(data[offset+3])<<24)
+					offset += 4 + size
+				}
+				if offset+32 < len(data) && data[offset+32] != 0 {
+					mayhem[keys[mintIndex]] = true
+				}
+			}
+		}
+	}
 	var out []DexEvent
 	for index, ix := range tx.Message.Instructions {
 		pid := ""
-		if ix.ProgramIDIndex < len(keys) {
+		if ix.ProgramIDIndex >= 0 && ix.ProgramIDIndex < len(keys) {
 			pid = keys[ix.ProgramIDIndex]
 		}
 		resolved := pid != ""
 		for _, i := range ix.Accounts {
-			if i >= len(keys) {
+			if i < 0 || i >= len(keys) {
 				resolved = false
 				break
 			}
@@ -118,7 +153,7 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 			}
 		}
 		unknown := isUnknownShredProgram(pid)
-		if unknown && (filter == nil || filter.ShouldInclude(EventTypePumpFunTrade)) {
+		if unknown && shredIncludesPumpTrade(filter) {
 			for _, k := range ix.Accounts {
 				if k < 0 || k >= len(keys) || keys[k] != PUMPFUN_PROGRAM_ID {
 					continue
@@ -144,12 +179,37 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 		if unknown {
 			continue
 		}
-		if !resolved && !bestEffort {
+		if pid == PUMPSWAP_PROGRAM_ID && len(data) >= 8 && bytes.Equal(data[:8], pumpMultiHopSwap) {
+			if shredIncludesPumpTrade(filter) {
+				hops := parseShredPumpCurveHops(data, ix.Accounts, keys, index, makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash))
+				for _, hop := range hops {
+					t := hop.Data.(*PumpFunTradeEvent)
+					t.IsCreatedBuy = t.IsBuy && created[t.Mint]
+				}
+				out = append(out, hops...)
+			}
 			continue
+		}
+		if !resolved && !bestEffort {
+			if pid != PUMPFUN_PROGRAM_ID {
+				continue
+			}
+			if len(data) >= 8 {
+				minimum := 0
+				switch {
+				case bytes.Equal(data[:8], []byte{184, 23, 238, 97, 103, 197, 211, 61}), bytes.Equal(data[:8], []byte{194, 171, 28, 70, 104, 77, 91, 47}):
+					minimum = 27
+				case bytes.Equal(data[:8], []byte{93, 246, 130, 60, 231, 233, 64, 178}):
+					minimum = 26
+				}
+				if len(ix.Accounts) < minimum {
+					continue
+				}
+			}
 		}
 		accounts := make([]string, len(ix.Accounts))
 		for i, k := range ix.Accounts {
-			if k < len(keys) {
+			if k >= 0 && k < len(keys) {
 				accounts[i] = keys[k]
 			} else {
 				accounts[i] = zeroPubkey
@@ -167,6 +227,44 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 		}
 		e := ParseInstructionUnified(data, accounts, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, pid)
 		if e.Type != "" {
+			if t, ok := e.Data.(*PumpFunTradeEvent); ok && pid == PUMPFUN_PROGRAM_ID {
+				t.IsCreatedBuy = t.IsBuy && created[t.Mint]
+				t.MayhemMode = mayhem[t.Mint]
+				missing := func(i int) bool { return i < len(ix.Accounts) && (ix.Accounts[i] < 0 || ix.Accounts[i] >= len(keys)) }
+				if len(t.IxName) >= 3 && (t.IxName[len(t.IxName)-3:] == "_v2" || t.IxName[len(t.IxName)-3:] == "_v3") {
+					if missing(2) {
+						t.QuoteMint = zeroPubkey
+					}
+					if missing(3) {
+						t.TokenProgram = zeroPubkey
+					}
+					if missing(4) {
+						t.QuoteTokenProgram = zeroPubkey
+					}
+				} else {
+					i := 8
+					if t.IxName == "sell" {
+						i = 9
+					}
+					if missing(i) {
+						t.TokenProgram = zeroPubkey
+					}
+				}
+				if only, ok := filter.(*IncludeOnlyFilter); ok {
+					generic, specific := false, false
+					for _, kind := range only.IncludeOnly {
+						if kind == EventTypePumpFunTrade {
+							generic = true
+						}
+						if kind == EventTypePumpFunBuy || kind == EventTypePumpFunSell || kind == EventTypePumpFunBuyExactSolIn {
+							specific = true
+						}
+					}
+					if generic && !specific {
+						e.Type = EventTypePumpFunTrade
+					}
+				}
+			}
 			out = append(out, e)
 		}
 	}
@@ -203,4 +301,16 @@ func ResolveShredAddressesFromCache(tx *NativeWireTransaction, tables map[string
 		}
 	}
 	return w, r, nil
+}
+
+func shredIncludesPumpTrade(filter EventTypeFilter) bool {
+	if only, ok := filter.(*IncludeOnlyFilter); ok {
+		for _, kind := range only.IncludeOnly {
+			if kind == EventTypePumpFunTrade {
+				return true
+			}
+		}
+		return false
+	}
+	return filter == nil || filter.ShouldInclude(EventTypePumpFunTrade)
 }
