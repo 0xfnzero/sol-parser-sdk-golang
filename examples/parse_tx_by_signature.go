@@ -56,7 +56,7 @@ func fetchTransaction(rpcURL, sig string) (*txResult, error) {
 			sig,
 			map[string]interface{}{
 				"encoding":                       "jsonParsed",
-				"maxSupportedTransactionVersion": 0,
+				"maxSupportedTransactionVersion": 1,
 			},
 		},
 	}

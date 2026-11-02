@@ -2,65 +2,64 @@ package solparser
 
 import "bytes"
 
-func tradeSource(event DexEvent) (**RawInstructionPayload, *TradeParseStatus, string) {
+func tradeSource(event DexEvent) (**RawInstructionPayload, string) {
 	switch e := event.Data.(type) {
 	case *PumpFunTradeEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, PUMPFUN_PROGRAM_ID
+			return &e.ThirdProgram, PUMPFUN_PROGRAM_ID
 		}
 	case *PumpSwapBuyEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, PUMPSWAP_PROGRAM_ID
+			return &e.ThirdProgram, PUMPSWAP_PROGRAM_ID
 		}
 	case *PumpSwapSellEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, PUMPSWAP_PROGRAM_ID
+			return &e.ThirdProgram, PUMPSWAP_PROGRAM_ID
 		}
 	case *RaydiumLaunchlabTradeEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, RAYDIUM_LAUNCHLAB_PROGRAM_ID
+			return &e.ThirdProgram, RAYDIUM_LAUNCHLAB_PROGRAM_ID
 		}
 	case *RaydiumClmmSwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, RAYDIUM_CLMM_PROGRAM_ID
+			return &e.ThirdProgram, RAYDIUM_CLMM_PROGRAM_ID
 		}
 	case *RaydiumCpmmSwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, RAYDIUM_CPMM_PROGRAM_ID
+			return &e.ThirdProgram, RAYDIUM_CPMM_PROGRAM_ID
 		}
 	case *RaydiumAmmV4SwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, RAYDIUM_AMM_V4_PROGRAM_ID
+			return &e.ThirdProgram, RAYDIUM_AMM_V4_PROGRAM_ID
 		}
 	case *OrcaWhirlpoolSwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, ORCA_WHIRLPOOL_PROGRAM_ID
+			return &e.ThirdProgram, ORCA_WHIRLPOOL_PROGRAM_ID
 		}
 	case *MeteoraPoolsSwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, METEORA_POOLS_PROGRAM_ID
+			return &e.ThirdProgram, METEORA_POOLS_PROGRAM_ID
 		}
 	case *MeteoraDammV2SwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, METEORA_DAMM_V2_PROGRAM_ID
+			return &e.ThirdProgram, METEORA_DAMM_V2_PROGRAM_ID
 		}
 	case *MeteoraDlmmSwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, METEORA_DLMM_PROGRAM_ID
+			return &e.ThirdProgram, METEORA_DLMM_PROGRAM_ID
 		}
 	case *MeteoraDbcSwapEvent:
 		if e != nil {
-			return &e.ThirdProgram, &e.ParseStatus, METEORA_DBC_PROGRAM_ID
+			return &e.ThirdProgram, METEORA_DBC_PROGRAM_ID
 		}
 	}
-	return nil, nil, ""
+	return nil, ""
 }
 func markTradeExecutionSource(event DexEvent, index int, message *RpcMessage, keys []string, meta *RpcTransactionMeta) {
-	source, status, native := tradeSource(event)
-	if status == nil {
+	source, native := tradeSource(event)
+	if source == nil {
 		return
 	}
-	*status = TradeParseExecutionConfirmed
 	if index < 0 || index >= len(message.Instructions) {
 		return
 	}
@@ -159,15 +158,6 @@ func logOuterIndices(logs []string, message *RpcMessage, keys []string) []int {
 	}
 	return result
 }
-
-// TradeParseStatus describes evidence, not whether every executed amount is known.
-type TradeParseStatus string
-
-const (
-	TradeParseUnresolved         TradeParseStatus = "Unresolved"
-	TradeParseInstructionDecoded TradeParseStatus = "InstructionDecoded"
-	TradeParseExecutionConfirmed TradeParseStatus = "ExecutionConfirmed"
-)
 
 type RawInstructionPayload struct {
 	ProgramID        string    `json:"program_id"`

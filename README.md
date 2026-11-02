@@ -163,13 +163,15 @@ This is the Go implementation of the FnZero Solana DEX parser SDK for bots, inde
 
 ## Trade provenance and parsing boundaries
 
-gRPC/RPC use supplied execution metadata and actual CPI instructions; Shred sees outer instructions and locally resolved accounts. An unknown third-party instruction referencing Pump.fun in its own accounts can produce a `PumpFunTrade` candidate with the original input in `third_program` and `Unresolved` status. This does not establish execution, direction or amounts. Buy/sell-only filters do not treat an unknown direction as a fill.
+gRPC/RPC use supplied execution metadata and actual CPI instructions; Shred sees outer instructions and locally resolved accounts. An unknown third-party instruction referencing Pump.fun in its own accounts can produce a `PumpFunTrade` candidate with the original input in `third_program` and unknown trade fields. This does not establish execution, direction or amounts. Buy/sell-only filters do not treat an unknown direction as a fill.
 
-The parsing hot path performs no RPC. Check `parse_status` before interpreting defaults as amounts. Original account order and instruction bytes remain in `third_program`; transaction position and receive time remain in event metadata. A local Shred index is not confirmed slot-wide execution order. See [wrapped transactions](docs/wrapped-pumpfun.md) and [cross-language contracts](docs/cross-language-sync.md).
+The parsing hot path performs no RPC. Missing fields are unknown; their defaults are not confirmed fills. Original account order and instruction bytes remain in `third_program`; transaction position and receive time remain in event metadata. A local Shred index is not confirmed slot-wide execution order. See [wrapped transactions](docs/wrapped-pumpfun.md) and [cross-language contracts](docs/cross-language-sync.md).
 
 <a id="examples"></a>
 
 ## Examples
+
+Shred x-token + ALT cache resolver: [`shredstream_entries.go`](examples/shredstream_entries.go). `SHREDSTREAM_X_TOKEN` supplies authentication; optional `SHRED_ALT_CACHE_FILE` contains `{"ALT public key": ["address", ...]}` loaded before subscribing. Cache misses expose slot, receive time and transaction index; parsing performs no RPC.
 
 Run from the **repository root** after `go mod tidy`. One row per source file (links point to GitHub `main`).
 

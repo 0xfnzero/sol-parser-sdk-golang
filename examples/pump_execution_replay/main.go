@@ -1,5 +1,5 @@
 // Offline captured execution replay. Optional signature fetch uses SOLANA_RPC_URL.
-// Inspect third_program and parse_status. Execution metadata is unavailable to
+// Inspect third_program and instruction inputs. Execution metadata is unavailable to
 // Shred; one outer wrapper can produce several fills with different event counts.
 package main
 

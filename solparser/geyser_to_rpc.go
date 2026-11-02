@@ -23,8 +23,15 @@ func SubscribeUpdateInfoToRpc(slot uint64, info *SubscribeUpdateTransactionInfo)
 		return nil, err
 	}
 	meta := pbMetaToRpc(info.Meta)
+	var version any = "legacy"
+	if info.Transaction.Message.Config != nil {
+		version = 1
+	} else if info.Transaction.Message.Versioned {
+		version = 0
+	}
 
 	return &RpcTransactionResponse{
+		Version:          version,
 		Slot:             slot,
 		BlockTime:        nil,
 		Meta:             meta,
@@ -54,6 +61,9 @@ func pbMessageToRpc(msg *pb.Message) *RpcMessage {
 		AccountKeys:         make([]string, len(msg.AccountKeys)),
 		Instructions:        make([]RpcCompiledInstruction, len(msg.Instructions)),
 		AddressTableLookups: make([]RpcMessageAddressTableLookup, len(msg.AddressTableLookups)),
+	}
+	if c := msg.Config; c != nil {
+		m.TransactionConfig = &WireConfig{PriorityFee: c.PriorityFee, ComputeUnitLimit: c.ComputeUnitLimit, LoadedAccountsDataSizeLimit: c.LoadedAccountsDataSizeLimit, HeapSize: c.HeapSize}
 	}
 	for i, k := range msg.AccountKeys {
 		m.AccountKeys[i] = base58.Encode(k)

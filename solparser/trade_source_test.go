@@ -16,7 +16,7 @@ func TestExecutionSourcePayload(t *testing.T) {
 	trade := &PumpFunTradeEvent{}
 	markTradeExecutionSource(DexEvent{Type: EventTypePumpFunTrade, Data: trade}, 0, msg, []string{"router"}, &RpcTransactionMeta{})
 	raw := trade.ThirdProgram
-	if trade.ParseStatus != TradeParseExecutionConfirmed || raw == nil || raw.InstructionIndex != 0 || raw.Accounts[2] != nil || *raw.Accounts[0] != *raw.Accounts[1] || !reflect.DeepEqual(raw.InstructionData, []int{1, 2, 3}) {
+	if raw == nil || raw.InstructionIndex != 0 || raw.Accounts[2] != nil || *raw.Accounts[0] != *raw.Accounts[1] || !reflect.DeepEqual(raw.InstructionData, []int{1, 2, 3}) {
 		t.Fatal(trade)
 	}
 }

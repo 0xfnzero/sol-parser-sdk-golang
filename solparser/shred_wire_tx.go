@@ -50,7 +50,7 @@ func DexEventsFromShredTransactionWireWithLoadedAddresses(raw []byte, writable, 
 }
 
 // ShredAddressLookupResolver must read a slot-aware prewarmed cache, never RPC.
-type ShredAddressLookupResolver func(*NativeWireTransaction, uint64) ([]string, []string, error)
+type ShredAddressLookupResolver func(transaction *NativeWireTransaction, slot uint64, recvUs int64, txIndex uint32, filter EventTypeFilter) ([]string, []string, error)
 
 func DexEventsFromShredTransactionWireWithResolver(raw []byte, signature string, slot uint64, txIndex uint32, blockTimeUs *int64, grpcRecvUs int64, filter EventTypeFilter, resolver ShredAddressLookupResolver) ([]DexEvent, error) {
 	tx, _, err := DecodeWireTransaction(raw, 0, true)
@@ -60,7 +60,7 @@ func DexEventsFromShredTransactionWireWithResolver(raw []byte, signature string,
 	if resolver == nil || len(tx.Message.AddressTableLookups) == 0 {
 		return parseShredKeys(tx, tx.Message.AccountKeys, signature, slot, txIndex, blockTimeUs, grpcRecvUs, filter, false, nil), nil
 	}
-	w, r, err := resolver(tx, slot)
+	w, r, err := resolver(tx, slot, grpcRecvUs, txIndex, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 				}
 				out = append(out, DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{
 					Metadata:     makeMetadata(signature, slot, uint64(txIndex), blockTimeUs, grpcRecvUs, tx.Message.RecentBlockhash),
-					ThirdProgram: raw, ParseStatus: TradeParseUnresolved}})
+					ThirdProgram: raw}})
 				break
 			}
 		}
@@ -268,12 +268,20 @@ func parseShredKeys(tx *NativeWireTransaction, keys []string, signature string, 
 			out = append(out, e)
 		}
 	}
+creationContext:
+	for _, event := range out {
+		switch event.Data.(type) {
+		case *PumpFunCreateEvent, *PumpFunCreateV2TokenEvent:
+			keys := make([]string, len(tx.Message.AddressTableLookups))
+			for i, l := range tx.Message.AddressTableLookups {
+				keys[i] = l.AccountKey
+			}
+			fillCreationContext(out, tx.Version, keys)
+			break creationContext
+		}
+	}
 	enrichPumpfunSameTxPostMerge(out)
 	for i := range out {
-		_, status, _ := tradeSource(out[i])
-		if status != nil && *status == "" {
-			*status = TradeParseInstructionDecoded
-		}
 		out[i].SetRecentBlockhash(tx.Message.RecentBlockhash)
 	}
 	return out

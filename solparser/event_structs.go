@@ -21,7 +21,6 @@ type DexEventInterface interface {
 type ThirdProgram = RawInstructionPayload
 
 type PumpFunTradeEvent struct {
-	ParseStatus                        TradeParseStatus      `json:"parse_status,omitempty"`
 	ThirdProgram                       *ThirdProgram         `json:"third_program,omitempty"`
 	CreatorFeeUnclaimed                uint64                `json:"creator_fee_unclaimed"`
 	Metadata                           EventMetadata         `json:"metadata"`
@@ -103,6 +102,8 @@ func (e *PumpFunTradeEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // PumpFunCreateEvent PumpFun 创建代币事件
 type PumpFunCreateEvent struct {
+	TransactionVersion     *string       `json:"transaction_version,omitempty"`
+	AltAddresses           []string      `json:"alt_addresses,omitempty"`
 	Depth                  uint8         `json:"depth"`
 	Metadata               EventMetadata `json:"metadata"`
 	Name                   string        `json:"name"`
@@ -147,6 +148,8 @@ func (e *PumpFunCreateEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // PumpFunCreateV2TokenEvent PumpFun create_v2（SPL-22 / Mayhem），与 Rust `PumpFunCreateV2TokenEvent` 对齐
 type PumpFunCreateV2TokenEvent struct {
+	TransactionVersion     *string       `json:"transaction_version,omitempty"`
+	AltAddresses           []string      `json:"alt_addresses,omitempty"`
 	Metadata               EventMetadata `json:"metadata"`
 	Name                   string        `json:"name"`
 	Symbol                 string        `json:"symbol"`
@@ -542,7 +545,6 @@ func (e *PumpFunMigrateBondingCurveCreatorEvent) GetMetadata() EventMetadata { r
 
 // PumpSwapBuyEvent PumpSwap 买入事件
 type PumpSwapBuyEvent struct {
-	ParseStatus                      TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram                     *RawInstructionPayload `json:"third_program,omitempty"`
 	CreatorFeeUnclaimed              uint64                 `json:"creator_fee_unclaimed"`
 	Metadata                         EventMetadata          `json:"metadata"`
@@ -606,7 +608,6 @@ func (e *PumpSwapBuyEvent) GetMetadata() EventMetadata { return e.Metadata }
 
 // PumpSwapSellEvent PumpSwap 卖出事件
 type PumpSwapSellEvent struct {
-	ParseStatus                      TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram                     *RawInstructionPayload `json:"third_program,omitempty"`
 	CreatorFeeUnclaimed              uint64                 `json:"creator_fee_unclaimed"`
 	Metadata                         EventMetadata          `json:"metadata"`
@@ -748,9 +749,9 @@ func (e *PumpSwapLiquidityRemovedEvent) GetMetadata() EventMetadata { return e.M
 
 // RaydiumClmmSwapEvent Raydium CLMM 交换事件
 type RaydiumClmmSwapEvent struct {
-	InputMint     string                 `json:"input_mint"`
-	OutputMint    string                 `json:"output_mint"`
-	ParseStatus   TradeParseStatus       `json:"parse_status,omitempty"`
+	InputMint  string `json:"input_mint"`
+	OutputMint string `json:"output_mint"`
+
 	ThirdProgram  *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata      EventMetadata          `json:"metadata"`
 	PoolState     string                 `json:"pool_state"`
@@ -1043,7 +1044,6 @@ func (e *RaydiumClmmUpdateRewardInfosEvent) GetMetadata() EventMetadata { return
 
 // RaydiumAmmV4SwapEvent Raydium AMM v4 交换事件
 type RaydiumAmmV4SwapEvent struct {
-	ParseStatus                 TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram                *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata                    EventMetadata          `json:"metadata"`
 	Amm                         string                 `json:"amm"`
@@ -1134,7 +1134,6 @@ func (e *RaydiumAmmV4WithdrawEvent) GetMetadata() EventMetadata { return e.Metad
 
 // RaydiumCpmmSwapEvent Raydium CPMM 交换事件
 type RaydiumCpmmSwapEvent struct {
-	ParseStatus       TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram      *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata          EventMetadata          `json:"metadata"`
 	PoolID            string                 `json:"pool_id"`
@@ -1199,9 +1198,9 @@ func (e *RaydiumCpmmInitializeEvent) GetMetadata() EventMetadata { return e.Meta
 
 // OrcaWhirlpoolSwapEvent Orca Whirlpool 交换事件
 type OrcaWhirlpoolSwapEvent struct {
-	TokenMintA        string                 `json:"token_mint_a"`
-	TokenMintB        string                 `json:"token_mint_b"`
-	ParseStatus       TradeParseStatus       `json:"parse_status,omitempty"`
+	TokenMintA string `json:"token_mint_a"`
+	TokenMintB string `json:"token_mint_b"`
+
 	ThirdProgram      *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata          EventMetadata          `json:"metadata"`
 	Whirlpool         string                 `json:"whirlpool"`
@@ -1283,7 +1282,6 @@ func (e *OrcaWhirlpoolPoolInitializedEvent) GetMetadata() EventMetadata { return
 
 // MeteoraDlmmSwapEvent Meteora DLMM 交换事件
 type MeteoraDlmmSwapEvent struct {
-	ParseStatus   TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram  *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata      EventMetadata          `json:"metadata"`
 	TokenXMint    string                 `json:"token_x_mint"`
@@ -1415,7 +1413,6 @@ func (e *MeteoraDlmmClaimFeeEvent) GetMetadata() EventMetadata { return e.Metada
 
 // MeteoraPoolsSwapEvent Meteora Pools 交换事件
 type MeteoraPoolsSwapEvent struct {
-	ParseStatus  TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram *RawInstructionPayload `json:"third_program,omitempty"`
 	// Instruction intent, separate from executed InAmount/OutAmount.
 	AmountIn         uint64        `json:"amount_in,omitempty"`
@@ -1503,7 +1500,6 @@ func (e *MeteoraPoolsSetPoolFeesEvent) GetMetadata() EventMetadata { return e.Me
 
 // MeteoraDammV2SwapEvent Meteora DAMM v2 交换事件
 type MeteoraDammV2SwapEvent struct {
-	ParseStatus                  TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram                 *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata                     EventMetadata          `json:"metadata"`
 	Pool                         string                 `json:"pool"`
@@ -1809,7 +1805,6 @@ func (e *MeteoraDammV2CreateDynamicConfigEvent) GetMetadata() EventMetadata { re
 
 // MeteoraDbcSwapEvent Meteora DBC 交易事件
 type MeteoraDbcSwapEvent struct {
-	ParseStatus            TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram           *RawInstructionPayload `json:"third_program,omitempty"`
 	EventVersion           uint8                  `json:"event_version"`
 	SwapMode               uint8                  `json:"swap_mode"`
@@ -1878,7 +1873,6 @@ func (e *MeteoraDbcCurveCompleteEvent) GetMetadata() EventMetadata { return e.Me
 
 // RaydiumLaunchlabTradeEvent RaydiumLaunchlab 交易事件
 type RaydiumLaunchlabTradeEvent struct {
-	ParseStatus               TradeParseStatus       `json:"parse_status,omitempty"`
 	ThirdProgram              *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata                  EventMetadata          `json:"metadata"`
 	PoolState                 string                 `json:"pool_state"`

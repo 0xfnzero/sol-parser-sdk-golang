@@ -4,6 +4,8 @@
 //
 // 环境变量：
 //   SHRED_URL      必填，如 http://127.0.0.1:10800（解析为 host:port，明文 gRPC；与 GRPC_URL 不同服务勿混用）
+//   SHREDSTREAM_X_TOKEN           可选：SubscribeEntries 认证
+//   SHRED_ALT_CACHE_FILE          可选：预热 JSON {"ALT key": ["address", ...]}，热路径只读
 //   SHRED_MAX_MSG                可选，最大接收字节，默认 1GiB
 //   SHREDSTREAM_QUIET=1          关闭每条 gRPC Entry 的 [shredstream] 行（仅保留 10s 统计）
 //   SHRED_PRINT_SIGS=N           每条 Entry 额外打印最多 N 笔签名样本（默认 0）
@@ -51,12 +53,34 @@ func main() {
 	}
 
 	cfg := shredstream.DefaultShredStreamConfig()
+	if token := os.Getenv("SHREDSTREAM_X_TOKEN"); token != "" {
+		cfg.AuthToken = &token
+	}
 	if s := os.Getenv("SHRED_MAX_MSG"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
 			cfg.MaxDecodingMessageSize = n
 		}
 	} else {
 		cfg.MaxDecodingMessageSize = 1024 * 1024 * 1024 // 1 GiB
+	}
+
+	var resolver solparser.ShredAddressLookupResolver
+	if file := os.Getenv("SHRED_ALT_CACHE_FILE"); file != "" {
+		raw, err := os.ReadFile(file)
+		if err != nil {
+			panic(err)
+		}
+		var tables map[string][]string
+		if err := json.Unmarshal(raw, &tables); err != nil {
+			panic(err)
+		}
+		resolver = func(tx *solparser.NativeWireTransaction, slot uint64, recvUs int64, txIndex uint32, filter solparser.EventTypeFilter) ([]string, []string, error) {
+			writable, readonly, err := solparser.ResolveShredAddressesFromCache(tx, tables)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ALT miss slot=%d tx_index=%d recv_us=%d: %v\n", slot, txIndex, recvUs, err)
+			}
+			return writable, readonly, err
+		}
 	}
 
 	quiet := os.Getenv("SHREDSTREAM_QUIET") == "1"
@@ -173,7 +197,16 @@ func main() {
 			for ti := range txs {
 				tx := txs[ti]
 				sig := tx.Signature()
-				evs := solparser.DexEventsFromShredTransactionWire(tx.Raw, sig, slot, uint32(ti), nil, recvUs, nil)
+				var evs []solparser.DexEvent
+				if resolver != nil {
+					var err error
+					evs, err = solparser.DexEventsFromShredTransactionWireWithResolver(tx.Raw, sig, slot, uint32(ti), nil, recvUs, nil, resolver)
+					if err != nil {
+						continue
+					}
+				} else {
+					evs = solparser.DexEventsFromShredTransactionWire(tx.Raw, sig, slot, uint32(ti), nil, recvUs, nil)
+				}
 				dexInBatch += len(evs)
 				toPrint = append(toPrint, evs...)
 			}

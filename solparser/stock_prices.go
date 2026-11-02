@@ -175,10 +175,6 @@ func positiveStockU128(s string) bool {
 	return ok && n.Sign() > 0
 }
 func executedStockSwap(event DexEvent) (stockSwap, bool) {
-	_, status, _ := tradeSource(event)
-	if status == nil || *status != TradeParseExecutionConfirmed {
-		return stockSwap{}, false
-	}
 	switch e := event.Data.(type) {
 	case *RaydiumCpmmSwapEvent:
 		return stockSwap{e.PoolID, StockRaydiumCpmm, e.InputMint, e.OutputMint, e.InputAmount, e.OutputAmount}, e.InputVaultBefore > 0 && e.OutputVaultBefore > 0

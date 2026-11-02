@@ -155,13 +155,16 @@ go run examples/shredstream_entries.go
 
 ## 交易来源与解析边界
 
-gRPC/RPC 使用提供的执行元数据和实际 CPI 指令；Shred 只能看到外层指令与本地已解析的账户。未知第三方指令在自身账户中引用 Pump.fun 时，可回调 `PumpFunTrade` 候选，携带 `third_program` 原始输入与 `Unresolved` 状态；这不证明交易已执行，也不确定方向或金额。买入／卖出专用过滤器不会把未知方向当作成交。
+gRPC/RPC 使用提供的执行元数据和实际 CPI 指令；Shred 只能看到外层指令与本地已解析的账户。未知第三方指令在自身账户中引用 Pump.fun 时，可回调 `PumpFunTrade` 候选，携带 `third_program` 原始输入，无法确定的交易字段保留默认值；这不证明交易已执行，也不确定方向或金额。买入／卖出专用过滤器不会把未知方向当作成交。
 
-解析热路径不调用 RPC。按 `parse_status` 判断证据，缺失字段的默认值不代表实际零成交。账户顺序与原始指令数据保留在 `third_program`；交易序号和接收时间仍在事件元数据中，本地 Shred 序号不等于全 slot 执行顺序。详见 [第三方包装交易](docs/wrapped-pumpfun.md)及[跨语言接口与证据约定](docs/cross-language-sync.md)。
+解析热路径不调用 RPC。缺失字段的默认值不代表实际零成交；`third_program` 表示第三方来源，不表示成交确认。账户顺序与原始指令数据保留在 `third_program`；交易序号和接收时间仍在事件元数据中，本地 Shred 序号不等于全 slot 执行顺序。详见 [第三方包装交易](docs/wrapped-pumpfun.md)及[跨语言接口与证据约定](docs/cross-language-sync.md)。
 
 <a id="示例列表"></a>
 
 ## 示例列表
+
+Shred 认证和 ALT 缓存示例：[`shredstream_entries.go`](examples/shredstream_entries.go)。通过 `SHREDSTREAM_X_TOKEN` 配置认证；可选 `SHRED_ALT_CACHE_FILE` 使用 `{"ALT 公钥": ["地址", ...]}` 格式，在订阅前加载。缓存未命中时可获取 slot、接收时间和交易序号，解析热路径不请求 RPC。
+
 
 在**仓库根目录**执行，`go mod tidy` 后即可。下表 **源码** 列链接到 GitHub `main` 上对应文件。
 
