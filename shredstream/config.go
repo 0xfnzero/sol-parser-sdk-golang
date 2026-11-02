@@ -2,6 +2,8 @@ package shredstream
 
 // ShredStreamConfig 对齐 Rust `shredstream::config::ShredStreamConfig`。
 type ShredStreamConfig struct {
+	// AuthToken is sent as x-token metadata; empty/whitespace values are omitted.
+	AuthToken              *string
 	ConnectionTimeoutMs    uint64
 	RequestTimeoutMs       uint64
 	MaxDecodingMessageSize int

@@ -16,7 +16,7 @@ func TestStockReferenceOrderAndReset(t *testing.T) {
 		t.Fatal(err)
 	}
 	swap := func(reference bool, index uint64) DexEvent {
-		e := &RaydiumCpmmSwapEvent{Metadata: EventMetadata{Slot: 100, TxIndex: index, GrpcRecvUs: 1000}, ParseStatus: TradeParseExecutionConfirmed, PoolID: pool, InputMint: mint, OutputMint: StockUSDC, InputAmount: 1_000_000, OutputAmount: 10_000_000, InputVaultBefore: 1, OutputVaultBefore: 1}
+		e := &RaydiumCpmmSwapEvent{Metadata: EventMetadata{Slot: 100, TxIndex: index, GrpcRecvUs: 1000}, PoolID: pool, InputMint: mint, OutputMint: StockUSDC, InputAmount: 1_000_000, OutputAmount: 10_000_000, InputVaultBefore: 1, OutputVaultBefore: 1}
 		if reference {
 			e.PoolID = DefaultStockSolUsdcPool
 			e.InputMint = StockWSOL

@@ -3,10 +3,12 @@ package shredstream
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
 	pb "github.com/0xfnzero/sol-parser-sdk-golang/shredstream/pb"
 )
@@ -24,7 +26,9 @@ type Client struct {
 // Dial 建立连接（测试连接与 Rust `new_with_config` 类似）。
 func Dial(ctx context.Context, endpoint string, cfg ShredStreamConfig) (*Client, error) {
 	if cfg.MaxDecodingMessageSize <= 0 {
+		token := cfg.AuthToken
 		cfg = DefaultShredStreamConfig()
+		cfg.AuthToken = token
 	}
 	dialCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.ConnectionTimeoutMs)*time.Millisecond)
 	defer cancel()
@@ -69,6 +73,20 @@ func (c *Client) SendHeartbeat(ctx context.Context, req *pb.Heartbeat) (*pb.Hear
 func (c *Client) SubscribeEntries(ctx context.Context) (grpc.ServerStreamingClient[pb.Entry], error) {
 	if c.proxy == nil {
 		return nil, fmt.Errorf("shredstream: client not connected")
+	}
+	if c.config.AuthToken != nil {
+		token := strings.TrimSpace(*c.config.AuthToken)
+		for _, b := range []byte(token) {
+			if b < 32 || b > 126 {
+				return nil, fmt.Errorf("invalid x-token metadata")
+			}
+		}
+		if token != "" {
+			md, _ := metadata.FromOutgoingContext(ctx)
+			md = md.Copy()
+			md.Set("x-token", token)
+			ctx = metadata.NewOutgoingContext(ctx, md)
+		}
 	}
 	return c.proxy.SubscribeEntries(ctx, &pb.SubscribeEntriesRequest{})
 }

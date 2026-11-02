@@ -42,6 +42,8 @@ type RpcClient interface {
 
 // RpcTransactionResponse RPC 交易响应
 type RpcTransactionResponse struct {
+	// Version is "legacy", 0 or 1; nil means no transaction context.
+	Version          any `json:"version"`
 	Slot             uint64
 	BlockTime        *int64
 	Meta             *RpcTransactionMeta
@@ -107,6 +109,7 @@ type RpcTransaction struct {
 
 // RpcMessage 消息
 type RpcMessage struct {
+	TransactionConfig   *WireConfig `json:"transactionConfig,omitempty"`
 	AccountKeys         []string
 	Header              *RpcMessageHeader
 	RecentBlockhash     string
@@ -134,7 +137,7 @@ func parseTransactionFromRpcImpl(
 	signature string,
 	filter EventTypeFilter,
 ) ([]DexEvent, *ParseError) {
-	tx, err := rpcClient.GetTransaction(signature, 0)
+	tx, err := rpcClient.GetTransaction(signature, 1)
 	if err != nil {
 		return nil, &ParseError{
 			Kind:    "RpcError",
@@ -240,7 +243,9 @@ func parseRpcTransactionImpl(
 		}
 	}
 
-	for _, item := range ixEvents { markTradeExecutionSource(item.Event, item.OuterIdx, msg, fullKeys, meta) }
+	for _, item := range ixEvents {
+		markTradeExecutionSource(item.Event, item.OuterIdx, msg, fullKeys, meta)
+	}
 	instrEvents := mergeRpcInstructionEvents(ixEvents)
 	recentBlockhash := ""
 	if msg.RecentBlockhash != "" {
@@ -304,6 +309,19 @@ func parseRpcTransactionImpl(
 	fillRpcDexEvents(events, msg, meta)
 	enrichPumpfunSameTxPostMerge(events)
 
+	var altKeys []string
+	// Avoid allocating ALT context when the transaction has no creation callbacks.
+	for _, event := range events {
+		switch event.Data.(type) {
+		case *PumpFunCreateEvent, *PumpFunCreateV2TokenEvent:
+			altKeys = make([]string, len(msg.AddressTableLookups))
+			for i, l := range msg.AddressTableLookups {
+				altKeys[i] = l.AccountKey
+			}
+			fillCreationContext(events, tx.Version, altKeys)
+			return events, nil
+		}
+	}
 	return events, nil
 }
 
@@ -449,6 +467,18 @@ func ConvertRpcToGrpc(
 			AddressTableLookups: make([]*pb.MessageAddressTableLookup, len(msg.AddressTableLookups)),
 		}
 
+		switch rpcTx.Version {
+		case 0, float64(0):
+			grpcMsg.Versioned = true
+		case 1, float64(1):
+			grpcMsg.Versioned = true
+			grpcMsg.Config = &pb.TransactionConfig{}
+			if c := msg.TransactionConfig; c != nil {
+				grpcMsg.Config = &pb.TransactionConfig{PriorityFee: c.PriorityFee, ComputeUnitLimit: c.ComputeUnitLimit,
+					LoadedAccountsDataSizeLimit: c.LoadedAccountsDataSizeLimit, HeapSize: c.HeapSize}
+			}
+		}
+
 		// 转换账户密钥
 		for i, key := range msg.AccountKeys {
 			decoded, err := base58.Decode(key)
@@ -502,4 +532,43 @@ func ConvertRpcToGrpc(
 	}
 
 	return grpcMeta, grpcTx, nil
+}
+
+// fillCreationContext preserves lookup order and duplicates, without resolving accounts.
+func fillCreationContext(events []DexEvent, version any, altKeys []string) {
+	var v *string
+	name := ""
+	switch version {
+	case "legacy":
+		name = "legacy"
+	case 0, float64(0):
+		name = "v0"
+	case 1, float64(1):
+		name = "v1"
+	}
+	if name != "" {
+		v = &name
+	}
+	for _, event := range events {
+		var addresses *[]string
+		switch e := event.Data.(type) {
+		case *PumpFunCreateEvent:
+			e.TransactionVersion = v
+			addresses = &e.AltAddresses
+		case *PumpFunCreateV2TokenEvent:
+			e.TransactionVersion = v
+			addresses = &e.AltAddresses
+		default:
+			continue
+		}
+		*addresses = nil
+		for _, key := range altKeys {
+			raw, err := base58.Decode(key)
+			if err != nil || len(raw) != 32 {
+				*addresses = nil
+				break
+			}
+			*addresses = append(*addresses, key)
+		}
+	}
 }

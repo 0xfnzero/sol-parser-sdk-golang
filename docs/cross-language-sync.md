@@ -1,20 +1,20 @@
-# Cross-language synchronization (v0.10.0)
+# Cross-language synchronization
 
 The SDK and examples use their own language. All replays below run offline; no parser, price tracker, or cached quote hot path requests RPC.
 
 ## Trade evidence and wrappers
 
-RPC/gRPC uses supplied execution metadata and CPI instructions. Supported trade events expose `parse_status` and optional `third_program`. `ExecutionConfirmed` means a successful transaction supplied execution context; it does not guarantee every amount is known. Instruction budgets and minimum outputs are not fills. `InstructionDecoded` denotes decoded instructions without execution confirmation.
+RPC/gRPC uses supplied execution metadata and CPI instructions. Trade events expose optional `third_program` provenance. Instruction budgets and minimum outputs are not fills; missing execution amounts remain unknown even if the transaction succeeded.
 
-For unknown Shred wrappers whose own account list references Pump.fun, the default callback is `PumpFunTrade` with `Unresolved`. Only a candidate is known: direction, method, mint, pool and amounts remain defaults. A Pump.fun account reference does not prove a CPI occurred. Count candidates separately from confirmed trades. A missing ALT address remains null and cannot establish a Pump.fun reference.
+For unknown Shred wrappers whose own account list references Pump.fun, the default callback is `PumpFunTrade` with unknown trade fields. Only a candidate is known: direction, method, mint, pool and amounts remain defaults. A Pump.fun account reference does not prove a CPI occurred. Count candidates separately from confirmed trades. A missing ALT address remains null and cannot establish a Pump.fun reference.
 
 `third_program` contains the outer `program_id`, `instruction_index`, ordered `accounts` (including duplicates/nulls), original `account_indices`, and byte-array `instruction_data`. Event metadata retains transaction position and receive time. Entries positions are local to a message, not slot-wide execution ordering.
 
-Direction-only subscriptions do not receive unresolved candidates. RawInstruction and PumpRouteIntent callbacks have been removed; subscribe to PumpFunTrade and inspect third_program and parse_status. Unknown non-Pump routers do not become confirmed swaps from account references alone. RPC/gRPC decodes supported native CPI swaps normally.
+Direction-only subscriptions do not receive unresolved candidates. RawInstruction and PumpRouteIntent callbacks have been removed; subscribe to PumpFunTrade and inspect third_program and instruction inputs. Unknown non-Pump routers do not become confirmed swaps from account references alone. RPC/gRPC decodes supported native CPI swaps normally.
 
 Wrapper input remains opaque. The SDK does not reconstruct third-party instruction arguments or install wrapper rules. See [callback and migration details](wrapped-pumpfun.md).
 
-Native Pump.fun ALT inputs remain parseable without resolving every declared address. Missing quote/token-program fields stay unknown. The existing `PumpFunCreateV2` language variant retains `ix_name=create_v2`; a raw create scan preserves `is_created_buy` even with a trade-only filter. Official PumpSwap `multi_hop_swap` emits one input-only PumpFunTrade per canonical bonding-curve hop. A fixed Pump program account alone is insufficient: all-AMM routes must not emit curve trades. Direction follows unambiguous connected mint pairs; ambiguous direction remains Unresolved. Route budgets and minimums are not per-hop fills. Original route inputs remain in third_program.
+Native Pump.fun ALT inputs remain parseable without resolving every declared address. Missing quote/token-program fields stay unknown. The existing `PumpFunCreateV2` language variant retains `ix_name=create_v2`; a raw create scan preserves `is_created_buy` even with a trade-only filter. Official PumpSwap `multi_hop_swap` emits one input-only PumpFunTrade per canonical bonding-curve hop. A fixed Pump program account alone is insufficient: all-AMM routes must not emit curve trades. Direction follows unambiguous connected mint pairs; ambiguous direction remains unknown. Route budgets and minimums are not per-hop fills. Original route inputs remain in third_program.
 
 ## Stock catalog and prices
 
@@ -45,3 +45,17 @@ go run ./examples/pump_execution_replay
 ```
 
 Stock examples accept `--fixture FILE`. Parser captures are dated 2026-10-20; trade examples replay normalized legs from those same signatures. Historical wrapper captures remain regression evidence and are not labeled live transactions.
+
+## Source changes after 0.10.0 (unreleased)
+
+`TradeParseStatus` and trade `parse_status` fields are removed. Keep `third_program` to inspect original router inputs. Stock prices still require protocol-specific execution fields; unknown Shred inputs cannot produce a price.
+
+Both Pump creation variants now expose optional `transaction_version` (`legacy`, `v0`, `v1`) and `alt_addresses` (ALT account keys in original message order, including duplicates). These fields describe the whole transaction, not the Pump instruction version. Without transaction context they remain absent/null. No ALT lookup is performed to obtain them.
+
+Shred subscriptions accept optional `auth_token` (`AuthToken` in Go), trim it and send nonblank values as `x-token`. Examples read `SHREDSTREAM_X_TOKEN`. Invalid metadata is rejected without including the credential in the error.
+
+Cache resolver callbacks receive `(transaction, slot, recv_us, tx_index, event_type_filter)` in that order. Update former two-argument callbacks. Callbacks must use prewarmed data; a miss can be handled locally or skipped. `tx_index` is local to the received batch; `recv_us` is the caller's receive timestamp.
+
+The wrapper replay now includes the two reported GMGN ALT transactions (`2EUPDVEH…` and `38NiGzWa…`). Each has zero static-key candidates and three candidates after ALT expansion. gRPC/RPC can verify the three executed Pump buys. The saved metadata is offline replay evidence, not a live Shred subscription.
+
+Go: `ShredAddressLookupResolver` returns `(writable, readonly, error)`; callers control error handling and continuation. `DexEventsFromShredTransactionWireWithResolver` does not start network requests. Protobuf source is checked in under `proto/`.

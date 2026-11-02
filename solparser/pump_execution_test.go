@@ -79,6 +79,27 @@ func TestPumpExecution(t *testing.T) {
 					if parseErr != nil {
 						t.Fatal(parseErr)
 					}
+					for _, event := range grpcEvents {
+						var version *string
+						switch e := event.Data.(type) {
+						case *PumpFunCreateEvent:
+							version = e.TransactionVersion
+						case *PumpFunCreateV2TokenEvent:
+							version = e.TransactionVersion
+						default:
+							continue
+						}
+						expected := "legacy"
+						if tx.Version == float64(0) {
+							expected = "v0"
+						}
+						if tx.Version == float64(1) {
+							expected = "v1"
+						}
+						if version == nil || *version != expected {
+							t.Fatalf("creation version: %v expected %s", version, expected)
+						}
+					}
 					if !reflect.DeepEqual(executionTrades(grpcEvents), want) {
 						t.Fatal("gRPC mismatch")
 					}
@@ -187,7 +208,7 @@ func TestSignedPumpShredInputs(t *testing.T) {
 						t.Fatal("creation flag depends on create subscription")
 					}
 				} else {
-					if tr.IxName != "multi_hop_swap" || !tr.IsBuy || tr.ParseStatus != TradeParseInstructionDecoded || tr.Mint != "Aijxkeq5L9iaDYZxfaXUhnHQj4cYeo8um6a3t5vzpump" || tr.QuoteMint != "6Vk3fAQWYEot6JbQb8Nx8j5wZeDnMhzk8FajjHhZpump" {
+					if tr.IxName != "multi_hop_swap" || !tr.IsBuy || tr.Mint != "Aijxkeq5L9iaDYZxfaXUhnHQj4cYeo8um6a3t5vzpump" || tr.QuoteMint != "6Vk3fAQWYEot6JbQb8Nx8j5wZeDnMhzk8FajjHhZpump" {
 						t.Fatalf("invalid curve hop %+v", tr)
 					}
 					if tr.SolAmount != 0 || tr.TokenAmount != 0 || tr.QuoteAmount != 0 || tr.ThirdProgram == nil {
@@ -237,5 +258,55 @@ func TestSignedPumpShredInputs(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestCreationContextAndResolver(t *testing.T) {
+	b, err := os.ReadFile("testdata/pump_create_alt_20261026.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixture struct {
+		Cases []struct {
+			Raw     json.RawMessage
+			WireRPC struct {
+				Transaction []string
+				Meta        struct{ LoadedAddresses RpcLoadedAddresses }
+			} `json:"wire_rpc"`
+		}
+	}
+	if err := json.Unmarshal(b, &fixture); err != nil {
+		t.Fatal(err)
+	}
+	c := fixture.Cases[0]
+	wire, err := base64.StdEncoding.DecodeString(c.WireRPC.Transaction[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	filter := &IncludeOnlyFilter{IncludeOnly: []EventType{EventTypePumpFunCreate, EventTypePumpFunTrade}}
+	called := false
+	events, err := DexEventsFromShredTransactionWireWithResolver(wire, "", 42, 888, nil, 123456, filter,
+		func(tx *NativeWireTransaction, slot uint64, recv int64, index uint32, f EventTypeFilter) ([]string, []string, error) {
+			called = true
+			if slot != 42 || recv != 123456 || index != 888 || f != filter || tx.Version != 0 {
+				t.Fatal("resolver context")
+			}
+			return c.WireRPC.Meta.LoadedAddresses.Writable, c.WireRPC.Meta.LoadedAddresses.Readonly, nil
+		})
+	if err != nil || !called || len(events) < 1 {
+		t.Fatalf("resolver: %v", err)
+	}
+	create := events[0].Data.(*PumpFunCreateV2TokenEvent)
+	if create.TransactionVersion == nil || *create.TransactionVersion != "v0" || len(create.AltAddresses) == 0 {
+		t.Fatalf("creation context: %+v", create)
+	}
+	keys := []string{zeroPubkey, PUMPFUN_PROGRAM_ID, zeroPubkey}
+	fillCreationContext(events, 0, keys)
+	if !reflect.DeepEqual(create.AltAddresses, keys) {
+		t.Fatal("ALT order changed")
+	}
+	fillCreationContext(events, 0, []string{zeroPubkey, "bad"})
+	if create.AltAddresses != nil {
+		t.Fatal("partial invalid ALT list")
 	}
 }

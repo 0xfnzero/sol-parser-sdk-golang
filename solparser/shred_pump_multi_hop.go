@@ -67,13 +67,9 @@ func parseShredPumpCurveHops(data []byte, indices []int, keys []string, index in
 		for i, b := range data {
 			raw.InstructionData[i] = int(b)
 		}
-		status := TradeParseUnresolved
-		if known {
-			status = TradeParseInstructionDecoded
-		}
 		out = append(out, DexEvent{Type: EventTypePumpFunTrade, Data: &PumpFunTradeEvent{
 			Metadata: metadata, IxName: "multi_hop_swap", Mint: mint, QuoteMint: quote, User: get(0), BondingCurve: curve,
-			AssociatedBondingCurve: get(start + 3), AssociatedQuoteBondingCurve: get(start + 4), Global: get(13), FeeConfig: get(14), EventAuthority: get(15), Program: PUMPFUN_PROGRAM_ID, SystemProgram: get(9), IsBuy: known && buy, ParseStatus: status, ThirdProgram: raw}})
+			AssociatedBondingCurve: get(start + 3), AssociatedQuoteBondingCurve: get(start + 4), Global: get(13), FeeConfig: get(14), EventAuthority: get(15), Program: PUMPFUN_PROGRAM_ID, SystemProgram: get(9), IsBuy: known && buy, ThirdProgram: raw}})
 	}
 	return out
 }

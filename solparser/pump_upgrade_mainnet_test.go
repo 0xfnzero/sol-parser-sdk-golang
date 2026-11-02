@@ -19,14 +19,17 @@ type pumpUpgradeRawIx struct {
 func pumpUpgradeRPC(t *testing.T, b json.RawMessage) *RpcTransactionResponse {
 	t.Helper()
 	var raw struct {
+		Version     any
 		Slot        uint64
 		BlockTime   *int64
 		Transaction struct {
 			Signatures []string
 			Message    struct {
-				AccountKeys     []string
-				RecentBlockhash string
-				Instructions    []pumpUpgradeRawIx
+				TransactionConfig   *WireConfig
+				AddressTableLookups []RpcMessageAddressTableLookup
+				AccountKeys         []string
+				RecentBlockhash     string
+				Instructions        []pumpUpgradeRawIx
 			}
 		}
 		Meta struct {
@@ -64,6 +67,8 @@ func pumpUpgradeRPC(t *testing.T, b json.RawMessage) *RpcTransactionResponse {
 	for _, i := range raw.Transaction.Message.Instructions {
 		msg.Instructions = append(msg.Instructions, convert(i))
 	}
+	msg.TransactionConfig = raw.Transaction.Message.TransactionConfig
+	msg.AddressTableLookups = raw.Transaction.Message.AddressTableLookups
 	meta := &RpcTransactionMeta{Err: raw.Meta.Err, LogMessages: raw.Meta.LogMessages, LoadedAddresses: &raw.Meta.LoadedAddresses}
 	for _, g := range raw.Meta.InnerInstructions {
 		out := RpcInnerInstructionGroup{Index: g.Index}
@@ -72,7 +77,7 @@ func pumpUpgradeRPC(t *testing.T, b json.RawMessage) *RpcTransactionResponse {
 		}
 		meta.InnerInstructions = append(meta.InnerInstructions, out)
 	}
-	return &RpcTransactionResponse{Slot: raw.Slot, BlockTime: raw.BlockTime, Transaction: &RpcTransaction{Signatures: raw.Transaction.Signatures, Message: msg}, Meta: meta}
+	return &RpcTransactionResponse{Version: raw.Version, Slot: raw.Slot, BlockTime: raw.BlockTime, Transaction: &RpcTransaction{Signatures: raw.Transaction.Signatures, Message: msg}, Meta: meta}
 }
 
 func TestCapturedPumpUpgradeMainnet(t *testing.T) {
