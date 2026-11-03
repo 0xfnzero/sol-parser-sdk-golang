@@ -1,11 +1,17 @@
-# sol-parser-sdk-golang v0.10.0
+# sol-parser-sdk-golang v0.11.0
 
-Released 2026-10-26.
+Released November 3, 2026.
 
-Fix ShredStream create_v2 callbacks with partially resolved ALT accounts and official PumpSwap multi_hop_swap callbacks through Pump.fun curves. Preserve instruction names, input/limit semantics, unknown quotes and create-before-trade ordering; never infer SOL paid from a non-SOL quote. Synchronize native replay examples and validation across languages.
+## Changes
 
-修复 ALT 账户未完全解析时 create_v2 回调和官方多跳内盘回调，保留正确指令名、输入/下限语义、未知报价及创建先于交易的顺序；同步各语言回放示例。
+Remove TradeParseStatus and related parse_status fields. Preserve third_program provenance without inferring executed amounts from third-party wrapper inputs. Carry transaction_version and ordered ALT addresses into Pump.fun creation events. Expand Shred ALT resolver context with receive time, transaction index and event filters; support x-token authentication. Parsing performs no RPC.
 
-## Validation / 验证
+Synchronize V1 transaction decoding and real-transaction replay coverage. Node.js, Go and Python retain CLMM instruction limits separately from execution data and preserve token balances through public RPC/gRPC conversions. Go Shred preserves HTTPS/TLS; Python shares one conversion implementation and rejects invalid CLMM boolean bytes.
 
-Native-language regression suites and replay/build checks passed for the synchronized changes. Four trade implementations completed curve buy/sell and pool buy/sell unsigned mainnet simulations (16 successful simulations); these small-amount interface checks do not replace fresh production quotes. No transaction was broadcast.
+## Migration
+
+Remove references to TradeParseStatus / PumpFunParseStatus / parse_status. Use third_program to inspect wrapper provenance and distinguish instruction inputs from execution fields. Update custom ALT resolver signatures to accept the expanded context; see the language-specific Shred example. Rust event/config struct literals must initialize new fields or use Default. Node.js consumers must use @solana/web3.js 1.99+ for V1 decoding.
+
+## Validation
+
+Native-language regression suites, captured-mainnet transaction replay, package builds and cross-language review passed. Live provider subscriptions were not exercised during this release.
