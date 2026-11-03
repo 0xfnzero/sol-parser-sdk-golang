@@ -163,6 +163,8 @@ gRPC/RPC 使用提供的执行元数据和实际 CPI 指令；Shred 只能看到
 
 ## 示例列表
 
+Shred 端点支持 `https://`（TLS 且校验证书）、`http://` 或明文 `host:port`。配置 `SHRED_URL` 时保留协议前缀。
+
 Shred 认证和 ALT 缓存示例：[`shredstream_entries.go`](examples/shredstream_entries.go)。通过 `SHREDSTREAM_X_TOKEN` 配置认证；可选 `SHRED_ALT_CACHE_FILE` 使用 `{"ALT 公钥": ["地址", ...]}` 格式，在订阅前加载。缓存未命中时可获取 slot、接收时间和交易序号，解析热路径不请求 RPC。
 
 

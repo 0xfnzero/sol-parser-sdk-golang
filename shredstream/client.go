@@ -2,11 +2,15 @@ package shredstream
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
@@ -25,6 +29,10 @@ type Client struct {
 
 // Dial 建立连接（测试连接与 Rust `new_with_config` 类似）。
 func Dial(ctx context.Context, endpoint string, cfg ShredStreamConfig) (*Client, error) {
+	target, transport, err := endpointTransport(endpoint)
+	if err != nil {
+		return nil, err
+	}
 	if cfg.MaxDecodingMessageSize <= 0 {
 		token := cfg.AuthToken
 		cfg = DefaultShredStreamConfig()
@@ -33,8 +41,8 @@ func Dial(ctx context.Context, endpoint string, cfg ShredStreamConfig) (*Client,
 	dialCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.ConnectionTimeoutMs)*time.Millisecond)
 	defer cancel()
 
-	conn, err := grpc.DialContext(dialCtx, endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	conn, err := grpc.DialContext(dialCtx, target,
+		grpc.WithTransportCredentials(transport),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(cfg.MaxDecodingMessageSize),
 			grpc.MaxCallSendMsgSize(cfg.MaxDecodingMessageSize),
@@ -89,4 +97,34 @@ func (c *Client) SubscribeEntries(ctx context.Context) (grpc.ServerStreamingClie
 		}
 	}
 	return c.proxy.SubscribeEntries(ctx, &pb.SubscribeEntriesRequest{})
+}
+
+// Keep bare host:port endpoints compatible, but never discard an explicit TLS scheme.
+func endpointTransport(endpoint string) (string, credentials.TransportCredentials, error) {
+	endpoint = strings.TrimSpace(endpoint)
+	if !strings.Contains(endpoint, "://") {
+		if endpoint == "" {
+			return "", nil, fmt.Errorf("shredstream: endpoint is empty")
+		}
+		return endpoint, insecure.NewCredentials(), nil
+	}
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+		return "", nil, fmt.Errorf("shredstream: invalid endpoint")
+	}
+	port := u.Port()
+	switch u.Scheme {
+	case "https":
+		if port == "" {
+			port = "443"
+		}
+		return net.JoinHostPort(u.Hostname(), port), credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12}), nil
+	case "http":
+		if port == "" {
+			port = "80"
+		}
+		return net.JoinHostPort(u.Hostname(), port), insecure.NewCredentials(), nil
+	default:
+		return "", nil, fmt.Errorf("shredstream: endpoint must use http or https")
+	}
 }

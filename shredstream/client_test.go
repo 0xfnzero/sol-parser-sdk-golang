@@ -39,3 +39,23 @@ func TestSubscribeToken(t *testing.T) {
 		}
 	}
 }
+
+func TestEndpointTransportPreservesTLS(t *testing.T) {
+	for _, tc := range []struct{ endpoint, target, protocol string }{
+		{"https://provider.example:8443", "provider.example:8443", "tls"},
+		{"https://provider.example/", "provider.example:443", "tls"},
+		{"http://localhost:10800", "localhost:10800", "insecure"},
+		{"localhost:10800", "localhost:10800", "insecure"},
+		{"https://[::1]:8443", "[::1]:8443", "tls"},
+	} {
+		target, transport, err := endpointTransport(tc.endpoint)
+		if err != nil || target != tc.target || transport.Info().SecurityProtocol != tc.protocol {
+			t.Fatalf("endpoint %s: %s %v", tc.endpoint, target, err)
+		}
+	}
+	for _, endpoint := range []string{"", "ftp://provider.example", "https://user:secret@provider.example", "https://provider.example/path", "https://"} {
+		if _, _, err := endpointTransport(endpoint); err == nil {
+			t.Fatalf("invalid endpoint accepted: %q", endpoint)
+		}
+	}
+}

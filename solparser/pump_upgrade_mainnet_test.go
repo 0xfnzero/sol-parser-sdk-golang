@@ -33,10 +33,13 @@ func pumpUpgradeRPC(t *testing.T, b json.RawMessage) *RpcTransactionResponse {
 			}
 		}
 		Meta struct {
-			Err               any
-			LogMessages       []string
-			LoadedAddresses   RpcLoadedAddresses
-			InnerInstructions []struct {
+			PreTokenBalances     []RpcTokenBalance
+			PostTokenBalances    []RpcTokenBalance
+			ComputeUnitsConsumed *uint64
+			Err                  any
+			LogMessages          []string
+			LoadedAddresses      RpcLoadedAddresses
+			InnerInstructions    []struct {
 				Index        uint32
 				Instructions []pumpUpgradeRawIx
 			}
@@ -70,6 +73,8 @@ func pumpUpgradeRPC(t *testing.T, b json.RawMessage) *RpcTransactionResponse {
 	msg.TransactionConfig = raw.Transaction.Message.TransactionConfig
 	msg.AddressTableLookups = raw.Transaction.Message.AddressTableLookups
 	meta := &RpcTransactionMeta{Err: raw.Meta.Err, LogMessages: raw.Meta.LogMessages, LoadedAddresses: &raw.Meta.LoadedAddresses}
+	meta.PreTokenBalances, meta.PostTokenBalances = raw.Meta.PreTokenBalances, raw.Meta.PostTokenBalances
+	meta.ComputeUnitsConsumed = raw.Meta.ComputeUnitsConsumed
 	for _, g := range raw.Meta.InnerInstructions {
 		out := RpcInnerInstructionGroup{Index: g.Index}
 		for _, i := range g.Instructions {

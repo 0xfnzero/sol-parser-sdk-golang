@@ -530,6 +530,10 @@ func mergeGrpcInstructionIntoLog(log *DexEvent, ix DexEvent) {
 		l, ok1 := log.Data.(*RaydiumClmmSwapEvent)
 		i, ok2 := ix.Data.(*RaydiumClmmSwapEvent)
 		if ok1 && ok2 && l != nil && i != nil {
+			if i.IxName == "swap" || i.IxName == "swap_v2" {
+				l.IxName, l.Amount, l.OtherAmountThreshold = i.IxName, i.Amount, i.OtherAmountThreshold
+				l.SqrtPriceLimitX64, l.IsBaseInput = i.SqrtPriceLimitX64, i.IsBaseInput
+			}
 			fillStringIfDefault(&l.TokenAccount0, i.TokenAccount0)
 			fillStringIfDefault(&l.TokenAccount1, i.TokenAccount1)
 			fillStringIfDefault(&l.Sender, i.Sender)

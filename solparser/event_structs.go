@@ -749,8 +749,14 @@ func (e *PumpSwapLiquidityRemovedEvent) GetMetadata() EventMetadata { return e.M
 
 // RaydiumClmmSwapEvent Raydium CLMM 交换事件
 type RaydiumClmmSwapEvent struct {
-	InputMint  string `json:"input_mint"`
-	OutputMint string `json:"output_mint"`
+	// Original inputs; executed amounts and ending price are separate.
+	IxName               string `json:"ix_name"`
+	Amount               uint64 `json:"amount"`
+	OtherAmountThreshold uint64 `json:"other_amount_threshold"`
+	SqrtPriceLimitX64    string `json:"sqrt_price_limit_x64"`
+	IsBaseInput          bool   `json:"is_base_input"`
+	InputMint            string `json:"input_mint"`
+	OutputMint           string `json:"output_mint"`
 
 	ThirdProgram  *RawInstructionPayload `json:"third_program,omitempty"`
 	Metadata      EventMetadata          `json:"metadata"`

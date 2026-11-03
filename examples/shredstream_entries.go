@@ -3,7 +3,7 @@
 // ShredStream gRPC：订阅 SubscribeEntries，对 Entry.entries 做 DecodeGRPCEntry 解码（对齐 sol-parser-sdk-ts `shredstream/client.ts` + examples/shredstream_example.ts）。
 //
 // 环境变量：
-//   SHRED_URL      必填，如 http://127.0.0.1:10800（解析为 host:port，明文 gRPC；与 GRPC_URL 不同服务勿混用）
+//   SHRED_URL      必填，如 http://127.0.0.1:10800（https 使用 TLS，http 使用明文；与 GRPC_URL 不同服务勿混用）
 //   SHREDSTREAM_X_TOKEN           可选：SubscribeEntries 认证
 //   SHRED_ALT_CACHE_FILE          可选：预热 JSON {"ALT key": ["address", ...]}，热路径只读
 //   SHRED_MAX_MSG                可选，最大接收字节，默认 1GiB
@@ -25,7 +25,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -46,7 +45,7 @@ func hr(ch byte) string {
 
 func main() {
 	raw := os.Getenv("SHRED_URL")
-	ep := dialTargetFromURL(raw)
+	ep := strings.TrimSpace(raw)
 	if ep == "" {
 		fmt.Fprintf(os.Stderr, "请设置 SHRED_URL（ShredStream 端点，与 GRPC_URL 不同），例如: export SHRED_URL=\"http://127.0.0.1:10800\"\n")
 		os.Exit(1)
@@ -251,7 +250,7 @@ func main() {
 				fmt.Println()
 			}
 		} else if parseDex && !quiet && dexInBatch == 0 {
-			fmt.Println(" (no DexEvent: no matching outer ix, or V0 account indices need ALT + RPC)")
+			fmt.Println(" (no DexEvent: no matching outer ix, or V0 account indices need a prewarmed ALT cache)")
 			fmt.Println()
 		}
 
@@ -285,16 +284,4 @@ func main() {
 	fmt.Println(hr('='))
 	fmt.Printf(" Stopped.  grpc_messages=%d  txs_decoded=%d  decode_fail=%d  dex_events_total=%d\n", b, tx, de, dq)
 	fmt.Println(hr('='))
-}
-
-// dialTargetFromURL 将 http(s)://host:port 转为 gRPC Dial 用的 host:port；已是 host:port 则原样返回。
-func dialTargetFromURL(raw string) string {
-	if raw == "" {
-		return ""
-	}
-	u, err := url.Parse(raw)
-	if err == nil && u.Host != "" {
-		return u.Host
-	}
-	return raw
 }

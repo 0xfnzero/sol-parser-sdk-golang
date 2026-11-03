@@ -85,6 +85,8 @@ type RpcTokenBalance struct {
 	AccountIndex  uint32
 	Mint          string
 	UiTokenAmount RpcUiTokenAmount
+	Owner         string
+	ProgramID     string
 }
 
 // RpcUiTokenAmount Token 金额
@@ -383,13 +385,14 @@ func ConvertRpcToGrpc(
 
 	// 转换 TransactionStatusMeta
 	grpcMeta := &pb.TransactionStatusMeta{
-		Fee:               meta.Fee,
-		PreBalances:       meta.PreBalances,
-		PostBalances:      meta.PostBalances,
-		LogMessages:       meta.LogMessages,
-		InnerInstructions: make([]*pb.InnerInstructions, len(meta.InnerInstructions)),
-		PreTokenBalances:  make([]*pb.TokenBalance, len(meta.PreTokenBalances)),
-		PostTokenBalances: make([]*pb.TokenBalance, len(meta.PostTokenBalances)),
+		Fee:                  meta.Fee,
+		PreBalances:          meta.PreBalances,
+		PostBalances:         meta.PostBalances,
+		LogMessages:          meta.LogMessages,
+		InnerInstructions:    make([]*pb.InnerInstructions, len(meta.InnerInstructions)),
+		PreTokenBalances:     convertRpcTokenBalances(meta.PreTokenBalances),
+		PostTokenBalances:    convertRpcTokenBalances(meta.PostTokenBalances),
+		ComputeUnitsConsumed: meta.ComputeUnitsConsumed,
 	}
 
 	if meta.Err != nil {
@@ -532,6 +535,21 @@ func ConvertRpcToGrpc(
 	}
 
 	return grpcMeta, grpcTx, nil
+}
+
+func convertRpcTokenBalances(balances []RpcTokenBalance) []*pb.TokenBalance {
+	out := make([]*pb.TokenBalance, len(balances))
+	for i, balance := range balances {
+		out[i] = &pb.TokenBalance{
+			AccountIndex: balance.AccountIndex, Mint: balance.Mint,
+			Owner: balance.Owner, ProgramId: balance.ProgramID,
+			UiTokenAmount: &pb.UiTokenAmount{
+				Amount: balance.UiTokenAmount.Amount, Decimals: balance.UiTokenAmount.Decimals,
+				UiAmount: balance.UiTokenAmount.UiAmount, UiAmountString: balance.UiTokenAmount.UiAmountString,
+			},
+		}
+	}
+	return out
 }
 
 // fillCreationContext preserves lookup order and duplicates, without resolving accounts.
