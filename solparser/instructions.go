@@ -1631,6 +1631,10 @@ func ParseRaydiumClmmInstruction(
 		if len(payload) < 8+8+16+1 {
 			return DexEvent{}
 		}
+		ixName := "swap"
+		if discriminator == instrClmmSwapV2 {
+			ixName = "swap_v2"
+		}
 		sqrt, _ := readU128LE(payload, 16)
 		isBaseInput, ok := readBool(payload, 32)
 		if !ok {
@@ -1639,14 +1643,19 @@ func ParseRaydiumClmmInstruction(
 		return DexEvent{
 			Type: EventTypeRaydiumClmmSwap,
 			Data: &RaydiumClmmSwapEvent{
-				Metadata:      meta,
-				PoolState:     getAccountSafe(accounts, 2),
-				Sender:        getAccountSafe(accounts, 0),
-				TokenAccount0: getAccountSafe(accounts, 3),
-				TokenAccount1: getAccountSafe(accounts, 4),
-				ZeroForOne:    isBaseInput,
-				SqrtPriceX64:  u128LEDecimalString(sqrt),
-				Liquidity:     "0",
+				Metadata:             meta,
+				PoolState:            getAccountSafe(accounts, 2),
+				Sender:               getAccountSafe(accounts, 0),
+				TokenAccount0:        getAccountSafe(accounts, 3),
+				TokenAccount1:        getAccountSafe(accounts, 4),
+				ZeroForOne:           false,
+				SqrtPriceX64:         "0",
+				IxName:               ixName,
+				Amount:               binary.LittleEndian.Uint64(payload[:8]),
+				OtherAmountThreshold: binary.LittleEndian.Uint64(payload[8:16]),
+				SqrtPriceLimitX64:    u128LEDecimalString(sqrt),
+				IsBaseInput:          isBaseInput,
+				Liquidity:            "0",
 			},
 		}
 	case instrClmmIncLiqV2:

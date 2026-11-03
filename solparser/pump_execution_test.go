@@ -75,6 +75,24 @@ func TestPumpExecution(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
+					if !reflect.DeepEqual(meta.ComputeUnitsConsumed, tx.Meta.ComputeUnitsConsumed) {
+						t.Fatal("compute units lost during conversion")
+					}
+					for i, original := range [][]RpcTokenBalance{tx.Meta.PreTokenBalances, tx.Meta.PostTokenBalances} {
+						encoded := meta.PreTokenBalances
+						if i == 1 {
+							encoded = meta.PostTokenBalances
+						}
+						if len(encoded) != len(original) {
+							t.Fatal("token balance count changed")
+						}
+						for j, balance := range original {
+							out := encoded[j]
+							if out == nil || out.UiTokenAmount == nil || out.AccountIndex != balance.AccountIndex || out.Mint != balance.Mint || out.Owner != balance.Owner || out.ProgramId != balance.ProgramID || out.UiTokenAmount.Amount != balance.UiTokenAmount.Amount || out.UiTokenAmount.Decimals != balance.UiTokenAmount.Decimals || out.UiTokenAmount.UiAmount != balance.UiTokenAmount.UiAmount || out.UiTokenAmount.UiAmountString != balance.UiTokenAmount.UiAmountString {
+								t.Fatalf("token balance changed: %+v", out)
+							}
+						}
+					}
 					grpcEvents, parseErr := ParseSubscribeTransaction(tx.Slot, &SubscribeUpdateTransactionInfo{Transaction: transaction, Meta: meta}, nil, 0)
 					if parseErr != nil {
 						t.Fatal(parseErr)

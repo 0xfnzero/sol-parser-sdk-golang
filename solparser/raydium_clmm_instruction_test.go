@@ -390,3 +390,38 @@ func TestCustomizablePoolIDLBoundaries(t *testing.T) {
 		t.Fatal("valid after malformed rejected")
 	}
 }
+
+func TestClmmSwapInputsRemainSeparateThroughLogMerge(t *testing.T) {
+	for _, disc := range []uint64{instrClmmSwap, instrClmmSwapV2} {
+		name := "swap"
+		if disc == instrClmmSwapV2 {
+			name = "swap_v2"
+		}
+		for _, mode := range []byte{0, 1} {
+			wire := make([]byte, 41)
+			binary.LittleEndian.PutUint64(wire, disc)
+			binary.LittleEndian.PutUint64(wire[8:], 123)
+			binary.LittleEndian.PutUint64(wire[16:], 45)
+			limit := u128ForTest(80, 99)
+			copy(wire[24:], limit[:])
+			wire[40] = mode
+			ix := ParseRaydiumClmmInstruction(wire, raydiumClmmTestAccounts(14), "sig", 1, 0, nil, 10)
+			e := ix.Data.(*RaydiumClmmSwapEvent)
+			if e.Amount0 != 0 || e.Amount1 != 0 || e.SqrtPriceX64 != "0" || e.ZeroForOne {
+				t.Fatalf("instruction claimed execution: %+v", e)
+			}
+			if e.IxName != name || e.Amount != 123 || e.OtherAmountThreshold != 45 || e.SqrtPriceLimitX64 != u128LEDecimalString(limit) || e.IsBaseInput != (mode == 1) {
+				t.Fatalf("inputs lost: %+v", e)
+			}
+			log := DexEvent{Type: EventTypeRaydiumClmmSwap, Data: &RaydiumClmmSwapEvent{PoolState: e.PoolState, Amount0: 120, Amount1: 50, SqrtPriceX64: "777", ZeroForOne: mode == 0}}
+			out := DedupeLogInstructionEvents([]DexEvent{log}, []DexEvent{ix})
+			if len(out) != 1 {
+				t.Fatal(len(out))
+			}
+			e = out[0].Data.(*RaydiumClmmSwapEvent)
+			if e.Amount0 != 120 || e.Amount1 != 50 || e.SqrtPriceX64 != "777" || e.ZeroForOne != (mode == 0) || e.IxName != name || e.Amount != 123 || e.OtherAmountThreshold != 45 || e.SqrtPriceLimitX64 != u128LEDecimalString(limit) || e.IsBaseInput != (mode == 1) {
+				t.Fatalf("merge mixed execution and inputs: %+v", e)
+			}
+		}
+	}
+}

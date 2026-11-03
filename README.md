@@ -171,6 +171,8 @@ The parsing hot path performs no RPC. Missing fields are unknown; their defaults
 
 ## Examples
 
+Shred endpoints accept `https://` with certificate-verified TLS, `http://`, or a bare `host:port` for plaintext connections. Keep the scheme when configuring `SHRED_URL`.
+
 Shred x-token + ALT cache resolver: [`shredstream_entries.go`](examples/shredstream_entries.go). `SHREDSTREAM_X_TOKEN` supplies authentication; optional `SHRED_ALT_CACHE_FILE` contains `{"ALT public key": ["address", ...]}` loaded before subscribing. Cache misses expose slot, receive time and transaction index; parsing performs no RPC.
 
 Run from the **repository root** after `go mod tidy`. One row per source file (links point to GitHub `main`).
